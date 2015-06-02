@@ -1,0 +1,10 @@
+#
+# Hisilicon CPU frequency Drivers
+#
+
+config HI3518_CPUFREQ
+	tristate "Hi3518-SOC CPU frequency Drivers"
+	depends on CPU_FREQ
+	help
+	  Hisilicon Hi3518-SOCCPU frequency Drivers Support
+

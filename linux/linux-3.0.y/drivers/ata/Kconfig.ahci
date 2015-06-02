@@ -1,0 +1,90 @@
+#
+# hisatav100 sata ahci device configuration
+#
+
+menuconfig HI_SATA
+	bool "hisilicon sata device support"
+	depends on (ARCH_GODBOX_V1 || ARCH_GODBOX || ARCH_GODNET || ARCH_GODARM || ARCH_HI3520D)
+	default y if (ARCH_GODBOX_V1 || ARCH_GODBOX  || ARCH_GODNET || ARCH_GODARM || ARCH_HI3520D)
+	select ATA
+	select ATA_VERBOSE_ERROR
+	select SATA_PMP
+#	select SATA_AHCI_PLATFORM
+	help
+	  This selects the hisilicon sata device.
+
+if HI_SATA
+
+
+config HI_SATA_IOBASE
+	hex "hi sata IO address"
+	default "0x60040000" if ARCH_GODBOX_V1
+	default "0x60040000" if ARCH_GODBOX
+	default "0x10080000" if (ARCH_GODNET || ARCH_GODARM || ARCH_HI3520D)
+
+config HI_SATA_IOSIZE
+	hex "hi sata IO size"
+	default "0x00010000"
+	help
+	  default is 0x10000.
+
+config HI_SATA_IRQNUM
+	int "hi sata irq number"
+	default "92" if ARCH_GODBOX_V1
+	default "92" if ARCH_GODBOX
+	default "68" if (ARCH_GODNET || ARCH_GODARM)
+	default "52" if ARCH_HI3520D
+
+config HI_SATA_PHY_CONFIG
+	hex "hi sata phy config for 1.5G"
+	default "0x0e262734" if (ARCH_GODBOX_V1 || ARCH_GODBOX)
+	default "0x0e262709" if (ARCH_GODNET || ARCH_GODARM)
+	default "0x0e276756" if (ARCH_HI3520D)
+	help
+	   default is 0x0e262709 when godnet and godarm.
+	   default is 0x0e276756 when hi3520d.
+
+config HI_SATA_PHYX_CTLH_VAL
+	hex "hi sata phy[0/1] ctlh value"
+	default "0x2121" if (ARCH_GODNET || ARCH_GODARM \
+		|| ARCH_GODBOX_V1 || ARCH_GODBOX)
+	default "0x2521" if (ARCH_HI3520D)
+	help
+	   default is 0x2121 when godnet and godarm.
+	   default is 0x2521 when hi3520d.
+
+config HI_SATA_PHY0_CTLL_3G_VAL
+	hex "hi sata phy0 global ctrl low val"
+	default "0x8a0ec888" if (ARCH_GODNET || ARCH_GODARM)
+	default "0x880ec888" if ARCH_HI3520D
+
+config HI_SATA_PHY0_CTLL_15G_VAL
+	hex "hi sata phy0 global ctrl low val"
+	default "0x8a0ec788" if (ARCH_GODNET || ARCH_GODARM)
+	default "0x880ec788" if ARCH_HI3520D
+
+config HI_SATA_3G_PHY_CONFIG
+	hex "hi sata phy config for 3G"
+	default "0x0e662753" if (ARCH_GODBOX_V1 || ARCH_GODBOX)
+	default "0x0e662709" if (ARCH_GODNET || ARCH_GODARM)
+	default "0x0e676756" if (ARCH_HI3520D)
+	help
+	   default is 0x0e662709 when godnet and godarm.
+	   default is 0x0e676756 when hi3520d.
+
+config HI_SATA_MODE
+	int "hi sata interworking speed mode(1.5G:0/3G:1)"
+	range 0 1
+	default "0" if ARCH_GODBOX_V1
+	default "0" if ARCH_GODBOX
+	default "0" if (ARCH_GODNET || ARCH_GODARM || ARCH_HI3520D)
+
+config HI_SATA_PORTS
+	int "hi sata port number"
+	default "2" if ARCH_GODBOX_V1
+	default "1" if ARCH_GODBOX
+	default "2" if (ARCH_GODNET || ARCH_GODARM || ARCH_HI3520D)
+
+endif # HI_SATA
+
+#vim: set ts=8 sw=8 tw=78:

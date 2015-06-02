@@ -1,0 +1,58 @@
+#
+#  himciv100 family SD/MMC device configuration
+#
+
+menuconfig HIMCIV100
+	tristate "himciv100 sd/mmc device support"
+	depends on (ARCH_GODEYES || ARCH_GODBOX || ARCH_GODNET || ARCH_PHOENIX || ARCH_GODARM || ARCH_HI3518)
+	default y if (ARCH_GODEYES || ARCH_GODBOX || ARCH_GODNET || ARCH_PHOENIX || ARCH_GODARM || ARCH_HI3518)
+	select MMC_UNSAFE_RESUME
+	select MMC_EMBEDDED_SDIO
+	select MMC_BLOCK
+	select MMC_BLOCK_BOUNCE
+	help
+	  This selects the Hisilicon Synopsys MultiMedia Card Interface
+	  support. If you have a mmc platform with a MultiMedia Card slot,
+	  Say Y or M here.
+
+	  default is Y.
+
+if HIMCIV100
+
+config HIMCI_IOBASE
+	hex "himci reg base"
+	default "0x10020000" if ARCH_GODEYES
+	default "0x601C0000" if ARCH_GODBOX
+	default "0x10020000" if (ARCH_GODNET || ARCH_GODARM)
+	default "0x20070000" if ARCH_PHOENIX
+	default "0x10020000" if ARCH_HI3518
+
+config HIMCI_INTR
+	int "himci intr number"
+	default "70" if ARCH_GODEYES
+	default "98" if ARCH_GODBOX
+	default "67" if (ARCH_GODNET || ARCH_GODARM)
+	default "73" if ARCH_PHOENIX
+	default "18" if ARCH_HI3518
+
+config MMC_CLK
+	int "himci mmc clock"
+	default "24000000" if ARCH_GODEYES
+	default "24000000" if ARCH_GODBOX
+	default "50000000" if (ARCH_GODNET || ARCH_GODARM)
+	default "24000000" if ARCH_PHOENIX
+	default "50000000" if ARCH_HI3518
+
+config MMC_CCLK_MAX
+	int "himci mmc c-clock max"
+	default "12000000" if ARCH_GODEYES
+	default "12000000" if ARCH_GODBOX
+	default "12500000" if (ARCH_GODNET || ARCH_GODARM)
+	default "12000000" if ARCH_PHOENIX
+	default "50000000" if ARCH_HI3518
+
+config MMC_CCLK_MIN
+	int "himci mmc c-clock min"
+	default "60000"
+
+endif

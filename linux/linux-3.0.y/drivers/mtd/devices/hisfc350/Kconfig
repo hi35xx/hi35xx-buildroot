@@ -1,0 +1,65 @@
+#
+# hisilicon spi flash controller device version 350
+#
+
+menuconfig MTD_HISFC350
+	tristate "hisilicon spi flash controller device version 350 driver"
+	depends on (ARCH_GODSMART || ARCH_PHOENIX || ARCH_HI3518 || ARCH_HI3520D)
+	default y if (ARCH_GODSMART || ARCH_PHOENIX || ARCH_HI3518 || ARCH_HI3520D)
+	select MTD_SPI_IDS
+	help
+	  Hisilicon spi flash controller device version 350.
+	  Hisilicon spi flash controller version 350 support
+	  DMA transfers while reading and write the spi flash,
+	  which will improve the performace very much.
+
+if MTD_HISFC350
+
+config HISFC350_SYSCTRL_ADDRESS
+	hex "cpu system control register base address"
+	default "0x101e0000" if ARCH_GODSMART
+	default "0x200d0000" if ARCH_PHOENIX
+	default "0x20030000" if (ARCH_HI3518 || ARCH_HI3520D)
+
+config HISFC350_BUFFER_BASE_ADDRESS
+	hex "hisfc350 read/write memory base address"
+	default "0x30000000" if ARCH_GODSMART
+	default "0x58000000" if ARCH_PHOENIX
+	default "0x58000000" if (ARCH_HI3518 || ARCH_HI3520D)
+
+config HISFC350_REG_BASE_ADDRESS
+	hex "hisfc350 register base address"
+	default "0x10130000" if ARCH_GODSMART
+	default "0x20020000" if ARCH_PHOENIX
+	default "0x10010000" if (ARCH_HI3518 || ARCH_HI3520D)
+
+config HISFC350_CHIP_NUM
+	int "hisfc350 spi chip number"
+	default 2 if ARCH_GODSMART
+	default 2 if ARCH_PHOENIX
+	default 2 if (ARCH_HI3518 || ARCH_HI3520D)
+
+config HISFC350_SHOW_CYCLE_TIMING
+	bool "show spi read/write/erase cycle timing"
+	default n if ARCH_GODSMART
+	default n if ARCH_PHOENIX
+	default n if (ARCH_HI3518 || ARCH_HI3520D)
+	help
+	  Show spi read/write/erase cycle timing, command, clock.
+	  This is a debug option. When enabled, some command and
+	  cycles uesed on operations will show for you.
+	  If unsure, say no.
+
+config HISFC350_ENABLE_CHIPSELECT_0
+	bool "use spi device on chipselect 0"
+	default n if ARCH_GODSMART
+	default n if ARCH_PHOENIX
+	default n if (ARCH_HI3518 || ARCH_HI3520D)
+
+config HISFC350_ENABLE_CHIPSELECT_1
+	bool "use spi device on chipselect 1"
+	default y if ARCH_GODSMART
+	default y if ARCH_PHOENIX
+	default y if (ARCH_HI3518 || ARCH_HI3520D)
+
+endif # MTD_HISFC350

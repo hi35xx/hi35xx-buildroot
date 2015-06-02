@@ -1,0 +1,46 @@
+#
+# hisilicon spi flash controller device version 300
+#
+
+menuconfig MTD_HISFC300
+	tristate "hisilicon spi flash controller device version 300 driver"
+	depends on (ARCH_GODBOX || ARCH_GODEYES || ARCH_GODNET || ARCH_GODCUBE)
+	default y if (ARCH_GODBOX || ARCH_GODEYES || ARCH_GODNET || ARCH_GODCUBE)
+	select MTD_SPI_IDS
+	help
+	  hisilicon spi flash controller device version 300.
+
+	  if you have a spi flash, select Y or M.
+	  default is Y.
+
+if MTD_HISFC300
+
+config HISFC300_BUFFER_BASE_ADDRESS
+	hex "hisfc300 read/write memory base address"
+	default "0x26000000" if ARCH_GODBOX
+	default "0x58000000" if ARCH_GODEYES
+	default "0x58000000" if ARCH_GODNET
+	default "0x58000000" if ARCH_GODCUBE
+
+config HISFC300_REG_BASE_ADDRESS
+	hex "hisfc300 register base address"
+	default "0x60020000" if ARCH_GODBOX
+	default "0x10010000" if ARCH_GODEYES
+	default "0x10010000" if ARCH_GODNET
+	default "0x10010000" if ARCH_GODCUBE
+
+config HISFC300_PERIPHERY_REGBASE
+	hex "hisfc300 register base address"
+	default "0x101F5000" if ARCH_GODBOX
+	default "0x20030000" if ARCH_GODEYES
+	default "0x20030000" if ARCH_GODNET
+	default "0x20030000" if ARCH_GODCUBE
+
+config HISFC300_CHIP_NUM
+	int "hisfc300 spi chip number"
+	default 2 if ARCH_GODBOX
+	default 2 if ARCH_GODEYES
+	default 2 if ARCH_GODNET
+	default 2 if ARCH_GODCUBE
+
+endif # MTD_HISFC300

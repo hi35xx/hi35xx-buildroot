@@ -1,0 +1,54 @@
+#
+# drivers/mtd/nand/hinfc300/Kconfig
+#
+
+menuconfig MTD_NAND_HINFC300
+    tristate "Hisilicon NAND Controller v300 device Support"
+    depends on MTD_NAND
+    depends on (ARCH_GODBOX_V1)
+    default y if (ARCH_GODBOX_V1)
+    select MISC_FILESYSTEMS
+    select MTD_BLOCK
+    help
+         Hisilicon NAND Controller v300 device Support
+
+if MTD_NAND_HINFC300
+
+config HINFC300_MAX_CHIP
+    int "number of nand flash chip (1,2)"
+    default 1
+    help
+      nand controller v300 device only support 1 or 2 nand flash chip,
+      your should not config other value.
+
+config HINFC300_DBG_NAND_PROC_FILE
+    bool "debug: create /proc/nand file"
+    help
+      export /proc/nand file for debug.
+
+config HINFC300_DBG_NAND_EC_NOTICE
+    bool "debug: notice uncorrectable error"
+    help
+      notice nand uncorrectable error
+
+choice
+    prompt "Pagesize and Ecc Type Select"
+
+config HINFC300_HARDWARE_PAGESIZE_ECC
+    bool "Hardware"
+    help
+      pagesize and ecc type use hardware config
+
+config HINFC300_AUTO_PAGESIZE_ECC
+    bool "Auto"
+    help
+      pagesize and ecc type use hardware config
+
+config HINFC300_PAGESIZE_AUTO_ECC_NONE
+    bool "Pagesize Auto, Ecc None"
+    help
+      select pagesize 2K, ecc none.
+
+endchoice
+
+endif # MTD_NAND_HINFC300

@@ -1,0 +1,51 @@
+#ifndef __HI_CHIP_REGS_H__
+#define __HI_CHIP_REGS_H__
+
+#include <mach/io.h>
+
+#define DDR_BASE		0x80000000
+#define DDRC1_BASE		0x20120000
+#define DDRC0_BASE		0x20110000
+#define IOCONFIG_BASE		0x200F0000
+#define UART0_BASE		0x20080000
+#define SYS_CTRL_BASE		0x20050000
+#define WDG_BASE		0x20040000
+#define CRG_REG_BASE		0x20030000
+#define TIMER23_BASE		0x20010000
+#define TIMER01_BASE		0x20000000
+#define REG_BASE_INTC		0x10140000
+#define DMAC_BASE		0x100D0000
+
+#define REG_INTC_IRQSTATUS      0x000
+#define REG_INTC_FIQSTATUS      0x004
+#define REG_INTC_RAWSTATUS      0x008
+#define REG_INTC_INTSELECT      0x00C
+#define REG_INTC_INTENABLE      0x010
+#define REG_INTC_INTENCLEAR     0x014
+#define REG_INTC_SOFTINT        0x018
+#define REG_INTC_SOFTINTCLEAR   0x01C
+#define REG_INTC_PROTECTION     0x020
+
+#define INTNR_IRQ_START		0
+#define INTNR_IRQ_END		31
+
+#define REG_TIMER_RELOAD        0x000
+#define REG_TIMER_VALUE         0x004
+#define REG_TIMER_CONTROL       0x008
+#define REG_TIMER_INTCLR        0x00C
+#define REG_TIMER_RIS           0x010
+#define REG_TIMER_MIS           0x014
+#define REG_TIMER_BGLOAD        0x018
+
+#define REG_TIMER1_RELOAD	0x020
+#define REG_TIMER1_VALUE	0x024
+#define REG_TIMER1_CONTROL	0x028
+#define REG_TIMER1_INTCLR	0x02C
+#define REG_TIMER1_RIS		0x030
+#define REG_TIMER1_MIS		0x034
+#define REG_TIMER1_BGLOAD	0x038
+
+#define REG_SC_SYSRES		0x4
+
+#define UART_CKSEL_APB		(1 << 13)
+#endif

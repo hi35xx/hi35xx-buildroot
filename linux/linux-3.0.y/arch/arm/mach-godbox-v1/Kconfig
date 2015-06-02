@@ -1,0 +1,14 @@
+menu "GODBOX V1 board feature"
+config MACH_GODBOX_V1
+	bool "Support godbox v1 platform"
+	select CPU_V7
+	select ARM_GIC
+	help
+	  Include support for the hisilion godbox v1 platform.
+
+config DEFAULT_BUSCLK
+	int "DEFAULT_BUSCLK"
+	default "50000000"
+	help
+	Default AHB clock rate
+endmenu

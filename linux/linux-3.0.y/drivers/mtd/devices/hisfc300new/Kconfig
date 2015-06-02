@@ -1,0 +1,40 @@
+#
+# hisilicon spi flash controller device version 300
+#
+
+menuconfig MTD_HISFC300NEW
+	tristate "hisilicon spi flash controller device version 300new driver"
+	depends on (ARCH_GODNET || ARCH_GODCUBE || ARCH_GODARM)
+	default y if (ARCH_GODNET || ARCH_GODCUBE || ARCH_GODARM)
+	select MTD_SPI_IDS
+	help
+	  hisilicon spi flash controller device version 300new.
+
+	  if you have a spi flash, select Y or M.
+	  default is Y.
+
+if MTD_HISFC300NEW
+
+config HISFC300NEW_BUFFER_BASE_ADDRESS
+	hex "hisfc300new read/write memory base address"
+	default "0x58000000" if (ARCH_GODNET || ARCH_GODARM || ARCH_GODCUBE)
+
+config HISFC300NEW_REG_BASE_ADDRESS
+	hex "hisfc300new register base address"
+	default "0x10010000" if (ARCH_GODNET || ARCH_GODARM || ARCH_GODCUBE)
+
+config HISFC300NEW_PERIPHERY_REGBASE
+	hex "hisfc300new register base address"
+	default "0x20030000" if (ARCH_GODNET || ARCH_GODARM || ARCH_GODCUBE)
+
+config HISFC300NEW_CHIP_NUM
+	int "hisfc300new spi chip number"
+	default 2 if (ARCH_GODNET || ARCH_GODARM || ARCH_GODCUBE)
+
+config HISFC300NEW_SHOW_CYCLE_TIMING
+	bool "show spi read/write/erase timing cycle"
+	default n
+	help
+	  Show spi read/write/erase timing cycle, command, clock.
+
+endif # MTD_HISFC300NEW

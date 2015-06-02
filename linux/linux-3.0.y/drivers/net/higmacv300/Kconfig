@@ -1,0 +1,86 @@
+config HIGMACV300_ETH
+	tristate "HigmacV300 Ethernet driver"
+	select MII
+	select PHYLIB
+	select CRC32
+	depends on NETDEVICES && HAS_IOMEM && ARCH_GODARM
+	help
+	  This is the driver for the Ethernet IPs are built around a
+	  Synopsys IP Core and only tested on the STMicroelectronics
+	  platforms.
+
+if HIGMACV300_ETH
+
+config HIGMACV300_DA
+	bool "HIGMACV300 DMA arbitration scheme"
+	default n
+	help
+	  Selecting this option, rx has priority over Tx (only for Giga
+	  Ethernet device).
+	  By default, the DMA arbitration scheme is based on Round-robin
+	  (rx:tx priority is 1:1).
+
+config HIGMACV300_DUAL_MAC
+	bool "HIGMACiV300: dual mac support"
+	default n
+        depends on HIGMACV300_ETH
+	help
+	  The Huawei Hi3521 soCs has only one Ethernet Controllers.
+	  The Huawei Hi35XX SoCs may have two Ethernet Controllers. This option turns on
+	  the second Ethernet device if required.
+
+config HIGMACV300_TIMER
+	bool "HIGMACV300 Timer optimisation"
+	default n
+	depends on RTC_HCTOSYS_DEVICE
+	help
+	  Use an external timer for mitigating the number of network
+	  interrupts. Currently, for SH architectures, it is possible
+	  to use the TMU channel 2 and the SH-RTC device.
+
+choice
+        prompt "Select Timer device"
+        depends on HIGMACV300_TIMER
+
+config HIGMACV300_TMU_TIMER
+        bool "TMU channel 2"
+        depends on CPU_SH4
+	help
+
+config HIGMACV300_RTC_TIMER
+        bool "Real time clock"
+        depends on RTC_CLASS
+	help
+
+endchoice
+
+config HIGMACV300_IOADDR
+	hex "HIGMACV300 IO address"
+	default "0x101c0000" if ARCH_GODARM
+
+config HIGMACV300_IOSIZE
+	hex "HIGMACV300 IO size"
+	default "0x00020000"
+
+config HIGMACV300_IRQNUM
+	int "HIGMACV300 irq number"
+	default "119" if ARCH_GODARM
+
+config HIGMACV300_SYS_IOADDR
+	hex "HIGMACV300 System Config IO address"
+	default "0x20030000" if ARCH_GODARM
+
+config HIGMACV300_SYS_IOSIZE
+	hex "HIGMACV300 System Config IO size"
+	default "0x00000100"
+
+config HIGMACV300_PHY0_ID
+	hex "HIGMACV300 MAC #0 PHY ID"
+	default 1 if ARCH_GODARM
+
+config HIGMACV300_PHY1_ID
+	hex "HIGMACV300 MAC #1 PHY ID"
+	default 2
+	depends on HIGMACV300_DUAL_MAC
+
+endif

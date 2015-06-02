@@ -1,0 +1,137 @@
+#
+# drivers/mtd/nand/hinfc301/Kconfig
+#
+
+menuconfig MTD_NAND_HINFC301
+    tristate "Hisilicon NAND Controller v301 device Support"
+    depends on MTD_NAND
+    depends on (ARCH_GODEYES || ARCH_GODBOX || ARCH_GODNET || ARCH_PHOENIX || ARCH_GODARM || ARCH_HI3518)
+    default y if (ARCH_GODEYES || ARCH_GODBOX || ARCH_GODNET || ARCH_PHOENIX || ARCH_GODARM || ARCH_HI3518)
+    select MISC_FILESYSTEMS
+    select MTD_BLOCK
+    help
+	 Hisilicon NAND Controller v301 device Support
+
+	 Make sure the NAND Controller related I/O pins were
+         pull up/down correctly.
+
+if MTD_NAND_HINFC301
+
+config HINFC301_REG_BASE_ADDRESS
+	hex "nand controller's register base address"
+	default 0x60010000 if (ARCH_GODBOX)
+	default 0x10000000 if (ARCH_GODEYES || ARCH_GODNET || ARCH_GODARM || ARCH_HI3518)
+	default 0x20010000 if (ARCH_PHOENIX)
+	help
+	  register base address of nand controller
+
+	  this memory region include NFC_CMD NFC_STATUS
+	  registers and so on.
+          configure it in accord with the chip datasheet.
+
+config HINFC301_BUFFER_BASE_ADDRESS
+	hex "nand controller's buffer base address"
+	default 0x24000000 if (ARCH_GODBOX)
+	default 0x50000000 if (ARCH_GODEYES || ARCH_GODNET || ARCH_GODARM || ARCH_PHOENIX || ARCH_HI3518)
+	help
+	  buffer base address of nand controller
+
+	  this buffer is the inner FIFO for nand
+	  controller.
+          configure it in accord with the chip datasheet.
+
+config HINFC301_PERIPHERY_REGBASE
+	hex "nand controller's peripher base address"
+	default 0x101F5000 if (ARCH_GODBOX)
+	default 0x20030000 if (ARCH_GODEYES || ARCH_GODNET || ARCH_GODARM || ARCH_HI3518)
+	default 0x10021000 if (ARCH_PHOENIX)
+	help
+	  peripher base address of nand controller,for clk setting
+
+	  peri_ctl_reg base addr, used for clk source select, clock
+	  source enable, and controller reset.
+          configure it in accord with the chip datasheet.
+
+config HINFC301_W_LATCH
+	hex "nand controller's write low pwidth"
+	default "0x5" if (ARCH_GODBOX || ARCH_GODEYES ||ARCH_PHOENIX)
+	default "0xa" if (ARCH_GODNET || ARCH_GODARM || ARCH_HI3518)
+	help
+		write pwidth is the low level of write sample in
+		nand controller, which depend on the ahb clk.
+
+config HINFC301_R_LATCH
+	hex "nand controller's read low pwidth"
+	default "0x5" if (ARCH_GODBOX || ARCH_GODEYES || ARCH_PHOENIX)
+	default "0xa" if (ARCH_GODNET || ARCH_GODARM || ARCH_HI3518)
+	help
+		read pwidth is the low level of read sample in
+		nand controller, which depend on the ahb clk.
+
+config HINFC301_RW_LATCH
+	hex "nand controller's read/write high pwidth"
+	default "0x3" if (ARCH_GODBOX || ARCH_GODEYES || ARCH_PHOENIX)
+	default "0xa" if (ARCH_GODNET || ARCH_GODARM || ARCH_HI3518)
+	help
+		read/write pwidth is the high level of read/write sample
+		in nand controller, which depend on the ahb clk.
+
+config HINFC301_MAX_CHIP
+    int "number of nand flash chip (1,4)"
+    default 1
+    help
+      nand controller v301 device only support 1 or 2 nand flash chip,
+      your should not config other value.
+      for a nand devices, chip nums = totoal size / chip size, you can
+      get the chip size from the datasheet.
+
+config HINFC301_DBG_NAND_PROC_FILE
+    bool "debug: create /proc/nand file"
+    help
+      export /proc/nand file for debug.
+
+      use /proc filesystem for debug purpuse.
+      use /proc filesystem for debug purpuse.
+      default is N.
+
+config HINFC301_DBG_NAND_EC_NOTICE
+    bool "debug: notice uncorrectable error"
+    help
+      notice nand uncorrectable error
+
+      for debug purpuse
+      default is N.
+
+choice
+    prompt "Pagesize and Ecc Type Select"
+
+config HINFC301_HARDWARE_PAGESIZE_ECC
+    bool "Hardware"
+    help
+      pagesize and ecc type use hardware config
+
+      This is the default choice.
+      drivers get the pagesize and ecc info from
+      the pull up/down of specific I/O pins.
+
+config HINFC301_AUTO_PAGESIZE_ECC
+    bool "Auto"
+    help
+      pagesize and ecc type were choiced by driver.
+
+      drivers read device ID, and get the pagesize
+      info, then use best fit algorithms to decide
+      the ecc type.
+
+config HINFC301_PAGESIZE_AUTO_ECC_NONE
+    bool "Pagesize Auto, Ecc None"
+    help
+      select pagesize 2K, ecc none.
+
+      drivers get pagesize info from device ID, and
+      don't use ecc.
+      just for test purpose.
+
+endchoice
+
+endif # MTD_NAND_HINFC301

@@ -1,0 +1,172 @@
+#
+# hieth family network device configuration
+#
+
+menuconfig HIETH_SWITCH_FABRIC
+	tristate "hieth(switch fabric) family network device support"
+	depends on (ARCH_GODBOX_V1 || ARCH_GODVIEW || ARCH_GODBOX || ARCH_GODNET || ARCH_GODCUBE || ARCH_PHOENIX || ARCH_HI3518 || ARCH_HI3520D)
+	default y if (ARCH_GODBOX_V1 || ARCH_GODVIEW || ARCH_GODBOX || ARCH_GODNET || ARCH_GODCUBE || ARCH_PHOENIX || ARCH_HI3518 || ARCH_HI3520D)
+	select PHYLIB
+	help
+	  This selects the hieth family network device.
+
+if HIETH_SWITCH_FABRIC
+
+config HIETH_INNER_PHY
+	bool "enable inner phy"
+	depends on ARCH_HI3520D
+	default n if ARCH_HI3520D
+	help
+	  Enable inner-phy in kernel.
+
+config HIETH_TAG
+	hex "hieth tag"
+	default "0x726d6d73"
+	help
+	  This is graceful set mac in kernel.
+
+config HIETH_IOBASE
+	hex "hieth IO address"
+	default "0x600D0000" if ARCH_GODBOX_V1
+	default "0x10150000" if ARCH_GODVIEW
+	default "0x600D0000" if ARCH_GODBOX
+	default "0x10090000" if ARCH_GODNET
+	default "0x10090000" if ARCH_GODCUBE
+	default "0x20060000" if ARCH_PHOENIX
+	default "0x10090000" if (ARCH_HI3518 || ARCH_HI3520D)
+
+config HIETH_IOSIZE
+	hex "hieth IO size"
+	default "0x00010000"
+	help
+	  default is 0x10000.
+
+config HIETH_IRQNUM
+	int "hieth irq number"
+	default "83" if ARCH_GODBOX_V1
+	default "26" if ARCH_GODVIEW
+	default "83" if ARCH_GODBOX
+	default "58" if ARCH_GODNET
+	default "12" if ARCH_GODCUBE
+	default "38" if ARCH_PHOENIX
+	default "12" if ARCH_HI3518
+	default "56" if ARCH_HI3520D
+
+config EEE_SUPPORT
+	bool "eee support"
+	depends on (ARCH_HI3518)
+	default n if ARCH_HI3518
+	help
+	  default is disabled.
+
+config HIETH_MONITOR_TIMER
+	int "hieth monitor timer"
+	default "10" if (ARCH_GODBOX_V1 || ARCH_GODVIEW || ARCH_GODBOX || ARCH_GODNET || ARCH_GODCUBE || ARCH_PHOENIX || ARCH_HI3518 || ARCH_HI3520D)
+	help
+	  hieth monitor timer, default is 10ms.
+
+config HIETH_HWQ_XMIT_DEPTH
+	int "hieth hardware queue send fifo depth"
+	range 1 63
+	default "12" if (ARCH_GODBOX_V1 || ARCH_GODVIEW || ARCH_GODBOX || ARCH_GODNET || ARCH_GODCUBE || ARCH_PHOENIX || ARCH_HI3518 || ARCH_HI3520D)
+	help
+	  This selects choice optimize RX or TX performance.
+	  Default is 12(optimize RX performance).
+	  If you need optimize TX performance, increase this factor maybe is good choice.
+
+config HIETH_MDIO_FRQDIV
+	int "hieth mdio frequency factor"
+	default "2" if (ARCH_GODBOX_V1 || ARCH_GODVIEW || ARCH_GODBOX || ARCH_GODNET || ARCH_GODCUBE || ARCH_PHOENIX || ARCH_HI3518 || ARCH_HI3520D)
+
+config HIETH_MII_RMII_MODE_U
+	int "hieth mii/rmii mode for up port (mii:0/rmii:1)"
+	range 0 1
+	default "1" if (ARCH_GODBOX_V1 || ARCH_GODVIEW || ARCH_GODBOX || ARCH_GODNET || ARCH_PHOENIX)
+	default "0" if (ARCH_GODCUBE || ARCH_HI3518 || ARCH_HI3520D)
+	help
+	  hieth mode as mii:0/rmii:1 for up port.
+
+config HIETH_MII_RMII_MODE_D
+	int "hieth mii/rmii mode for down port (mii:0/rmii:1)"
+	range 0 1
+	default "1"  if (ARCH_GODBOX_V1 || ARCH_GODVIEW || ARCH_GODBOX || ARCH_GODNET || ARCH_PHOENIX)
+	default "0" if (ARCH_GODCUBE || ARCH_HI3518 || ARCH_HI3520D)
+	help
+	  hieth mode as mii:0/rmii:1 for down port.
+
+config HIETH_PHYID_U
+	int "hieth phyid for up port"
+	range 0 31
+	default "1"
+	help
+	  hieth phyid for up port.
+
+config HIETH_PHYID_D
+	int "hieth phyid for down port"
+	range 0 31
+	default "3"
+	default "0" if (ARCH_GODNET || ARCH_GODCUBE)
+	help
+	  hieth phyid addr for down port.
+
+config HIETH_DOWNPORT_EN
+	bool "enable hieth down port"
+	default y if (ARCH_GODNET || ARCH_GODCUBE || ARCH_GODBOX_V1 || ARCH_GODVIEW || ARCH_GODBOX || ARCH_PHOENIX)
+	help
+	  Hieth down port controller, to enable or disable down port.
+	  If the eth controller support only one port, do not enable this option.
+	  Otherwise some error information will appear during hieth init.
+
+config HIETH_MAX_RX_POOLS
+	int "hieth max rx pool size"
+	default "1024"
+	help
+	  hieth max static rx pool size.
+
+config HIETH_TRACE_LEVEL
+	int "hieth trace(debug) level"
+	range 0 18
+	default "18"
+	help
+	  hieth trace(debug) level
+
+config HIETH_RESET_HELPER_EN
+	bool "hieth reset helper"
+	default y
+	default n if (ARCH_GODNET || ARCH_GODCUBE)
+	help
+	  hieth phy reset gpio helper.
+
+config HIETH_RESET_HELPER_GPIO_BASE
+	hex "hieth reset helper on which gpio group"
+	depends on HIETH_RESET_HELPER_EN
+	default "0x101EF000" if (ARCH_GODBOX_V1)
+	default "0x101EF000" if (ARCH_GODBOX)
+	default "0x20140000" if (ARCH_HI3518)
+	default "0x201A0000" if (ARCH_HI3520D)
+	help
+	  hieth gpio group for reset.
+
+config HIETH_RESET_HELPER_GPIO_BIT
+	int "hieth reset helper on gpio bit"
+	depends on HIETH_RESET_HELPER_EN
+	range 0 7
+	default "6" if (ARCH_GODBOX_V1)
+	default "6" if (ARCH_GODBOX)
+	default "5" if (ARCH_HI3518 || ARCH_HI3520D)
+	help
+	  hieth gpio group bit for reset.
+
+config HIETH_RESET_HELPER_GPIO_VALUE
+	int "hieth reset helper on gpio value"
+	depends on HIETH_RESET_HELPER_EN
+	range 0 1
+	default "0" if (ARCH_GODBOX_V1)
+	default "0" if (ARCH_GODBOX)
+	default "0" if (ARCH_HI3518 || ARCH_HI3520D)
+	help
+	  hieth gpio reset value.
+
+endif # HIETH_SWITCH_FABRIC
+
+#vim: set ts=8 sw=8 tw=78:

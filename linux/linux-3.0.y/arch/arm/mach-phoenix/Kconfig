@@ -1,0 +1,20 @@
+menu "phoenix board feature"
+
+config MACH_PHOENIX
+	bool "Support phoenix platform"
+	select CPU_V7
+	select ARM_GIC
+	help
+	  Include support for the hisilion phoenix(x11) platform.
+	  phoenix is ARM A9 Dual-CORE with L2cache,with NOEN, it is
+	  design for smart TV/STB. phoenix support smp, android os
+	  framwork.
+
+config DEFAULT_BUSCLK
+	int "DEFAULT_BUSCLK"
+	default "50000000"
+	help
+	  Default AHB clock rate
+
+endmenu
+

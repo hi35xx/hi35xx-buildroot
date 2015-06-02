@@ -1,0 +1,17 @@
+#ifndef __HI_IRQS_H__
+#define __HI_IRQS_H__
+
+#define PHOENIX_IRQ_START	(32)
+#define TIMER01_IRQ		33
+
+#define UART0_IRQ		35
+#define UART1_IRQ		91
+
+#define INTNR_L2CACHE_CHK0_INT	104
+#define INTNR_L2CACHE_CHK1_INT	105
+#define INTNR_L2CACHE_INT_COMB	106
+
+#define NR_IRQS			(PHOENIX_IRQ_START + 96)
+#define IRQ_LOCALTIMER		29
+#endif
+

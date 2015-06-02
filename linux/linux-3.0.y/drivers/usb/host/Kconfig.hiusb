@@ -1,0 +1,81 @@
+#
+# hiusb Host Controller Drivers
+#
+comment "hiusb Host Controller Drivers"
+	depends on USB
+
+menuconfig HIUSB_HOST
+	bool "hiusb(ehci/ohci) family usb host device support"
+	depends on (ARCH_GODBOX_V1)||(ARCH_GODEYES)||(ARCH_GODBOX)||(ARCH_GODNET)||(ARCH_PHOENIX)||(ARCH_GODARM)||(ARCH_HI3518 || ARCH_HI3520D)
+	default y if (ARCH_GODBOX_V1)||(ARCH_GODEYES)||(ARCH_GODBOX)||(ARCH_GODNET)||(ARCH_PHOENIX)||(ARCH_GODARM)||(ARCH_HI3518 || ARCH_HI3520D)
+	select USB
+	select USB_ARCH_HAS_EHCI
+#	select USB_EHCI_HCD
+	select USB_ARCH_HAS_OHCI
+#	select USB_OHCI_HCD
+	help
+	  This selects the usb(ehci/ohci) family usb host device.
+
+if HIUSB_HOST
+
+config HIUSB_EHCI
+	bool "hiusb-ehci usb host device support"
+	depends on (ARCH_GODBOX_V1)||(ARCH_GODEYES)||(ARCH_GODBOX)||(ARCH_GODNET)||(ARCH_PHOENIX)||(ARCH_GODARM)||(ARCH_HI3518 || ARCH_HI3520D)
+	default y if (ARCH_GODBOX_V1)||(ARCH_GODEYES)||(ARCH_GODBOX)||(ARCH_GODNET)||(ARCH_PHOENIX)||(ARCH_GODARM)||(ARCH_HI3518 || ARCH_HI3520D)
+
+config HIUSB_EHCI_IOBASE
+	hex "hiusb-ehci IO address"
+	default "0x60080000" if ARCH_GODBOX_V1
+	default "0x100b0000" if ARCH_GODEYES
+	default "0x60080000" if ARCH_GODBOX
+	default "0x100b0000" if (ARCH_GODNET || ARCH_GODARM || ARCH_HI3518 || ARCH_HI3520D)
+	default "0x20110000" if ARCH_PHOENIX
+
+config HIUSB_EHCI_IOSIZE
+	hex "hiusb-ehci IO size"
+	default "0x00010000"
+	help
+	  default is 0x10000.
+
+config HIUSB_EHCI_IRQNUM
+	int "hiusb-ehci irq number"
+	default "96" if ARCH_GODBOX_V1
+	default "96" if ARCH_GODBOX
+	default "68" if ARCH_GODEYES
+	default "63" if (ARCH_GODNET || ARCH_GODARM)
+	default "15" if ARCH_HI3518
+	default "74" if ARCH_PHOENIX
+	default "53" if ARCH_HI3520D
+
+config HIUSB_OHCI
+	bool "hiusb-ohci usb host device support"
+	depends on (ARCH_GODBOX_V1)||(ARCH_GODEYES)||(ARCH_GODBOX)||(ARCH_GODNET)||(ARCH_PHOENIX)||(ARCH_GODARM)||(ARCH_HI3518)||(ARCH_HI3520D)
+	default y if (ARCH_GODBOX_V1)||(ARCH_GODEYES)||(ARCH_GODBOX)||(ARCH_GODNET)||(ARCH_PHOENIX)||(ARCH_GODARM)||(ARCH_HI3518)||(ARCH_HI3520D)
+
+config HIUSB_OHCI_IOBASE
+	hex "hiusb-ohci IO address"
+	default "0x60070000" if ARCH_GODBOX_V1
+	default "0x100a0000" if ARCH_GODEYES
+	default "0x60070000" if ARCH_GODBOX
+	default "0x100a0000" if (ARCH_GODNET || ARCH_GODARM || ARCH_HI3518 || ARCH_HI3520D)
+	default "0x20100000" if ARCH_PHOENIX
+
+config HIUSB_OHCI_IOSIZE
+	hex "hiusb-ohci IO size"
+	default "0x00010000"
+	help
+	  default is 0x10000.
+
+config HIUSB_OHCI_IRQNUM
+	int "hiusb-ohci irq number"
+	default "97" if ARCH_GODBOX_V1
+	default "97" if ARCH_GODBOX
+	default "69" if ARCH_GODEYES
+	default "64" if (ARCH_GODNET || ARCH_GODARM)
+	default "16" if ARCH_HI3518
+	default "75" if ARCH_PHOENIX
+	default "54" if ARCH_HI3520D
+
+endif # HIUSB_HOST
+
+#vim: set ts=8 sw=8 tw=78:

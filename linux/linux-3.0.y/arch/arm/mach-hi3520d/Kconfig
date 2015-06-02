@@ -1,0 +1,16 @@
+menu "hi3520d board feature"
+
+config MACH_HI3520D
+	bool "Support hi3520d platform"
+	select CPU_V7
+	select ARM_GIC
+	help
+	  Include support for the hisilion hi3520d platform.
+
+config DEFAULT_BUSCLK
+	int "DEFAULT_BUSCLK"
+	default "50000000"
+	help
+	  Default AHB clock rate
+
+endmenu
