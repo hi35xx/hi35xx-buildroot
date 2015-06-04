@@ -1,0 +1,30 @@
+config BR2_PACKAGE_HIMPP
+	bool "himpp"
+	depends on BR2_arm
+	help
+	  Hisilicon Media Processing Platform
+
+if BR2_PACKAGE_HIMPP
+
+choice
+	bool "himpp for chip"
+	default BR2_PACKAGE_HIMPP_HI3518E
+	help
+	  Select chip support for mpp
+
+config BR2_PACKAGE_HIMPP_HI3518
+	bool "hi3518/hi3516"
+	help
+	  MPP for Hi3518 / Hi3516 chips
+
+endchoice
+
+config BR2_PACKAGE_HIMPP_CHIP
+	string
+	default "himpp-hi3518" if BR2_PACKAGE_HIMPP_HI3518
+
+if BR2_PACKAGE_HIMPP_HI3518
+source "package/himpp/himpp-hi3518/Config.in"
+endif # BR2_PACKAGE_HIMPP_HI3518
+
+endif # BR2_PACKAGE_HIMPP
