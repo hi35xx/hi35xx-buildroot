@@ -258,7 +258,7 @@ MPPDRV_TO_INSTALL = $(shell cd $(@D)/mpp2 && find ko/ -name *.ko)
 SCRIPT_TO_INSTALL = $(shell cd $(@D)/mpp2 && find ko/ -name *.sh)
 SCRIPT_TO_INSTALL += ko/load3518 ko/load3518e
 
-MPPLIB_TO_INSTALL = $(shell cd $(@D)/mpp2 && find lib/ -name libsns*.so* -o -name \*.so\* -print0)
+MPPLIB_TO_INSTALL = $(shell cd $(@D)/mpp2 && find lib/ -name libsns\*.so\* -o -name \*.so\* -print)
 
 define HIMPP_HI3518_INSTALL_TARGET_CMDS
 	# install kernel modules and scripts
