@@ -242,6 +242,9 @@ define HIMPP_HI3518_INSTALL_STAGING_CMDS
 	# install header files
 	$(RM) -r $(TARGET_DIR)$(HIMPP_PREFIX)/include
 	cp -a $(@D)/mpp2/include $(STAGING_DIR)$(HIMPP_PREFIX)
+	# tw2835
+	$(INSTALL) -m 0664 $(@D)/mpp2/extdrv/tw2865/tw2865.h \
+                   $(STAGING_DIR)$(HIMPP_PREFIX)/include
 	# install libraries
 	$(RM) -r $(TARGET_DIR)$(HIMPP_PREFIX)/lib
 	cp -a $(@D)/mpp2/lib $(STAGING_DIR)$(HIMPP_PREFIX)
