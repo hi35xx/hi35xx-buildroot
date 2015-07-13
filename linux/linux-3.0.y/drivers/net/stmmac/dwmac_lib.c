@@ -31,6 +31,8 @@
 #define DBG(fmt, args...)  do { } while (0)
 #endif
 
+#define GMAC_HI_REG_AE		0x80000000
+
 /* CSR1 enables the transmit DMA to check for new descriptor */
 void dwmac_enable_dma_transmission(void __iomem *ioaddr, int channel)
 {
@@ -284,11 +286,12 @@ void stmmac_set_mac_addr(void __iomem *ioaddr, u8 addr[6],
 {
 	unsigned long data;
 
-	pr_info("MACADDR in set is %x:%x:%x:%x:%x:%x\n",
-		addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
-
 	data = (addr[5] << 8) | addr[4];
-	writel(data, ioaddr + high);
+	/* For MAC Addr registers se have to set the Address Enable (AE)
+	 * bit that has no effect on the High Reg 0 where the bit 31 (MO)
+	 * is RO.
+	 */
+	writel(data | GMAC_HI_REG_AE, ioaddr + high);
 	data = (addr[3] << 24) | (addr[2] << 16) | (addr[1] << 8) | addr[0];
 	writel(data, ioaddr + low);
 }
@@ -312,4 +315,13 @@ void stmmac_get_mac_addr(void __iomem *ioaddr, unsigned char *addr,
 	addr[3] = (lo_addr >> 24) & 0xff;
 	addr[4] = hi_addr & 0xff;
 	addr[5] = (hi_addr >> 8) & 0xff;
+}
+
+void stmmac_enable_mac_addr(void __iomem *ioaddr, unsigned int high, int enable)
+{
+	unsigned long data;
+
+	data = readl(ioaddr + high);
+	data = (data & ~(1 << 31)) | ((enable & 0x1) << 31);
+	writel(data, ioaddr + high);
 }

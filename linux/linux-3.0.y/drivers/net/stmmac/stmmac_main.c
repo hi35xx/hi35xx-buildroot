@@ -2149,9 +2149,11 @@ static int stmmac_mac_device_setup(struct net_device *dev)
 
 	struct mac_device_info *device;
 
-	if (priv->plat->has_gmac)
+	/* Identify the MAC HW device */
+	if (priv->plat->has_gmac) {
+		priv->dev->priv_flags |= IFF_UNICAST_FLT;
 		device = dwmac1000_setup(priv->ioaddr);
-	else
+	} else
 		device = dwmac100_setup(priv->ioaddr);
 
 	if (!device)

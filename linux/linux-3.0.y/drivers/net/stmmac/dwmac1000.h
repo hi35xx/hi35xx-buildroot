@@ -62,9 +62,14 @@ enum power_event {
 };
 
 /* GMAC HW ADDR regs */
-#define GMAC_ADDR_HIGH(reg)		(0x00000040+(reg * 8))
-#define GMAC_ADDR_LOW(reg)		(0x00000044+(reg * 8))
-#define GMAC_MAX_UNICAST_ADDRESSES	16
+#define GMAC_ADDR_HIGH(reg)	(((reg > 15) ? 0x00000800 : 0x00000040) + \
+				(((reg > 15) ? (reg - 16) : reg) * 8))
+#define GMAC_ADDR_LOW(reg)	(((reg > 15) ? 0x00000804 : 0x00000044) + \
+				(((reg > 15) ? (reg - 16) : reg) * 8))
+#define GMAC_MAX_PERFECT_ADDRESSES	32
+#define GMAC_MAX_UNICAST_ADDRESSES	8
+#define GMAC_MAX_MULTICAST_ADDRESSES	(GMAC_MAX_PERFECT_ADDRESSES - \
+		GMAC_MAX_UNICAST_ADDRESSES)
 
 #define GMAC_AN_CTRL	0x000000c0	/* AN control */
 #define GMAC_AN_STATUS	0x000000c4	/* AN status */

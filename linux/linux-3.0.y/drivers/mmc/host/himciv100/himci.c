@@ -94,7 +94,12 @@ static void hi_mci_sys_reset(struct himci_host *host)
 	hi_mci_ctr_reset();
 
 	reg_value = himci_readl(host->base + MCI_BMOD);
-	reg_value |= BMOD_SWR | BURST_8;
+	reg_value |= BMOD_SWR;
+	himci_writel(reg_value, host->base + MCI_BMOD);
+	udelay(50);
+
+	reg_value = himci_readl(host->base + MCI_BMOD);
+	reg_value |= BURST_INCR;
 	himci_writel(reg_value, host->base + MCI_BMOD);
 
 	reg_value = himci_readl(host->base + MCI_CTRL);
@@ -226,7 +231,13 @@ static void hi_mci_set_cclk(struct himci_host *host, unsigned int cclk)
 	 * set card clk divider value,
 	 * clk_divider = Fmmcclk/(Fmmc_cclk * 2)
 	 */
-	reg_value = CONFIG_MMC_CLK / (cclk * 2);
+	if (CONFIG_MMC_CLK <= cclk)
+		reg_value = 0;
+	else {
+		reg_value = CONFIG_MMC_CLK / (cclk * 2);
+		if (CONFIG_MMC_CLK % (cclk * 2))
+			reg_value++;
+	}
 	himci_writel(reg_value, host->base + MCI_CLKDIV);
 
 	clk_cmd.cmd_arg = himci_readl(host->base + MCI_CMD);
@@ -265,7 +276,7 @@ static void hi_mci_init_card(struct himci_host *host)
 	/* MASK MMC host intr */
 	tmp_reg = himci_readl(host->base + MCI_INTMASK);
 	tmp_reg &= ~ALL_INT_MASK;
-	tmp_reg |= DTO_INT_MASK;
+	tmp_reg |= DATA_INT_MASK;
 	himci_writel(tmp_reg, host->base + MCI_INTMASK);
 
 	/* enable inner DMA mode and close intr of MMC host controler */
@@ -432,7 +443,7 @@ out:
 static int hi_mci_exec_cmd(struct himci_host *host, struct mmc_command *cmd,
 		struct mmc_data *data)
 {
-	union cmd_arg_s  cmd_regs;
+	volatile union cmd_arg_s  cmd_regs;
 
 	himci_trace(2, "begin");
 	himci_assert(host);
@@ -508,6 +519,7 @@ static int hi_mci_exec_cmd(struct himci_host *host, struct mmc_command *cmd,
 	cmd_regs.bits.send_auto_stop = 0;
 	cmd_regs.bits.start_cmd = 1;
 	cmd_regs.bits.update_clk_reg_only = 0;
+	himci_writel(DATA_INT_MASK, host->base + MCI_RINTSTS);
 	himci_writel(cmd_regs.cmd_arg, host->base + MCI_CMD);
 
 	if (hi_mci_wait_cmd(host) != 0) {
@@ -539,7 +551,6 @@ static void hi_mci_cmd_done(struct himci_host *host, unsigned int stat)
 	himci_assert(host);
 	himci_assert(cmd);
 
-	host->cmd = NULL;
 
 	for (i = 0; i < 4; i++) {
 		if (mmc_resp_type(cmd) == MMC_RSP_R2)
@@ -559,6 +570,7 @@ static void hi_mci_cmd_done(struct himci_host *host, unsigned int stat)
 		himci_trace(3, "irq cmd status stat = 0x%x is response error!",
 				stat);
 	}
+	host->cmd = NULL;
 }
 
 static void hi_mci_data_done(struct himci_host *host, unsigned int stat)
@@ -604,12 +616,6 @@ static int hi_mci_wait_cmd_complete(struct himci_host *host)
 
 	cmd_jiffies_timeout = jiffies + request_timeout;
 	while (1) {
-		if (!time_before(jiffies, cmd_jiffies_timeout)) {
-			cmd->error = -ETIMEDOUT;
-			himci_trace(3, "wait cmd request complete is timeout!");
-			return -1;
-		}
-
 		do {
 			spin_lock_irqsave(&host->lock, flags);
 			cmd_irq_reg = readl(host->base + MCI_RINTSTS);
@@ -624,13 +630,23 @@ static int hi_mci_wait_cmd_complete(struct himci_host *host)
 			spin_unlock_irqrestore(&host->lock, flags);
 			cmd_retry_count++;
 		} while (cmd_retry_count < retry_count);
+		cmd_retry_count = 0;
+		if (host->card_status == CARD_UNPLUGED) {
+			cmd->error = -ETIMEDOUT;
+			return -1;
+		}
+		if (!time_before(jiffies, cmd_jiffies_timeout)) {
+			cmd->error = -ETIMEDOUT;
+			himci_trace(3, "wait cmd request complete is timeout!");
+			return -1;
+		}
 		schedule();
 	}
 }
 
 static int hi_mci_wait_data_complete(struct himci_host *host)
 {
-	unsigned int data_irq_reg = 0;
+	unsigned int tmp_reg;
 	struct mmc_data *data = host->data;
 	long time = request_timeout;
 	unsigned long flags;
@@ -643,32 +659,28 @@ static int hi_mci_wait_data_complete(struct himci_host *host)
 		test_bit(HIMCI_PEND_DTO_b, &host->pending_events),
 		time);
 
-	if ((time <= 0)
-		&& (!test_bit(HIMCI_PEND_DTO_b, &host->pending_events))) {
-		data->error = -ETIMEDOUT;
-		spin_lock_irqsave(&host->lock, flags);
-		data_irq_reg = himci_readl(host->base + MCI_RINTSTS);
-		himci_writel(data_irq_reg, host->base + MCI_RINTSTS);
-		spin_unlock_irqrestore(&host->lock, flags);
-		himci_trace(3, "wait data request complete is timeout! 0x%08X",
-			data_irq_reg);
-		hi_mci_idma_stop(host);
-		hi_mci_data_done(host, data_irq_reg);
-		return -1;
-	}
-
+	/* Mask MMC host data intr */
 	spin_lock_irqsave(&host->lock, flags);
-	data_irq_reg = himci_readl(host->base + MCI_RINTSTS);
-	himci_writel((HTO_INT_STATUS | DRTO_INT_STATUS | EBE_INT_STATUS
-		| SBE_INT_STATUS | FRUN_INT_STATUS | DCRC_INT_STATUS),
-		host->base + MCI_RINTSTS);
-
+	tmp_reg = himci_readl(host->base + MCI_INTMASK);
+	tmp_reg &= ~DATA_INT_MASK;
+	himci_writel(tmp_reg, host->base + MCI_INTMASK);
 	host->pending_events &= ~HIMCI_PEND_DTO_m;
 	spin_unlock_irqrestore(&host->lock, flags);
 
-	hi_mci_idma_stop(host);
-	hi_mci_data_done(host, data_irq_reg);
+	if (((time <= 0)
+		&& (!test_bit(HIMCI_PEND_DTO_b, &host->pending_events)))
+		|| (host->card_status == CARD_UNPLUGED)) {
 
+		data->error = -ETIMEDOUT;
+		himci_trace(3, "wait data request complete is timeout! 0x%08X",
+				host->irq_status);
+		hi_mci_idma_stop(host);
+		hi_mci_data_done(host, host->irq_status);
+		return -1;
+	}
+
+	hi_mci_idma_stop(host);
+	hi_mci_data_done(host, host->irq_status);
 	return 0;
 }
 
@@ -686,12 +698,6 @@ static int hi_mci_wait_card_complete(struct himci_host *host,
 
 	card_jiffies_timeout = jiffies + request_timeout;
 	while (1) {
-		if (!time_before(jiffies, card_jiffies_timeout)) {
-			data->error = -ETIMEDOUT;
-			himci_trace(3, "wait card ready complete is timeout!");
-			return -1;
-		}
-
 		do {
 			card_status_reg = readl(host->base + MCI_STATUS);
 			if (!(card_status_reg & DATA_BUSY)) {
@@ -700,6 +706,17 @@ static int hi_mci_wait_card_complete(struct himci_host *host,
 			}
 			card_retry_count++;
 		} while (card_retry_count < retry_count);
+		card_retry_count = 0;
+
+		if (host->card_status == CARD_UNPLUGED) {
+			data->error = -ETIMEDOUT;
+			return -1;
+		}
+		if (!time_before(jiffies, card_jiffies_timeout)) {
+			data->error = -ETIMEDOUT;
+			himci_trace(3, "wait card ready complete is timeout!");
+			return -1;
+		}
 		schedule();
 	}
 }
@@ -717,6 +734,7 @@ static void hi_mci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	himci_assert(host);
 
 	host->mrq = mrq;
+	host->irq_status = 0;
 
 	if (host->card_status == CARD_UNPLUGED) {
 		mrq->cmd->error = -ENODEV;
@@ -760,31 +778,38 @@ static void hi_mci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	ret = hi_mci_exec_cmd(host, mrq->cmd, mrq->data);
 	if (ret) {
 		mrq->cmd->error = ret;
-		himci_trace(3, "cmd execute is error!");
+		hi_mci_idma_stop(host);
+		himci_trace(3, "can't send card cmd! ret = %d", ret);
 		goto request_end;
 	}
 
 	/* wait command send complete */
 	ret = hi_mci_wait_cmd_complete(host);
-	if (ret)
-		goto request_end;
-
-	if (!(mrq->data && !mrq->cmd->error))
-		goto request_end;
 
 	/* start data transfer */
 	if (mrq->data) {
-		/* wait data transfer complete */
-		ret = hi_mci_wait_data_complete(host);
-		if (ret)
-			goto request_end;
+		if (!(mrq->cmd->error)) {
+			/* Open MMC host data intr */
+			spin_lock_irqsave(&host->lock, flags);
+			tmp_reg = himci_readl(host->base + MCI_INTMASK);
+			tmp_reg |= DATA_INT_MASK;
+			himci_writel(tmp_reg, host->base + MCI_INTMASK);
+			spin_unlock_irqrestore(&host->lock, flags);
+
+			/* wait data transfer complete */
+			ret = hi_mci_wait_data_complete(host);
+		} else {
+			/* CMD error in data command */
+			hi_mci_idma_stop(host);
+		}
+
 
 		if (mrq->stop) {
 			/* send stop command */
 			ret = hi_mci_exec_cmd(host, host->mrq->stop,
 					host->data);
 			if (ret) {
-				mrq->cmd->error = ret;
+					mrq->stop->error = ret;
 				goto request_end;
 			}
 			ret = hi_mci_wait_cmd_complete(host);
@@ -869,30 +894,17 @@ static const struct mmc_host_ops hi_mci_ops = {
 static irqreturn_t hisd_irq(int irq, void *dev_id)
 {
 	struct himci_host *host = dev_id;
-	u32 state = 0;
 	int handle = 0;
-	unsigned int tmp_reg;
 
 	spin_lock(&host->lock);
+	host->irq_status = himci_readl(host->base + MCI_RINTSTS);
 
-	/* disable MMC host interrupt */
-	tmp_reg = himci_readl(host->base + MCI_INTMASK);
-	tmp_reg &= ~ALL_INT_MASK;
-	himci_writel(tmp_reg, host->base + MCI_INTMASK);
-
-	state = himci_readl(host->base + MCI_RINTSTS);
-
-	if (state & DTO_INT_STATUS) {
+	if (host->irq_status & DATA_INT_MASK) {
 		handle = 1;
 		host->pending_events |= HIMCI_PEND_DTO_m;
-		himci_writel(DTO_INT_STATUS, host->base + MCI_RINTSTS);
+		himci_writel(DATA_INT_MASK, host->base + MCI_RINTSTS);
 	}
 
-	/* enable MMC host interrupt */
-	tmp_reg = himci_readl(host->base + MCI_INTMASK);
-	tmp_reg &= ~ALL_INT_MASK;
-	tmp_reg |= DTO_INT_MASK;
-	himci_writel(tmp_reg, host->base + MCI_INTMASK);
 
 	spin_unlock(&host->lock);
 
@@ -929,7 +941,8 @@ static int __devinit hi_mci_probe(struct platform_device *pdev)
 	/* reload by this controller */
 	mmc->max_blk_count = 2048;
 	mmc->max_segs = 1024;
-	mmc->max_req_size = 65535;/* see IP manual */
+	mmc->max_seg_size = mmc->max_blk_size * mmc->max_blk_count;
+	mmc->max_req_size = mmc->max_blk_size * mmc->max_blk_count;
 	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
 	mmc->ocr = mmc->ocr_avail;
 
@@ -987,6 +1000,9 @@ static int __devinit hi_mci_probe(struct platform_device *pdev)
 	return 0;
 out:
 	if (host) {
+
+		del_timer(&host->timer);
+
 		if (host->base)
 			iounmap(host->base);
 
@@ -1117,7 +1133,7 @@ static struct platform_driver hi_mci_driver = {
 
 static int __init hi_mci_init(void)
 {
-	int ret;
+	int ret = 0;
 
 	himci_trace(2, "begin");
 

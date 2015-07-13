@@ -88,6 +88,7 @@ struct himci_host {
 	unsigned int		*dma_vaddr;
 	struct timer_list	timer;
 	unsigned int		irq;
+	unsigned int		irq_status;
 	wait_queue_head_t	intr_wait;
 	unsigned long		pending_events;
 

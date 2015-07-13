@@ -179,6 +179,7 @@ SET_WRITE_STD(0, 256, 66);
 SET_WRITE_STD(0, 256, 75);
 SET_WRITE_STD(0, 256, 80);
 SET_WRITE_STD(0, 256, 86);
+SET_WRITE_STD(0, 256, 100);
 SET_WRITE_STD(0, 256, 104);
 SET_WRITE_STD(0, 256, 108);
 
@@ -204,6 +205,7 @@ SET_ERASE_SECTOR_64K(0, _64K, 66);
 SET_ERASE_SECTOR_64K(0, _64K, 75);
 SET_ERASE_SECTOR_64K(0, _64K, 80);
 SET_ERASE_SECTOR_64K(0, _64K, 86);
+SET_ERASE_SECTOR_64K(0, _64K, 100);
 SET_ERASE_SECTOR_64K(0, _64K, 104);
 SET_ERASE_SECTOR_64K(0, _64K, 108);
 
@@ -238,7 +240,14 @@ static struct spi_driver  spi_driver_n25q256a = {
 	.qe_enable = spi_n25q256a_qe_enable,
 };
 
-
+#include "hisfc300new_spi_gd25qxxx.c"
+static struct spi_driver  spi_driver_gd25qxxx = {
+	.wait_ready   = spi_general_wait_ready,
+	.write_enable = spi_general_write_enable,
+	.entry_4addr  = spi_general_entry_4addr,
+	.bus_prepare  = spi_general_bus_prepare,
+	.qe_enable = spi_gd25qxxx_qe_enable,
+};
 /*****************************************************************************/
 struct spi_info spi_info_table[] = {
 	/* name        id                id_len chipsize(Bytes) erasesize */
@@ -473,7 +482,7 @@ struct spi_info spi_info_table[] = {
 	},
 
 	{
-		"MX25L128", {0xc2, 0x20, 0x18}, 3, _16M, _64K, 3,
+		"MX25L128XX", {0xc2, 0x20, 0x18}, 3, _16M, _64K, 3,
 		{
 			&READ_STD(0, INFINITE, 50),
 			&READ_FAST(1, INFINITE, 108),
@@ -776,7 +785,7 @@ struct spi_info spi_info_table[] = {
 	},
 
 	{
-		"S25FL129P1/S25FL128S",
+		"S25FL129P1",
 		{0x01, 0x20, 0x18, 0x4d, 0x01}, 5, (_64K * 256),  _64K,  3,
 		{
 			&READ_STD(0, INFINITE, 40),
@@ -1681,7 +1690,7 @@ struct spi_info spi_info_table[] = {
 	},
 
 	{
-		"W25Q128BV", {0xEF, 0x40, 0x18}, 3, _16M, _64K, 3,
+		"W25Q128B", {0xEF, 0x40, 0x18}, 3, _16M, _64K, 3,
 		{
 			&READ_STD(0, INFINITE, 33),
 			&READ_FAST(1, INFINITE, 104),
@@ -1814,5 +1823,23 @@ struct spi_info spi_info_table[] = {
 		&spi_driver_general,
 	},
 
+	{
+		"GD25Q128", {0xC8, 0x40, 0x18}, 3, _16M,  _64K, 3,
+		{
+			&READ_STD(0, INFINITE, 66),
+			&READ_QUAD(1, INFINITE, 80),
+			0
+		},
+		{
+			&WRITE_STD(0, 256, 100),
+			&WRITE_QUAD(0, 256, 80),
+			0
+		},
+		{
+			&ERASE_SECTOR_64K(0, _64K, 100),
+			0
+		},
+		&spi_driver_gd25qxxx,
+	},
 	{0, {0}, 0, 0, 0, 0, {0}, {0}, {0}, NULL},
 };

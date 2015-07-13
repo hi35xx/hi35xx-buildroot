@@ -42,6 +42,7 @@
 
 /* MCI_BMOD(0x80) details */
 #define BMOD_SWR		(1<<0)
+#define BURST_INCR		(1<<1)
 #define BURST_8			(0x2<<8)
 
 /* MCI_CTRL(0x00) details */
@@ -142,6 +143,9 @@
 
 /* bit 1: response error interrupt status */
 #define RE_INT_STATUS		(0x1<<1)
+
+#define DATA_INT_MASK	(DTO_INT_STATUS | DCRC_INT_STATUS \
+		| SBE_INT_STATUS | EBE_INT_STATUS)
 /***************************************************************/
 
 /* MCI_RINTSTS(0x44) details:bit 16-1: clear
@@ -154,8 +158,13 @@
 #define DATA_BUSY		(0x1<<9)
 
 /* MCI_FIFOTH(0x4c) details */
+/*
 #define BURST_SIZE		(0x2<<28)
 #define RX_WMARK		(0x7<<16)
 #define TX_WMARK		0x8
+*/
+#define BURST_SIZE		(0x6<<28)
+#define RX_WMARK		(0x7f<<16)
+#define TX_WMARK		0x80
 
 #endif

@@ -302,6 +302,8 @@ extern void stmmac_set_mac_addr(void __iomem *ioaddr, u8 addr[6],
 				unsigned int high, unsigned int low);
 extern void stmmac_get_mac_addr(void __iomem *ioaddr, unsigned char *addr,
 				unsigned int high, unsigned int low);
+extern void stmmac_enable_mac_addr(void __iomem *ioaddr,
+				unsigned int high, int enable);
 extern void dwmac_dma_flush_tx_fifo(void __iomem *ioaddr, int channel);
 
 #endif /*  __STMMAC_COMMON_H__ */

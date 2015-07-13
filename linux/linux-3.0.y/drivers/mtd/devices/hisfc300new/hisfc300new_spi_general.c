@@ -33,7 +33,7 @@ static int spi_general_wait_ready(struct hisfc_spi *spi)
 		regval = hisfc300_read(host, HISFC300_CMD_DATABUF0);
 		if (!(regval & SPI_CMD_SR_WIP))
 			return 0;
-		udelay(1);
+		cond_resched();
 	} while (deadline++ < (40 << 20));
 
 	printk(KERN_ERR "Wait spi flash ready timeout.\n");

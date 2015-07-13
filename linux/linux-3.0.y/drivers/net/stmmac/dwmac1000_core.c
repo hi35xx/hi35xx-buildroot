@@ -94,17 +94,25 @@ static void dwmac1000_get_umac_addr(void __iomem *ioaddr, unsigned char *addr,
 				GMAC_ADDR_LOW(reg_n));
 }
 
+static void dwmac1000_enable_umac_addr(void __iomem *ioaddr,
+				unsigned int reg_n, int enable)
+{
+	stmmac_enable_mac_addr(ioaddr, GMAC_ADDR_HIGH(reg_n), enable);
+}
+
 static void dwmac1000_set_filter(struct net_device *dev)
 {
 	void __iomem *ioaddr = (void __iomem *) dev->base_addr;
 	unsigned int value = 0;
+	unsigned int perfect_addr_number;
 
 	CHIP_DBG(KERN_INFO "%s: # mcasts %d, # unicast %d\n",
 		 __func__, netdev_mc_count(dev), netdev_uc_count(dev));
 
 	if (dev->flags & IFF_PROMISC)
 		value = GMAC_FRAME_FILTER_PR;
-	else if ((netdev_mc_count(dev) > HASH_TABLE_SIZE)
+	/* else if ((netdev_mc_count(dev) > HASH_TABLE_SIZE) */
+	else if ((netdev_mc_count(dev) > GMAC_MAX_MULTICAST_ADDRESSES)
 		   || (dev->flags & IFF_ALLMULTI)) {
 		value = GMAC_FRAME_FILTER_PM;	/* pass all multi */
 		writel(0xffffffff, ioaddr + GMAC_HASH_HIGH);
@@ -131,19 +139,34 @@ static void dwmac1000_set_filter(struct net_device *dev)
 		writel(mc_filter[0], ioaddr + GMAC_HASH_LOW);
 		writel(mc_filter[1], ioaddr + GMAC_HASH_HIGH);
 #endif
-		value = GMAC_FRAME_FILTER_PM;	/* pass all multi */
-		writel(0xffffffff, ioaddr + GMAC_HASH_HIGH);
-		writel(0xffffffff, ioaddr + GMAC_HASH_LOW);
+		int reg = GMAC_MAX_UNICAST_ADDRESSES;
+		int i;
+		struct netdev_hw_addr *ha;
+
+		for (i = reg; i < GMAC_MAX_PERFECT_ADDRESSES; i++)
+			dwmac1000_enable_umac_addr(ioaddr, i, 0);
+
+		netdev_for_each_mc_addr(ha, dev) {
+			dwmac1000_set_umac_addr(ioaddr, ha->addr, reg);
+			reg++;
+		}
 	}
 
+	perfect_addr_number = GMAC_MAX_UNICAST_ADDRESSES - 1;
+
 	/* Handle multiple unicast addresses (perfect filtering)*/
-	if (netdev_uc_count(dev) > GMAC_MAX_UNICAST_ADDRESSES)
-		/* Switch to promiscuous mode is more than 16 addrs
-		   are required */
+	if (netdev_uc_count(dev) > perfect_addr_number)
+		/* Switch to promiscuous mode if more than 16 addrs
+		 * are required
+		 */
 		value |= GMAC_FRAME_FILTER_PR;
 	else {
 		int reg = 1;
+		int i;
 		struct netdev_hw_addr *ha;
+
+		for (i = reg; i < GMAC_MAX_UNICAST_ADDRESSES; i++)
+			dwmac1000_enable_umac_addr(ioaddr, i, 0);
 
 		netdev_for_each_uc_addr(ha, dev) {
 			dwmac1000_set_umac_addr(ioaddr, ha->addr, reg);
