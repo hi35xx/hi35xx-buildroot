@@ -29,6 +29,18 @@ static struct net_device *hieth_devs_save[2] = {NULL, NULL};
 
 static struct sockaddr macaddr;
 
+int hieth_mdio_if_u = CONFIG_HIETH_MII_RMII_MODE_U;
+module_param_named(mdioifu, hieth_mdio_if_u, int, S_IRUGO);
+
+int hieth_mdio_if_d = CONFIG_HIETH_MII_RMII_MODE_D;
+module_param_named(mdioifd, hieth_mdio_if_d, int, S_IRUGO);
+
+int hieth_phyaddr_u = CONFIG_HIETH_PHYID_U;
+module_param_named(phyaddru, hieth_phyaddr_u, int, S_IRUGO);
+
+int hieth_phyaddr_d = CONFIG_HIETH_PHYID_D;
+module_param_named(phyaddrd, hieth_phyaddr_d, int, S_IRUGO);
+
 int eee_available;
 static int __init hieth_parse_tag(const struct tag *tag)
 {
@@ -79,7 +91,7 @@ static void hieth_adjust_link(struct net_device *dev)
 		hieth_set_linkstat(ld, stat);
 		phy_print_status(ld->phy);
 		ld->link_stat = stat;
-		hieth_set_mii_mode(ld, UD_BIT_NAME(CONFIG_HIETH_MII_RMII_MODE));
+		hieth_set_mii_mode(ld, ld->mdio_intf);
 	}
 }
 
@@ -654,6 +666,8 @@ static int hieth_platdev_probe_port(struct platform_device *pdev, int port)
 	ld->iobase_phys = CONFIG_HIETH_IOBASE;
 
 	ld->port = port;
+	ld->mdio_intf = (port == UP_PORT) ? hieth_mdio_if_u : hieth_mdio_if_d;
+	ld->phyaddr = (port == UP_PORT) ? hieth_phyaddr_u : hieth_phyaddr_d;
 
 	ld->dev = &(pdev->dev);
 
@@ -665,10 +679,10 @@ static int hieth_platdev_probe_port(struct platform_device *pdev, int port)
 
 	memset(ld->phy_name, 0, sizeof(ld->phy_name));
 	snprintf(ld->phy_name, MII_BUS_ID_SIZE, PHY_ID_FMT, \
-		HIETH_MIIBUS_NAME, UD_PHY_NAME(CONFIG_HIETH_PHYID));
+		HIETH_MIIBUS_NAME, ld->phyaddr);
 
 	ld->phy = phy_connect(netdev, ld->phy_name, hieth_adjust_link, 0, \
-			UD_BIT_NAME(CONFIG_HIETH_MII_RMII_MODE) ? \
+			ld->mdio_intf ? \
 			PHY_INTERFACE_MODE_RMII : PHY_INTERFACE_MODE_MII);
 	if (IS_ERR(ld->phy)) {
 		hieth_error("connect to phy_device %s failed!", ld->phy_name);
@@ -757,7 +771,7 @@ static void phy_quirk(struct hieth_mdio_local *mdio, int phyaddr)
 	id2 = hieth_mdio_read(mdio, phyaddr, 0x03);
 
 	phy_id = (((id1 & 0xffff) << 16) | (id2 & 0xffff));
-	if (CONFIG_HIETH_MII_RMII_MODE_U == 1) {
+	if (hieth_mdio_if_u == 1) {
 		/* PHY-KSZ8051RNL */
 		if ((phy_id & 0xFFFFFFF0) == 0x221550) {
 			reg = hieth_mdio_read(mdio, phyaddr, 0x1F);
@@ -791,8 +805,8 @@ static int hieth_plat_driver_probe(struct platform_device *pdev)
 	hieth_platdev_probe_port(pdev, DOWN_PORT);
 #endif
 
-	phy_quirk(&hieth_mdio_local_device, CONFIG_HIETH_PHYID_U);
-	phy_quirk(&hieth_mdio_local_device, CONFIG_HIETH_PHYID_D);
+	phy_quirk(&hieth_mdio_local_device, hieth_phyaddr_u);
+	phy_quirk(&hieth_mdio_local_device, hieth_phyaddr_d);
 
 	if (hieth_devs_save[UP_PORT])
 		ndev = hieth_devs_save[UP_PORT];
@@ -907,8 +921,8 @@ static int hieth_plat_driver_resume(struct platform_device *pdev)
 {
 	hieth_sys_resume();
 
-	phy_quirk(&hieth_mdio_local_device, CONFIG_HIETH_PHYID_U);
-	phy_quirk(&hieth_mdio_local_device, CONFIG_HIETH_PHYID_D);
+	phy_quirk(&hieth_mdio_local_device, hieth_phyaddr_u);
+	phy_quirk(&hieth_mdio_local_device, hieth_phyaddr_d);
 
 	hieth_plat_driver_resume_port(pdev, UP_PORT);
 	hieth_plat_driver_resume_port(pdev, DOWN_PORT);

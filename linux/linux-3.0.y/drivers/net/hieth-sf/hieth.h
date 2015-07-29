@@ -80,6 +80,8 @@ struct hieth_netdev_local {
 	unsigned long iobase;		/* virtual io addr */
 	unsigned long iobase_phys;	/* physical io addr */
 	int port;			/* 0 => up port, 1 => down port */
+	int mdio_intf;			/* 0 => mii, 1 => rmii */
+	int phyaddr;
 
 	struct device *dev;
 	struct net_device_stats stats;

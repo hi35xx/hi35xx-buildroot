@@ -94,6 +94,8 @@ void set_phy_valtage(void)
 }
 #endif
 
+extern int hieth_phyaddr_u;
+
 static inline void hieth_clk_ena(void)
 {
 	unsigned long val;
@@ -101,7 +103,7 @@ static inline void hieth_clk_ena(void)
 #ifdef CONFIG_HIETH_INNER_PHY
 	val = readl(HIETH_SYSCTRL_BASE + HIETH_PER24);
 	val &= ~(HIETH_PEPHY_ADDR_MASK);
-	val |= (HIETH_PEPHY_ADDR_MASK & CONFIG_HIETH_PHYID_U);
+	val |= (HIETH_PEPHY_ADDR_MASK & hieth_phyaddr_u);
 	writel(val, HIETH_SYSCTRL_BASE + HIETH_PER24);
 #endif
 	val = readl(HIETH_SYSREG_BASE + HIETH_SYSREG_REG);

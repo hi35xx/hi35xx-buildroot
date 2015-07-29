@@ -18,7 +18,7 @@ int hieth_port_init(struct hieth_netdev_local *ld, int port)
 	hieth_set_negmode(ld, HIETH_NEGMODE_CPUSET);
 
 	/* MII or RMII mode */
-	hieth_set_mii_mode(ld, UD_BIT_NAME(CONFIG_HIETH_MII_RMII_MODE));
+	hieth_set_mii_mode(ld, ld->mdio_intf);
 
 	/*clear all interrupt status*/
 	hieth_clear_irqstatus(ld, UD_BIT_NAME(BITS_IRQS_MASK));
