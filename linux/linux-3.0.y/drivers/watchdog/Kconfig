@@ -118,6 +118,16 @@ config 977_WATCHDOG
 
 	  Not sure? It's safe to say N.
 
+config HI35XX_WATCHDOG
+	tristate "Hisilicon HI35xx watchdog"
+	depends on ARCH_HI3518 || ARCH_HI3520D
+	help
+	  Say Y here to include support for the watchdog in the Hisilicon
+	  Hi35xx processors. This driver can be built as a module by
+	  choosing M. The module will be called hi35xx_wdt.
+
+	  Say N if you are unsure.
+
 config IXP2000_WATCHDOG
 	tristate "IXP2000 Watchdog"
 	depends on ARCH_IXP2000
