@@ -1,0 +1,21 @@
+ifeq ($(CONFIG_OSD_ENABLE), y)
+
+ifeq ($(CONFIG_PRODUCTNAME), "godnet")
+COBJS-y += cmd_vo_godnet.o
+COBJS-y += cmd_dec.o
+endif
+
+ifeq ($(CONFIG_PRODUCTNAME), "godarm")
+COBJS-y += cmd_vo_godarm.o
+COBJS-y += cmd_dec.o
+endif
+
+ifeq ($(CONFIG_PRODUCTNAME), "hi3535")
+COBJS-y += cmd_vo_hi3535.o
+COBJS-y += cmd_dec.o
+endif
+ifeq ($(CONFIG_PRODUCTNAME), "hi3520d")
+COBJS-y += cmd_vo_hi3520d.o
+COBJS-y += cmd_dec.o
+endif
+endif
