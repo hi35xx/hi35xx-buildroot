@@ -51,6 +51,7 @@
 #include <spi_flash.h>
 #include <mmc.h>
 #include <boot/customer.h>
+#include <linux/compiler.h>
 
 #ifdef CONFIG_BITBANGMII
 #include <miiphy.h>
@@ -100,24 +101,15 @@ extern int check_ddr_training(void);
  ************************************************************************
  * May be supplied by boards if desired
  */
-void inline __coloured_LED_init (void) {}
-void coloured_LED_init (void) __attribute__((weak, alias("__coloured_LED_init")));
-void inline __red_LED_on (void) {}
-void red_LED_on (void) __attribute__((weak, alias("__red_LED_on")));
-void inline __red_LED_off(void) {}
-void red_LED_off(void) __attribute__((weak, alias("__red_LED_off")));
-void inline __green_LED_on(void) {}
-void green_LED_on(void) __attribute__((weak, alias("__green_LED_on")));
-void inline __green_LED_off(void) {}
-void green_LED_off(void) __attribute__((weak, alias("__green_LED_off")));
-void inline __yellow_LED_on(void) {}
-void yellow_LED_on(void) __attribute__((weak, alias("__yellow_LED_on")));
-void inline __yellow_LED_off(void) {}
-void yellow_LED_off(void) __attribute__((weak, alias("__yellow_LED_off")));
-void inline __blue_LED_on(void) {}
-void blue_LED_on(void) __attribute__((weak, alias("__blue_LED_on")));
-void inline __blue_LED_off(void) {}
-void blue_LED_off(void) __attribute__((weak, alias("__blue_LED_off")));
+__weak void coloured_LED_init (void) {}
+__weak void red_LED_on (void) {}
+__weak void red_LED_off(void) {}
+__weak void green_LED_on(void) {}
+__weak void green_LED_off(void) {}
+__weak void yellow_LED_on(void) {}
+__weak void yellow_LED_off(void) {}
+__weak void blue_LED_on(void) {}
+__weak void blue_LED_off(void) {}
 
 /************************************************************************
  * Init Utilities							*

@@ -98,7 +98,7 @@ static int hub_port_reset(struct usb_device *dev, int port,
  * wait_ms
  */
 
-inline void wait_ms(unsigned long ms)
+void wait_ms(unsigned long ms)
 {
 	while (ms-- > 0)
 		udelay(1000);
