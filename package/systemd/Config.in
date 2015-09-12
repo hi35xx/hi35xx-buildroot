@@ -20,6 +20,9 @@ config BR2_PACKAGE_SYSTEMD
 	select BR2_PACKAGE_UTIL_LINUX
 	select BR2_PACKAGE_UTIL_LINUX_LIBBLKID
 	select BR2_PACKAGE_UTIL_LINUX_LIBMOUNT
+	select BR2_PACKAGE_UTIL_LINUX_BINARIES
+	select BR2_PACKAGE_UTIL_LINUX_MOUNT
+	select BR2_PACKAGE_UTIL_LINUX_NOLOGIN
 	select BR2_PACKAGE_KMOD
 	select BR2_PACKAGE_BUSYBOX_SHOW_OTHERS # kmod-tools
 	select BR2_PACKAGE_KMOD_TOOLS
@@ -52,7 +55,6 @@ config BR2_PACKAGE_SYSTEMD
 
 	  The selection of other packages will enable some features:
 
-	  - libglib2 package will add support for gudev.
 	  - acl package will add support for multi-seat.
 
 	  http://freedesktop.org/wiki/Software/systemd
@@ -69,6 +71,11 @@ config BR2_PACKAGE_SYSTEMD_ALL_EXTRAS
 	help
 	  Enable extra features for Systemd: journal compression and
 	  signing.
+
+config BR2_PACKAGE_SYSTEMD_KDBUS
+	bool "enable kdbus support"
+	help
+	  Enable kdbus support for Systemd.
 
 config BR2_PACKAGE_SYSTEMD_JOURNAL_GATEWAY
 	bool "HTTP server for journal events"

@@ -1,5 +1,5 @@
 menuconfig BR2_PACKAGE_OPENCV
-	bool "opencv"
+	bool "opencv-2.4"
 	select BR2_PACKAGE_ZLIB
 	depends on BR2_TOOLCHAIN_HAS_THREADS_NPTL
 	depends on BR2_INSTALL_LIBSTDCPP
