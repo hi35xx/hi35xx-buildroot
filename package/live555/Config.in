@@ -1,3 +1,6 @@
+comment "live555 needs a toolchain w/ C++"
+	depends on !BR2_INSTALL_LIBSTDCPP
+
 config BR2_PACKAGE_LIVE555
 	bool "live555"
 	depends on BR2_INSTALL_LIBSTDCPP
@@ -7,5 +10,24 @@ config BR2_PACKAGE_LIVE555
 
 	  http://www.live555.com/liveMedia/
 
-comment "live555 needs a toolchain w/ C++"
-	depends on !BR2_INSTALL_LIBSTDCPP
+if BR2_PACKAGE_LIVE555
+
+config BR2_PACKAGE_LIVE555_MEDIA_SERVER
+	bool "live555MediaServer"
+	default y
+	help
+	  Install live555MediaServer
+
+config BR2_PACKAGE_LIVE555_PROXY_SERVER
+	bool "live555ProxyServer"
+	default y
+	help
+	  Install live555ProxyServer
+
+config BR2_PACKAGE_LIVE555_TEST_PROGS
+	bool "live555 test programs"
+	default n
+	help
+	  Install live555 test programs
+
+endif # BR2_PACKAGE_LIVE555
