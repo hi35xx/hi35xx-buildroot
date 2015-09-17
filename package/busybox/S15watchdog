@@ -6,7 +6,7 @@
 case "$1" in
  start)
 	echo "Starting watchdog..."
-	watchdog -t PERIOD /dev/watchdog
+	watchdog -T TIMEOUT -t PERIOD /dev/watchdog
 	;;
   stop)
 	;;

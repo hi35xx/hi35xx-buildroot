@@ -51,6 +51,12 @@ config BR2_PACKAGE_BUSYBOX_SELINUX
 	  crond, then individual binaries have to be enabled for the
 	  SELinux type transitions to occur properly.
 
+config BR2_PACKAGE_BUSYBOX_TELNETD
+	bool "Install the telnet daemon startup script"
+	help
+	  Install the telnet daemon startup script,
+	  that just start at the boot the busybox telnet daemon.
+
 config BR2_PACKAGE_BUSYBOX_WATCHDOG
 	bool "Install the watchdog daemon startup script"
 	help
@@ -58,6 +64,15 @@ config BR2_PACKAGE_BUSYBOX_WATCHDOG
 	  that just start at the boot the busybox watchdog daemon.
 
 if BR2_PACKAGE_BUSYBOX_WATCHDOG
+
+config BR2_PACKAGE_BUSYBOX_WATCHDOG_TIMEOUT
+	string "Watchdog timeout"
+	default "60"
+	help
+	  Set the timeout (seconds) of the watchdog, it will
+	  reboot system after timeout if not reset (default 60)
+
+	  Use ms suffix to specify milliseconds (e.g. 800ms)
 
 config BR2_PACKAGE_BUSYBOX_WATCHDOG_PERIOD
 	string "Delay between reset"

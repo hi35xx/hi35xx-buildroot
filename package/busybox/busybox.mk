@@ -170,6 +170,7 @@ define BUSYBOX_INSTALL_WATCHDOG_SCRIPT
 	$(INSTALL) -D -m 0755 package/busybox/S15watchdog \
 		$(TARGET_DIR)/etc/init.d/S15watchdog
 	$(SED) s/PERIOD/$(call qstrip,$(BR2_PACKAGE_BUSYBOX_WATCHDOG_PERIOD))/ \
+		-e s/TIMEOUT/$(call qstrip,$(BR2_PACKAGE_BUSYBOX_WATCHDOG_TIMEOUT))/ \
 		$(TARGET_DIR)/etc/init.d/S15watchdog
 endef
 endif
@@ -183,12 +184,18 @@ BUSYBOX_DEPENDENCIES += linux-pam
 endif
 
 # Telnet support
+ifeq ($(BR2_PACKAGE_BUSYBOX_TELNETD),y)
 define BUSYBOX_INSTALL_TELNET_SCRIPT
 	if grep -q CONFIG_FEATURE_TELNETD_STANDALONE=y $(@D)/.config; then \
 		$(INSTALL) -m 0755 -D package/busybox/S50telnet \
 			$(TARGET_DIR)/etc/init.d/S50telnet ; \
+		if grep -q CONFIG_INSTALL_NO_USR=y $(@D)/.config; then \
+			$(SED) 's/\/usr\/sbin\/telnetd/\/sbin\/telnetd/g' \
+				$(TARGET_DIR)/etc/init.d/S50telnet ; \
+		fi \
 	fi
 endef
+endif
 
 # Enable "noclobber" in install.sh, to prevent BusyBox from overwriting any
 # full-blown versions of apps installed by other packages with sym/hard links.
