@@ -1,13 +1,13 @@
 #!/bin/sh
-# Useage: ./load3518e.sh [ -r|-i|-a ] [ sensor ]
+# Useage: ./load3518 [ -r|-i|-a ] [ sensor ]
 #         -r : rmmod all modules
 #         -i : insmod all modules
 #    default : rmmod all moules and then insmod them
 #
 
 
-# ar0130 mn34031 imx104 icx692 ov9712 9m034 imx122 mt9p006 imx138 soih22 ov2710 himax1375
-SNS_A=ov9712
+# ar0130 mn34031 imx104 icx692 ov9712 9m034 imx122 mt9p006 imx138 soih22 ov2710 himax1375 gc1004
+SNS_A=gc1004
 
 if [ $# -ge 2 ]; then
     SNS_A=$2
@@ -47,39 +47,39 @@ insert_sns()
 {
     case $SNS_A in
         ar0130|9m034|po3100k)
-            devmem  0x20030030 32 0x5;              #Sensor clock 27 MHz
+            devmem  0x20030030 32 0x5;          #Sensor clock 27 MHz
             insmod extdrv/ssp_ad9020.ko;;
         icx692)
-            devmem  0x200f000c 32 0x1;              #pinmux SPI0
-            devmem  0x200f0010 32 0x1;              #pinmux SPI0
-            devmem  0x200f0014 32 0x1;              #pinmux SPI0
+            devmem  0x200f000c 32 0x1;          #pinmux SPI0
+            devmem  0x200f0010 32 0x1;          #pinmux SPI0
+            devmem  0x200f0014 32 0x1;          #pinmux SPI0
             insmod extdrv/ssp_ad9020.ko;;
         mn34031|mn34041)
-            devmem  0x200f000c 32 0x1;              #pinmux SPI0
-            devmem  0x200f0010 32 0x1;              #pinmux SPI0
-            devmem  0x200f0014 32 0x1;              #pinmux SPI0
-            devmem  0x20030030 32 0x5;              #Sensor clock 27MHz
+            devmem  0x200f000c 32 0x1;          #pinmux SPI0
+            devmem  0x200f0010 32 0x1;          #pinmux SPI0
+            devmem  0x200f0014 32 0x1;          #pinmux SPI0
+            devmem  0x20030030 32 0x5;          #Sensor clock 27MHz
             insmod extdrv/ssp_pana.ko;;
         imx104|imx122|imx138)
-            devmem  0x200f000c 32 0x1;              #pinmux SPI0
-            devmem  0x200f0010 32 0x1;              #pinmux SPI0
-            devmem  0x200f0014 32 0x1;              #pinmux SPI0
-            devmem  0x20030030 32 0x6;              #Sensor clock 37.125 MHz
-            insmod extdrv/ssp_sony.ko;;        
+            devmem  0x200f000c 32 0x1;          #pinmux SPI0
+            devmem  0x200f0010 32 0x1;          #pinmux SPI0
+            devmem  0x200f0014 32 0x1;          #pinmux SPI0
+            devmem  0x20030030 32 0x6;          #Sensor clock 37.125 MHz
+            insmod extdrv/ssp_sony.ko;;
         ov9712|soih22|ov2710)
-            devmem  0x20030030 32 0x1;              #Sensor clock 24 MHz
+            devmem  0x20030030 32 0x1;          #Sensor clock 24 MHz
             insmod extdrv/ssp_ad9020.ko;;
         mt9p006)
-            devmem  0x20030030 32 0x1;              #Sensor clock 24 MHz
-            devmem  0x2003002c 32 0x6a;             #VI input associated clock phase reversed
+            devmem  0x20030030 32 0x1;          #Sensor clock 24 MHz
+            devmem  0x2003002c 32 0x6a;         #VI input associated clock phase reversed
             insmod extdrv/ssp_ad9020.ko;;
-	    hm1375|ar0330)
-            devmem  0x20030030 32 0x1;;             #Sensor clock 24 MHz
-	    imx236)
-            devmem  0x20030030 32 0x6;              #Sensor clock 37.125 MHz
+        hm1375|ar0330|gc1004)
+            devmem  0x20030030 32 0x1;;         #Sensor clock 24 MHz
+        imx236)
+            devmem  0x20030030 32 0x6;          #Sensor clock 37.125 MHz
             ;;
         *)
-            echo "xxxx Invalid sensor type $SNS_A xxxx"
+            echo "Invalid sensor type $SNS_A xxxx"
             report_error;;
     esac
 }
@@ -93,10 +93,30 @@ remove_sns()
     rmmod ssp_ad9020 &> /dev/null
 }
 
+mmz_mem_info()
+{
+    K=1024
+    M=1048576
+    BASE=0x80000000
+    MEM_SIZE=40M
+    MMZ_SIZE=24M
+
+    local cmdline=$(cat /proc/cmdline 2>/dev/null)
+    local mem=$(echo $cmdline | grep -o -E 'mem=[^[:space:]]*')
+    mem=${mem:4}
+    mem=${mem:-${MEM_SIZE}}
+    mem=${mem/[mM]/*$M}
+    mem=${mem/[kK]/*$K}
+    local mmz=$(echo $cmdline | grep -o -E 'mmz=[^[:space:]]*')
+    mmz=${mmz:4}
+    mmz=${mmz:-${MMZ_SIZE}}
+    printf 'anonymous,0,0x%08x,%s' $(($BASE+$mem)) ${mmz}
+}
+
 insert_ko()
 {
     # low power control
-    source ./lowpower.sh > /dev/null
+    #source ./lowpower.sh > /dev/null
 
     # pinmux configuration
     source ./pinmux_hi3518.sh rmii i2c > /dev/null
@@ -105,7 +125,7 @@ insert_ko()
     source ./clkcfg_hi3518.sh > /dev/null
 
     # driver load
-    insmod mmz.ko mmz=anonymous,0,0x82800000,24M anony=1 || report_error   #for 3518E use
+    insmod mmz.ko mmz=$(mmz_mem_info) anony=1 || report_error
     insmod hi3518_base.ko
     insmod hi3518_sys.ko
     insmod hiuser.ko
@@ -113,10 +133,10 @@ insert_ko()
     insmod hi3518_tde.ko
     insmod hi3518_dsu.ko
 
-    insmod hi3518_viu.ko
+    insmod hi3518_viu.ko ext_csc_en=0 csc_ct_mode=1 csc_tv_en=1
     insmod hi3518_isp.ko
     insmod hi3518_vpss.ko
-    insmod hi3518_vou.ko
+    #insmod hi3518_vou.ko
     #insmod hi3518_vou.ko detectCycle=0 #close dac detect
     #insmod hifb.ko video="hifb:vram0_size:1620"
     
@@ -170,8 +190,8 @@ remove_ko()
     rmmod hi3518_group
     rmmod hi3518_venc
   
-    rmmod hifb
-    rmmod hi3518_vou
+    #rmmod hifb
+    #rmmod hi3518_vou
     rmmod hi3518_vpss
     rmmod hi3518_isp
     rmmod hi3518_viu

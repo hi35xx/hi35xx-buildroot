@@ -5,10 +5,9 @@
 ################################################################################
 
 HIMPP_HI3518_VERSION = 1.0.A.0
-HIMPP_HI3518_TARBALL = $(TOPDIR)/package/himpp/himpp-hi3518/mpp2.tgz
 HIMPP_HI3518_SITE_METHOD = file
-HIMPP_HI3518_SITE = $(patsubst %/,%,$(dir $(HIMPP_HI3518_TARBALL)))
-HIMPP_HI3518_SOURCE = $(notdir $(HIMPP_HI3518_TARBALL))
+HIMPP_HI3518_SITE = $(TOPDIR)/package/himpp/himpp-hi3518
+HIMPP_HI3518_SOURCE = hi3518-mpp2-$(HIMPP_HI3518_VERSION).tgz
 HIMPP_HI3518_INSTALL_STAGING = YES
 HIMPP_HI3518_DEPENDENCIES = linux
 
@@ -20,25 +19,23 @@ HIMPP_HI3518_MAKE_OPTS += LIBC=uclibc
 HIMPP_HI3518_MAKE_OPTS += CROSS=$(TARGET_CROSS)
 HIMPP_HI3518_MAKE_OPTS += CROSS_COMPILE=$(TARGET_CROSS)
 HIMPP_HI3518_MAKE_OPTS += LINUX_ROOT=$(LINUX_DIR)
-HIMPP_HI3518_MAKE_OPTS += MPP_PATH=$(@D)/mpp2
+HIMPP_HI3518_MAKE_OPTS += MPP_PATH=$(@D)
 HIMPP_HI3518_MAKE_OPTS += SENSOR_TYPE=$(SENSOR_TYPE)
 
+define HIMPP_HI3518_EXTRACT_CMDS
+	mkdir -p $(@D)
+	$(TAR) -zxf $(DL_DIR)/$(HIMPP_HI3518_SOURCE) \
+		--strip-components=2 -C $(@D)
+endef
+
 define himpp_build
-	pushd $(@D)/mpp2/$(1); \
-	  $(MAKE1) $(HIMPP_HI3518_MAKE_OPTS); \
-	popd;
-endef
 
-define himpp_build_snsdrv
-	$(call himpp_build,component/isp2/sensor/$1)
-endef
+	( cd $(@D)/$(1) && $(MAKE1) $(HIMPP_HI3518_MAKE_OPTS) ) || exit 1;
 
-define himpp_build_extdrv
-	$(call himpp_build,extdrv/$1)
 endef
 
 define HIMPP_HI3518_BUILD_CMDS
-	pushd $(@D)/mpp2/lib; \
+	pushd $(@D)/lib; \
 	for f in *.a; do \
 	  $(TARGET_CC) -shared -fPIC -o $${f%.a}.so \
 	               -Wl,--whole-archive $$f -Wl,--no-whole-archive; \
@@ -50,189 +47,77 @@ endef
 # build sensor driver
 ###############################################################################
 
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_APTINA_9M034),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,aptina_9m034)
-	SNSDRV_TO_INSTALL += libsns_9m034.so
+define add_snsdrv
+ifeq ($$(BR2_PACKAGE_HIMPP_SNSDRV_$(call qstrip,$(1))),y)
+	HIMPP_HI3518_BUILD_CMDS += \
+		$$(call himpp_build,component/isp2/sensor/$$(call qstrip,$(2)))
+	SNSDRV_TO_INSTALL += component/isp2/lib/$$(patsubst %,libsns_%.so,$(3))
 endif
+endef
 
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_APTINA_AR0130),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,aptina_ar0130)
-	SNSDRV_TO_INSTALL += libsns_ar0130_720p.so
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_APTINA_AR0330),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,aptina_ar0330)
-	SNSDRV_TO_INSTALL += libsns_ar0330_1080p.so
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_APTINA_MT9P006),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,aptina_mt9p006)
-	SNSDRV_TO_INSTALL += libsns_mt9p006.so
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_HIMAX_1375),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,himax_1375)
-	SNSDRV_TO_INSTALL += libsns_himax1375.so
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_ONMI_OV9712),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,ov_9712)
-	SNSDRV_TO_INSTALL += libsns_ov9712.so
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_ONMI_OV9712_PLUS),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,ov_9712+)
-	SNSDRV_TO_INSTALL += libsns_ov9712_plus.so
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_PANASONIC_MN34031),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,pana34031)
-	SNSDRV_TO_INSTALL += libsns_mn34031_720p.so
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_PANASONIC_MN34041),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,pana34041)
-	SNSDRV_TO_INSTALL += libsns_mn34041.so
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_PIXELPLUS_3100K),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,pixelplus_3100k)
-	SNSDRV_TO_INSTALL += libsns_po3100k.so
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_SOI_H22),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,soi_h22)
-	SNSDRV_TO_INSTALL += libsns_soih22.so
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_SONY_ICX692),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,sony_icx692)
-	SNSDRV_TO_INSTALL += libsns_icx692.so
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_SONY_IMX104),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,sony_imx104)
-	SNSDRV_TO_INSTALL += libsns_imx104.so
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_SONY_IMX122),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,sony_imx122)
-	SNSDRV_TO_INSTALL += libsns_imx122.so
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_SONY_IMX138),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,sony_imx138)
-	SNSDRV_TO_INSTALL += libsns_imx138.so
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_SNSDRV_SONY_IMX236),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_snsdrv,sony_imx236)
-	SNSDRV_TO_INSTALL += libsns_imx236.so
-endif
+$(eval $(call add_snsdrv,APTINA_9M034,aptina_9m034, 9m034))
+$(eval $(call add_snsdrv,APTINA_AR0130,aptina_ar0130,ar0130_720p))
+$(eval $(call add_snsdrv,APTINA_AR0330,aptina_ar0330,ar0330_1080p))
+$(eval $(call add_snsdrv,APTINA_MT9P006,aptina_mt9p006,mt9p006))
+$(eval $(call add_snsdrv,GALAXYCORE_GC1004,galaxycore_gc1004,gc1004))
+$(eval $(call add_snsdrv,HIMAX_1375,himax_1375,himax1375))
+$(eval $(call add_snsdrv,ONMI_OV9712,ov_9712,ov9712))
+$(eval $(call add_snsdrv,ONMI_OV9712,ov_9712+,ov9712_plus))
+$(eval $(call add_snsdrv,PANASONIC_MN34031,pana34031,mn34031_720p))
+$(eval $(call add_snsdrv,PANASONIC_MN34041,pana34041,mn34041))
+$(eval $(call add_snsdrv,PIXELPLUS_3100K,pixelplus_3100k,po3100k))
+$(eval $(call add_snsdrv,SOI_H22,soi_h22,soih22))
+$(eval $(call add_snsdrv,SONY_ICX692,sony_icx692,icx692))
+$(eval $(call add_snsdrv,SONY_IMX104,sony_imx104,imx104))
+$(eval $(call add_snsdrv,SONY_IMX122,sony_imx122,imx122))
+$(eval $(call add_snsdrv,SONY_IMX138,sony_imx138,imx138))
+$(eval $(call add_snsdrv,SONY_IMX236,sony_imx236,imx236))
 
 
 ###############################################################################
 # build extdrv
 ###############################################################################
 
-ifeq ($(BR2_PACKAGE_HIMPP_EXTDRV_GPIO_I2C),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_extdrv,gpio-i2c)
-	PROGRAM_TO_INSTALL += extdrv/gpio-i2c/i2c_read \
-	                      extdrv/gpio-i2c/i2c_write
-	EXTDRV_TO_INSTALL += extdrv/gpio-2ic/gpioi2c.ko
+define add_extdrv
+ifeq ($$(BR2_PACKAGE_HIMPP_EXTDRV_$(1)),y)
+	HIMPP_HI3518_BUILD_CMDS += $$(call himpp_build,extdrv/$(2))
+	EXTDRV_TO_INSTALL += $$(patsubst %,extdrv/$(2)/%,$(3))
+	PROGRAM_TO_INSTALL += $$(patsubst %,extdrv/$(2)/%,$(4))
 endif
+endef
 
-ifeq ($(BR2_PACKAGE_HIMPP_EXTDRV_GPIO_I2C_EX),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_extdrv,gpio-i2c-ex)
-	PROGRAM_TO_INSTALL += extdrv/gpio-i2c-ex/i2c_read_ex \
-	                      extdrv/gpio-i2c-ex/i2c_write_ex
-	EXTDRV_TO_INSTALL += extdrv/gpio-2ic-ex/gpioi2c_ex.ko
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_EXTDRV_HI_I2C),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_extdrv,hi_i2c)
-	PROGRAM_TO_INSTALL += extdrv/hi_i2c/i2c_read \
-	                      extdrv/hi_i2c/i2c_write
-	EXTDRV_TO_INSTALL += extdrv/hi_i2c/hi_i2c.ko
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_EXTDRV_PWM),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_extdrv,pwm)
-	PROGRAM_TO_INSTALL += extdrv/pwm/pwm_write
-	EXTDRV_TO_INSTALL += extdrv/pwm/pwm.ko
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_EXTDRV_SSP_AD9020),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_extdrv,ssp-ad9020)
-	PROGRAM_TO_INSTALL += extdrv/ssp-ad9020/ssp_read \
-	                      extdrv/ssp-ad9020/ssp_write
-	EXTDRV_TO_INSTALL += extdrv/ssp-ad9020/ssp_ad9020.ko
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_EXTDRV_SSP_PANA),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_extdrv,ssp-pana)
-	PROGRAM_TO_INSTALL += extdrv/ssp-pana/ssp_read \
-	                      extdrv/ssp-pana/ssp_write
-	EXTDRV_TO_INSTALL += extdrv/ssp-pana/ssp_pana.ko
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_EXTDRV_SSP_SONY),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_extdrv,ssp-sony)
-	PROGRAM_TO_INSTALL += extdrv/ssp-sony/ssp_read \
-	                      extdrv/ssp-sony/ssp_write
-	EXTDRV_TO_INSTALL += extdrv/ssp-sony/ssp_sony.ko
-endif
-
-ifeq ($(BR2_PACKAGE_HIMPP_EXTDRV_TW2865),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build_extdrv,tw2865)
-	EXTDRV_TO_INSTALL += extdrv/tw2865/tw2865.ko
-endif
+$(eval $(call add_extdrv,GPIO_I2C,gpio-i2c,gpioi2c.ko,i2c_read i2c_write))
+$(eval $(call add_extdrv,GPIO_I2C_EX,gpio-i2c-ex,gpioi2c_ex.ko,i2c_read_ex i2c_write_ex))
+$(eval $(call add_extdrv,HI_I2C,hi_i2c,hi_i2c.ko,i2c_read i2c_write))
+$(eval $(call add_extdrv,PWM,pwm,pwm.ko,pwm_write))
+$(eval $(call add_extdrv,SSP_AD9020,ssp-ad9020,ssp_ad9020.ko,ssp_read ssp_write))
+$(eval $(call add_extdrv,SSP_PANA,ssp-pana,ssp_pana.ko,ssp_read ssp_write))
+$(eval $(call add_extdrv,SSP_SONY,ssp-sony,ssp_sony.ko,ssp_read ssp_write))
+$(eval $(call add_extdrv,TW2865,tw2865,tw2865.ko,))
 
 
 ###############################################################################
 # build samples
 ###############################################################################
 
-ifeq ($(BR2_PACKAGE_HIMPP_SAMPLES_AUDIO),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build,sample/audio)
-	PROGRAM_TO_INSTALL += sample/audio/sample_audio
+define add_sample
+ifeq ($$(BR2_PACKAGE_HIMPP_SAMPLES_$(call qstrip,$(1))),y)
+	HIMPP_HI3518_BUILD_CMDS += $$(call himpp_build,sample/$(2))
+	PROGRAM_TO_INSTALL += $$(patsubst %,sample/$(2)/%,$(3))
 endif
-ifeq ($(BR2_PACKAGE_HIMPP_SAMPLES_HIFB),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build,sample/hifb)
-	PROGRAM_TO_INSTALL += sample/hifb/sample_hifb
-endif
-ifeq ($(BR2_PACKAGE_HIMPP_SAMPLES_IQ),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build,sample/iq)
-	PROGRAM_TO_INSTALL += sample/iq/sample_iq
-endif
-ifeq ($(BR2_PACKAGE_HIMPP_SAMPLES_IVE),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build,sample/ive)
-	PROGRAM_TO_INSTALL += sample/ive/sample_ive_canny
-	PROGRAM_TO_INSTALL += sample/ive/sample_ive_detect
-	PROGRAM_TO_INSTALL += sample/ive/sample_ive_FPN
-	PROGRAM_TO_INSTALL += sample/ive/sample_ive_sobel_with_cached_mem
-	PROGRAM_TO_INSTALL += sample/ive/sample_ive_test_memory
-endif
-ifeq ($(BR2_PACKAGE_HIMPP_SAMPLES_REGION),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build,sample/region)
-	PROGRAM_TO_INSTALL += sample/region/sample_region
-endif
-ifeq ($(BR2_PACKAGE_HIMPP_SAMPLES_TDE),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build,sample/tde)
-	PROGRAM_TO_INSTALL += sample/tde/sample_tde
-endif
-ifeq ($(BR2_PACKAGE_HIMPP_SAMPLES_VDA),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build,sample/vda)
-	PROGRAM_TO_INSTALL += sample/vda/sample_vda
-endif
-ifeq ($(BR2_PACKAGE_HIMPP_SAMPLES_VENC),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build,sample/venc)
-	PROGRAM_TO_INSTALL += sample/venc/sample_venc
-endif
-ifeq ($(BR2_PACKAGE_HIMPP_SAMPLES_VIO),y)
-	HIMPP_HI3518_BUILD_CMDS += $(call himpp_build,sample/vio)
-	PROGRAM_TO_INSTALL += sample/vio/sample_vio
-endif
+endef
+
+$(eval $(call add_sample,AUDIO,audio,sample_audio))
+$(eval $(call add_sample,HIFB,hifb,sample_hifb))
+$(eval $(call add_sample,IQ,iq,sample_iq))
+$(eval $(call add_sample,IVE,ive,sample_ive_canny sample_ive_detect \
+		sample_ive_FPN sample_ive_sobel_with_cached_mem \
+		sample_ive_test_memory))
+$(eval $(call add_sample,REGION,region,sample_region))
+$(eval $(call add_sample,TDE,tde,sample_tde))
+$(eval $(call add_sample,VDA,vda,sample_vda))
+$(eval $(call add_sample,VENC,venc,sample_venc))
+$(eval $(call add_sample,VIO,vio,sample_vio))
 
 
 HIMPP_PREFIX = $(call qstrip,$(BR2_PACKAGE_HIMPP_PREFIX))
@@ -241,79 +126,96 @@ define HIMPP_HI3518_INSTALL_STAGING_CMDS
 	mkdir -p $(STAGING_DIR)$(HIMPP_PREFIX)
 	# install header files
 	$(RM) -r $(TARGET_DIR)$(HIMPP_PREFIX)/include
-	cp -a $(@D)/mpp2/include $(STAGING_DIR)$(HIMPP_PREFIX)
+	cp -a $(@D)/include $(STAGING_DIR)$(HIMPP_PREFIX)
 	# tw2835
-	$(INSTALL) -m 0664 $(@D)/mpp2/extdrv/tw2865/tw2865.h \
+	$(INSTALL) -m 0664 $(@D)/extdrv/tw2865/tw2865.h \
                    $(STAGING_DIR)$(HIMPP_PREFIX)/include
 	# install libraries
 	$(RM) -r $(TARGET_DIR)$(HIMPP_PREFIX)/lib
-	cp -a $(@D)/mpp2/lib $(STAGING_DIR)$(HIMPP_PREFIX)
+	cp -a $(@D)/lib $(STAGING_DIR)$(HIMPP_PREFIX)
 	# override the sensor driver libraries
 	for f in $(SNSDRV_TO_INSTALL); do \
-	  $(INSTALL) -D $(@D)/mpp2/component/isp2/lib/$$f \
+	  $(INSTALL) -D $(@D)/$$f \
 	             $(STAGING_DIR)$(HIMPP_PREFIX)/lib/$$f \
 	  || exit 1; \
 	done;
 endef
 
-MPPDRV_TO_INSTALL = $(shell cd $(@D)/mpp2 && find ko/ -name *.ko)
+MPPDRV_TO_INSTALL = $(shell cd $(@D) && find ko/ -name *.ko)
 
-SCRIPT_TO_INSTALL = $(shell cd $(@D)/mpp2 && find ko/ -name *.sh)
-SCRIPT_TO_INSTALL += ko/load3518 ko/load3518e
+SCRIPT_TO_INSTALL = $(shell cd $(@D) && find ko/ -name *.sh)
 
-MPPLIB_TO_INSTALL = $(shell cd $(@D)/mpp2 && find lib/ -name libsns\*.so\* -o -name \*.so\* -print)
+MPPLIB_TO_INSTALL = $(shell cd $(@D) && find lib/ -name libsns\*.so\* -o -name \*.so\* -print)
 
-define HIMPP_HI3518_INSTALL_TARGET_CMDS
-	# install kernel modules and scripts
+define HIMPP_TARGET_INSTALL_MPPDRV
 	$(RM) -r $(TARGET_DIR)$(HIMPP_PREFIX)/ko
 	for f in $(MPPDRV_TO_INSTALL); do \
-	  $(INSTALL) -D $(@D)/mpp2/$$f \
+	  $(INSTALL) -D $(@D)/$$f \
 	             $(TARGET_DIR)$(HIMPP_PREFIX)/$$f \
 	  || exit 1; \
+	  $(TARGET_STRIP) --strip-debug \
+	             $(TARGET_DIR)$(HIMPP_PREFIX)/$$f; \
 	done
+endef
 
-	# install extdrv
+define HIMPP_TARGET_INSTALL_EXTDRV
 	for f in $(EXTDRV_TO_INSTALL); do \
 	  t=`basename $$f`; \
-	  $(INSTALL) -D $(@D)/mpp2/$$f \
-	             $(TARGET_DIR)$(HIMPP_PREFIX)/ko/extdrv/$t \
+	  $(INSTALL) -D $(@D)/$$f \
+	             $(TARGET_DIR)$(HIMPP_PREFIX)/ko/extdrv/$$t \
 	  || exit 1; \
+	  $(TARGET_STRIP) --strip-debug \
+	             $(TARGET_DIR)$(HIMPP_PREFIX)/ko/extdrv/$$t; \
 	done
+endef
 
-	# install scripts
+define HIMPP_TARGET_INSTALL_SCRIPTS
 	for f in $(SCRIPT_TO_INSTALL); do \
-	  $(INSTALL) -D $(@D)/mpp2/$$f \
+	  $(INSTALL) -D $(@D)/$$f \
 	             $(TARGET_DIR)$(HIMPP_PREFIX)/$$f \
 	  || exit 1; \
 	  sed -r -i -e "s/himm([[:space:]]*[^[:space:]]*)/devmem \1 32/" \
 	      $(TARGET_DIR)$(HIMPP_PREFIX)/$$f; \
 	done
+endef
 
-	# install libraries
+define HIMPP_TARGET_INSTALL_LIBRARIES
 	$(RM) -r $(TARGET_DIR)$(HIMPP_PREFIX)/lib
-	for f in $(MPPLIB_TO_INSTALL); do \
-	  $(INSTALL) -D -m 755 $(@D)/mpp2/$$f \
-	             $(TARGET_DIR)$(HIMPP_PREFIX)/$$f \
+	for f in $(MPPLIB_TO_INSTALL) $(SNSDRV_TO_INSTALL); do \
+	  t=`basename $$f`; \
+	  $(INSTALL) -D -m 0755 $(@D)/$$f \
+	             $(TARGET_DIR)$(HIMPP_PREFIX)/lib/$$t \
 	  || exit 1; \
+	  $(TARGET_STRIP) --strip-all \
+	             $(TARGET_DIR)$(HIMPP_PREFIX)/lib/$$t; \
 	done
+endef
 
-	# install sensor driver libraries
-	for f in $(SNSDRV_TO_INSTALL); do \
-	  $(INSTALL) -D $(@D)/mpp2/component/isp2/lib/$$f \
-	             $(TARGET_DIR)$(HIMPP_PREFIX)/lib/$$f \
-	  || exit 1; \
-	done;
-
-	# install samples
+define HIMPP_TARGET_INSTALL_PROGRAMS
 	$(RM) -r $(TARGET_DIR)$(HIMPP_PREFIX)/bin
 	for f in $(PROGRAM_TO_INSTALL); do \
 	  t=`basename $$f`; \
-	  $(INSTALL) -D -m 755 $(@D)/mpp2/$$f \
+	  $(INSTALL) -D -m 0755 $(@D)/$$f \
 	             $(TARGET_DIR)$(HIMPP_PREFIX)/bin/$$t \
 	  || exit 1; \
-	  $(TARGET_STRIP) -s \
+	  $(TARGET_STRIP) --strip-all \
 	             $(TARGET_DIR)$(HIMPP_PREFIX)/bin/$$t; \
 	done
+endef
+
+define HIMPP_HI3518_INSTALL_TARGET_CMDS
+	$(HIMPP_TARGET_INSTALL_MPPDRV)
+	$(HIMPP_TARGET_INSTALL_EXTDRV)
+	$(HIMPP_TARGET_INSTALL_SCRIPTS)
+	$(HIMPP_TARGET_INSTALL_LIBRARIES)
+	$(HIMPP_TARGET_INSTALL_PROGRAMS)
+	$(INSTALL) -m 0755 -D package/himpp/himpp-hi3518/load3518.sh \
+	    $(TARGET_DIR)$(HIMPP_PREFIX)/ko/load3518.sh
+endef
+
+define HIMPP_HI3518_INSTALL_INIT_SYSV
+	$(INSTALL) -m 0755 -D package/himpp/himpp-hi3518/S25himpp \
+	    $(TARGET_DIR)/etc/init.d/S25himpp
 endef
 
 $(eval $(generic-package))
