@@ -125,13 +125,11 @@ HIMPP_PREFIX = $(call qstrip,$(BR2_PACKAGE_HIMPP_PREFIX))
 define HIMPP_HI3518_INSTALL_STAGING_CMDS
 	mkdir -p $(STAGING_DIR)$(HIMPP_PREFIX)
 	# install header files
-	$(RM) -r $(TARGET_DIR)$(HIMPP_PREFIX)/include
 	cp -a $(@D)/include $(STAGING_DIR)$(HIMPP_PREFIX)
 	# tw2835
 	$(INSTALL) -m 0664 $(@D)/extdrv/tw2865/tw2865.h \
                    $(STAGING_DIR)$(HIMPP_PREFIX)/include
 	# install libraries
-	$(RM) -r $(TARGET_DIR)$(HIMPP_PREFIX)/lib
 	cp -a $(@D)/lib $(STAGING_DIR)$(HIMPP_PREFIX)
 	# override the sensor driver libraries
 	for f in $(SNSDRV_TO_INSTALL); do \
@@ -141,20 +139,18 @@ define HIMPP_HI3518_INSTALL_STAGING_CMDS
 	done;
 endef
 
-MPPDRV_TO_INSTALL = $(shell cd $(@D) && find ko/ -name *.ko)
-
-SCRIPT_TO_INSTALL = $(shell cd $(@D) && find ko/ -name *.sh)
-
+MPPDRV_TO_INSTALL = $(shell cd $(@D)/ko && find -name \*.ko)
+SCRIPT_TO_INSTALL = $(shell cd $(@D)/ko && find -name \*.sh)
 MPPLIB_TO_INSTALL = $(shell cd $(@D) && find lib/ -name libsns\*.so\* -o -name \*.so\* -print)
+MPPDRV_TARGET_DIR = $(TARGET_DIR)$(HIMPP_PREFIX)/lib/himpp-ko
 
 define HIMPP_TARGET_INSTALL_MPPDRV
-	$(RM) -r $(TARGET_DIR)$(HIMPP_PREFIX)/ko
 	for f in $(MPPDRV_TO_INSTALL); do \
-	  $(INSTALL) -D $(@D)/$$f \
-	             $(TARGET_DIR)$(HIMPP_PREFIX)/$$f \
+	  $(INSTALL) -D $(@D)/ko/$$f \
+	             $(MPPDRV_TARGET_DIR)/$$f \
 	  || exit 1; \
-	  $(TARGET_STRIP) --strip-debug \
-	             $(TARGET_DIR)$(HIMPP_PREFIX)/$$f; \
+	  $(TARGET_STRIP) --strip-unneeded \
+	             $(MPPDRV_TARGET_DIR)/$$f; \
 	done
 endef
 
@@ -162,25 +158,24 @@ define HIMPP_TARGET_INSTALL_EXTDRV
 	for f in $(EXTDRV_TO_INSTALL); do \
 	  t=`basename $$f`; \
 	  $(INSTALL) -D $(@D)/$$f \
-	             $(TARGET_DIR)$(HIMPP_PREFIX)/ko/extdrv/$$t \
+	             $(MPPDRV_TARGET_DIR)/extdrv/$$t \
 	  || exit 1; \
-	  $(TARGET_STRIP) --strip-debug \
-	             $(TARGET_DIR)$(HIMPP_PREFIX)/ko/extdrv/$$t; \
+	  $(TARGET_STRIP) --strip-unneeded \
+	             $(MPPDRV_TARGET_DIR)/extdrv/$$t; \
 	done
 endef
 
 define HIMPP_TARGET_INSTALL_SCRIPTS
 	for f in $(SCRIPT_TO_INSTALL); do \
-	  $(INSTALL) -D $(@D)/$$f \
-	             $(TARGET_DIR)$(HIMPP_PREFIX)/$$f \
+	  $(INSTALL) -D $(@D)/ko/$$f \
+	             $(MPPDRV_TARGET_DIR)/$$f \
 	  || exit 1; \
 	  sed -r -i -e "s/himm([[:space:]]*[^[:space:]]*)/devmem \1 32/" \
-	      $(TARGET_DIR)$(HIMPP_PREFIX)/$$f; \
+	      $(MPPDRV_TARGET_DIR)/$$f; \
 	done
 endef
 
 define HIMPP_TARGET_INSTALL_LIBRARIES
-	$(RM) -r $(TARGET_DIR)$(HIMPP_PREFIX)/lib
 	for f in $(MPPLIB_TO_INSTALL) $(SNSDRV_TO_INSTALL); do \
 	  t=`basename $$f`; \
 	  $(INSTALL) -D -m 0755 $(@D)/$$f \
@@ -192,7 +187,6 @@ define HIMPP_TARGET_INSTALL_LIBRARIES
 endef
 
 define HIMPP_TARGET_INSTALL_PROGRAMS
-	$(RM) -r $(TARGET_DIR)$(HIMPP_PREFIX)/bin
 	for f in $(PROGRAM_TO_INSTALL); do \
 	  t=`basename $$f`; \
 	  $(INSTALL) -D -m 0755 $(@D)/$$f \
@@ -210,11 +204,13 @@ define HIMPP_HI3518_INSTALL_TARGET_CMDS
 	$(HIMPP_TARGET_INSTALL_LIBRARIES)
 	$(HIMPP_TARGET_INSTALL_PROGRAMS)
 	$(INSTALL) -m 0755 -D package/himpp/himpp-hi3518/load3518.sh \
-	    $(TARGET_DIR)$(HIMPP_PREFIX)/ko/load3518.sh
+	    $(MPPDRV_TARGET_DIR)/load3518.sh
 endef
 
 define HIMPP_HI3518_INSTALL_INIT_SYSV
 	$(INSTALL) -m 0755 -D package/himpp/himpp-hi3518/S25himpp \
+	    $(TARGET_DIR)/etc/init.d/S25himpp
+	sed -r -i -e "s;^HIMPP_PREFIX=.*$$;HIMPP_PREFIX=$(HIMPP_PREFIX);" \
 	    $(TARGET_DIR)/etc/init.d/S25himpp
 endef
 

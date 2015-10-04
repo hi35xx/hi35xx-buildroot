@@ -3,15 +3,15 @@
 # Start himpp....
 #
 
-HIMPP_HOME=/opt/himpp2
+HIMPP_PREFIX=/usr
 SENSOR_TYPE=$(fw_printenv sensor_type 2>/dev/null)
 SENSOR_TYPE=${SENSOR_TYPE:12}
-SENSOR_TYPE=${SENSOR_TYPE:-gc1004}
+SENSOR_TYPE=${SENSOR_TYPE:-ov9712}
 
 start() {
     (
       echo -n "Starting himpp: "
-      cd ${HIMPP_HOME}/ko
+      cd ${HIMPP_PREFIX}/lib/himpp-ko
       ./load3518.sh -i ${SENSOR_TYPE}
       [ $? = 0 ] && echo "OK" || echo "FAIL"
     )
@@ -20,7 +20,7 @@ start() {
 stop() {
     (
       echo -n "Stopping himpp: "
-      cd ${HIMPP_HOME}/ko
+      cd ${HIMPP_PREFIX}/lib/himpp-ko
       ./load3518.sh -r
       [ $? = 0 ] && echo "OK" || echo "FAIL"
     )

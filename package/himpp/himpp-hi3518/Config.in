@@ -2,7 +2,7 @@ comment "Options for hi3518 mpp2"
 
 config BR2_PACKAGE_HIMPP_PREFIX
 	string "Install prefix"
-	default "/opt/himpp2"
+	default "/usr"
 	help
 	  Prefix to install himpp2 on the target file system.
 
