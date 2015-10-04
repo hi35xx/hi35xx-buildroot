@@ -159,6 +159,13 @@ endef
 ifeq ($(BR2_INIT_BUSYBOX),y)
 define BUSYBOX_INSTALL_INITTAB
 	$(INSTALL) -D -m 0644 package/busybox/inittab $(TARGET_DIR)/etc/inittab
+	if grep -q CONFIG_SWAPONOFF=y $(@D)/.config; then \
+		$(SED) '/^#.*swapoff -a/s;^#\+;;' \
+			$(TARGET_DIR)/etc/inittab; \
+	else \
+		$(SED) '/^[^#].*swapoff -a/s;^;#;' \
+			$(TARGET_DIR)/etc/inittab; \
+	fi
 endef
 endif
 
