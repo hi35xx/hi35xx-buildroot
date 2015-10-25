@@ -20,6 +20,7 @@ menu "Audio and video applications"
 	source "package/kodi/Config.in"
 	source "package/lame/Config.in"
 	source "package/libvpx/Config.in"
+	source "package/live-streamer/Config.in"
 	source "package/madplay/Config.in"
 	source "package/mjpegtools/Config.in"
 	source "package/modplugtools/Config.in"
@@ -148,6 +149,7 @@ endif
 endmenu
 
 menu "Filesystem and flash utilities"
+	source "package/archivemount/Config.in"
 	source "package/btrfs-progs/Config.in"
 	source "package/cifs-utils/Config.in"
 	source "package/cpio/Config.in"
@@ -509,6 +511,7 @@ menu "Lua libraries/modules"
 	source "package/orbit/Config.in"
 	source "package/rings/Config.in"
 	source "package/wsapi/Config.in"
+	source "package/wsapi-fcgi/Config.in"
 	source "package/xavante/Config.in"
 endmenu
 endif
