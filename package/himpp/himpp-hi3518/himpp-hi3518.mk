@@ -149,7 +149,7 @@ define HIMPP_TARGET_INSTALL_MPPDRV
 	  $(INSTALL) -D $(@D)/ko/$$f \
 	             $(MPPDRV_TARGET_DIR)/$$f \
 	  || exit 1; \
-	  $(TARGET_STRIP) --strip-unneeded \
+	  $(TARGET_STRIP) -R .note -g --strip-unneeded \
 	             $(MPPDRV_TARGET_DIR)/$$f; \
 	done
 endef
