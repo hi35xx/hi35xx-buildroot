@@ -21,6 +21,10 @@ GZFLAGS		:=-9
 # Explicitly specifiy 32-bit ARM ISA since toolchain default can be -mthumb:
 KBUILD_CFLAGS	+=$(call cc-option,-marm,)
 
+# Disable reading and writing of 16- and 32- bit values from address that
+# are not 16- or 32- bit aligned
+KBUILD_CFLAGS	+= $(call cc-option,-mno-unaligned-access)
+
 # Never generate .eh_frame
 KBUILD_CFLAGS	+= $(call cc-option,-fno-dwarf2-cfi-asm)
 
