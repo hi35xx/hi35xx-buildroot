@@ -953,6 +953,7 @@ config ARCH_HI3518
 	select HAVE_SCHED_CLOCK
 	select GENERIC_TIME
 	select GENERIC_CLOCKEVENTS
+	select ARCH_WANT_OPTIONAL_GPIOLIB
 	select ARCH_HAS_CPUFREQ
 	help
 	This enables support for Hisilicon hi3518 platform.

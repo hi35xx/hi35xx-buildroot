@@ -6,6 +6,7 @@
 #include <linux/interrupt.h>
 #include <linux/amba/bus.h>
 #include <linux/amba/clcd.h>
+#include <linux/amba/pl061.h>
 #include <linux/clocksource.h>
 #include <linux/clockchips.h>
 #include <linux/cnt32_to_63.h>
@@ -339,7 +340,7 @@ struct sys_timer hi3518_timer = {
 
 #define HIL_AMBA_DEVICE(name, busid, base, platdata)			\
 	static struct amba_device HIL_AMBADEV_NAME(name) =		\
-	{\
+	{								\
 		.dev            = {                                     \
 			.coherent_dma_mask = ~0,                        \
 			.init_name = busid,                             \
@@ -347,19 +348,115 @@ struct sys_timer hi3518_timer = {
 		},                                                      \
 		.res            = {                                     \
 			.start  = base##_BASE,				\
-			.end    = base##_BASE + 0x10000 - 1,		\
+			.end    = base##_BASE + 0x1000 - 1,		\
 			.flags  = IORESOURCE_IO,                        \
 		},                                                      \
 		.dma_mask       = ~0,                                   \
 		.irq            = { base##_IRQ, NO_IRQ }		\
 	}
 
-HIL_AMBA_DEVICE(uart0, "uart:0",  UART0,    NULL);
-HIL_AMBA_DEVICE(uart1, "uart:1",  UART1,    NULL);
+#if defined(CONFIG_GPIO_PL061) || defined(CONFIG_GPIO_PL061_MODULE)
+static struct pl061_platform_data gpio0_plat_data = {
+	.gpio_base	= 0,
+	.irq_base	= GPIO0_IRQ_START,
+};
+
+static struct pl061_platform_data gpio1_plat_data = {
+	.gpio_base	= 8,
+	.irq_base	= GPIO1_IRQ_START,
+};
+
+static struct pl061_platform_data gpio2_plat_data = {
+	.gpio_base	= 16,
+	.irq_base	= GPIO2_IRQ_START,
+};
+
+static struct pl061_platform_data gpio3_plat_data = {
+	.gpio_base	= 24,
+	.irq_base	= GPIO3_IRQ_START,
+};
+
+static struct pl061_platform_data gpio4_plat_data = {
+	.gpio_base	= 32,
+	.irq_base	= GPIO4_IRQ_START,
+};
+
+static struct pl061_platform_data gpio5_plat_data = {
+	.gpio_base	= 40,
+	.irq_base	= GPIO5_IRQ_START,
+};
+
+static struct pl061_platform_data gpio6_plat_data = {
+	.gpio_base	= 48,
+	.irq_base	= GPIO6_IRQ_START,
+};
+
+static struct pl061_platform_data gpio7_plat_data = {
+	.gpio_base	= 56,
+	.irq_base	= GPIO7_IRQ_START,
+};
+
+static struct pl061_platform_data gpio8_plat_data = {
+	.gpio_base	= 64,
+	.irq_base	= GPIO8_IRQ_START,
+};
+
+static struct pl061_platform_data gpio9_plat_data = {
+	.gpio_base	= 72,
+	.irq_base	= GPIO9_IRQ_START,
+};
+
+static struct pl061_platform_data gpio10_plat_data = {
+	.gpio_base	= 80,
+	.irq_base	= GPIO10_IRQ_START,
+};
+
+static struct pl061_platform_data gpio11_plat_data = {
+	.gpio_base	= 88,
+	.irq_base	= GPIO11_IRQ_START,
+};
+#endif
+
+HIL_AMBA_DEVICE(uart0,  "uart:0",     UART0,  NULL);
+HIL_AMBA_DEVICE(uart1,  "uart:1",     UART1,  NULL);
+#if defined(CONFIG_ARM_SP805_WATCHDOG) || defined(CONFIG_ARM_SP805_WATCHDOG_MODULE)
+HIL_AMBA_DEVICE(wdog,   "dev:wdog",   WDG,    NULL);
+#endif
+#if defined(CONFIG_GPIO_PL061) || defined(CONFIG_GPIO_PL061_MODULE)
+HIL_AMBA_DEVICE(gpio0,  "dev:gpio0",  GPIO0,  &gpio0_plat_data);
+HIL_AMBA_DEVICE(gpio1,  "dev:gpio1",  GPIO1,  &gpio1_plat_data);
+HIL_AMBA_DEVICE(gpio2,  "dev:gpio2",  GPIO2,  &gpio2_plat_data);
+HIL_AMBA_DEVICE(gpio3,  "dev:gpio3",  GPIO3,  &gpio3_plat_data);
+HIL_AMBA_DEVICE(gpio4,  "dev:gpio4",  GPIO4,  &gpio4_plat_data);
+HIL_AMBA_DEVICE(gpio5,  "dev:gpio5",  GPIO5,  &gpio5_plat_data);
+HIL_AMBA_DEVICE(gpio6,  "dev:gpio6",  GPIO6,  &gpio6_plat_data);
+HIL_AMBA_DEVICE(gpio7,  "dev:gpio7",  GPIO7,  &gpio7_plat_data);
+HIL_AMBA_DEVICE(gpio8,  "dev:gpio8",  GPIO8,  &gpio8_plat_data);
+HIL_AMBA_DEVICE(gpio9,  "dev:gpio9",  GPIO9,  &gpio9_plat_data);
+HIL_AMBA_DEVICE(gpio10, "dev:gpio10", GPIO10, &gpio10_plat_data);
+HIL_AMBA_DEVICE(gpio11, "dev:gpio11", GPIO11, &gpio11_plat_data);
+#endif
 
 static struct amba_device *amba_devs[] __initdata = {
 	&HIL_AMBADEV_NAME(uart0),
 	&HIL_AMBADEV_NAME(uart1),
+#if defined(CONFIG_ARM_SP805_WATCHDOG) || defined(CONFIG_ARM_SP805_WATCHDOG_MODULE)
+	&HIL_AMBADEV_NAME(wdog),
+#endif
+#if defined(CONFIG_GPIO_PL061) || defined(CONFIG_GPIO_PL061_MODULE)
+	&HIL_AMBADEV_NAME(gpio0),
+	&HIL_AMBADEV_NAME(gpio1),
+	&HIL_AMBADEV_NAME(gpio2),
+	&HIL_AMBADEV_NAME(gpio3),
+	&HIL_AMBADEV_NAME(gpio4),
+	&HIL_AMBADEV_NAME(gpio5),
+	&HIL_AMBADEV_NAME(gpio6),
+	&HIL_AMBADEV_NAME(gpio7),
+	&HIL_AMBADEV_NAME(gpio8),
+	&HIL_AMBADEV_NAME(gpio9),
+	&HIL_AMBADEV_NAME(gpio10),
+	&HIL_AMBADEV_NAME(gpio11),
+#endif
 };
 
 /*
@@ -368,6 +465,18 @@ static struct amba_device *amba_devs[] __initdata = {
 static struct clk uart_clk = {
 	.rate   = 3000000,
 };
+
+#if defined(CONFIG_ARM_SP805_WATCHDOG) || defined(CONFIG_ARM_SP805_WATCHDOG_MODULE)
+static struct clk wdog_clk = {
+	.rate	= 3000000,
+};
+#endif
+
+#if defined(CONFIG_GPIO_PL061) || defined(CONFIG_GPIO_PL061_MODULE)
+static struct clk gpio_clk = {
+	.rate	= CONFIG_DEFAULT_BUSCLK,
+};
+#endif
 
 static struct clk_lookup lookups[] = {
 	{       /* UART0 */
@@ -378,6 +487,62 @@ static struct clk_lookup lookups[] = {
 		.dev_id         = "uart:1",
 		.clk            = &uart_clk,
 	},
+#if defined(CONFIG_ARM_SP805_WATCHDOG) || defined(CONFIG_ARM_SP805_WATCHDOG_MODULE)
+	{	/* WDOG */
+		.dev_id		= "dev:wdog",
+		.clk		= &wdog_clk,
+	},
+#endif
+#if defined(CONFIG_GPIO_PL061) || defined(CONFIG_GPIO_PL061_MODULE)
+	{	/* GPIO0 */
+		.dev_id		= "dev:gpio0",
+		.clk		= &gpio_clk,
+	},
+	{	/* GPIO1 */
+		.dev_id		= "dev:gpio1",
+		.clk		= &gpio_clk,
+	},
+	{	/* GPIO2 */
+		.dev_id		= "dev:gpio2",
+		.clk		= &gpio_clk,
+	},
+	{	/* GPIO3 */
+		.dev_id		= "dev:gpio3",
+		.clk		= &gpio_clk,
+	},
+	{	/* GPIO4 */
+		.dev_id		= "dev:gpio4",
+		.clk		= &gpio_clk,
+	},
+	{	/* GPIO5 */
+		.dev_id		= "dev:gpio5",
+		.clk		= &gpio_clk,
+	},
+	{	/* GPIO6 */
+		.dev_id		= "dev:gpio6",
+		.clk		= &gpio_clk,
+	},
+	{	/* GPIO7 */
+		.dev_id		= "dev:gpio7",
+		.clk		= &gpio_clk,
+	},
+	{	/* GPIO8 */
+		.dev_id		= "dev:gpio8",
+		.clk		= &gpio_clk,
+	},
+	{	/* GPIO9 */
+		.dev_id		= "dev:gpio9",
+		.clk		= &gpio_clk,
+	},
+	{	/* GPIO10 */
+		.dev_id		= "dev:gpio10",
+		.clk		= &gpio_clk,
+	},
+	{	/* GPIO11 */
+		.dev_id		= "dev:gpio11",
+		.clk		= &gpio_clk,
+	},
+#endif
 };
 
 void __init hi3518_init(void)
