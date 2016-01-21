@@ -29,18 +29,17 @@ define HIMPP_HI3518_EXTRACT_CMDS
 endef
 
 define himpp_build
-
 	( cd $(@D)/$(1) && $(MAKE1) $(HIMPP_HI3518_MAKE_OPTS) ) || exit 1;
-
 endef
 
 define HIMPP_HI3518_BUILD_CMDS
-	pushd $(@D)/lib; \
+	( cd $(@D)/lib; \
 	for f in *.a; do \
 	  $(TARGET_CC) -shared -fPIC -o $${f%.a}.so \
-	               -Wl,--whole-archive $$f -Wl,--no-whole-archive; \
+	               -Wl,--whole-archive $$f -Wl,--no-whole-archive \
+	  || exit 1; \
 	done; \
-	popd;
+	);
 endef
 
 ###############################################################################
@@ -122,13 +121,19 @@ $(eval $(call add_sample,VIO,vio,sample_vio))
 
 HIMPP_PREFIX = $(call qstrip,$(BR2_PACKAGE_HIMPP_PREFIX))
 
+extdrv-header-$(BR2_PACKAGE_HIMPP_EXTDRV_TW2865) += tw2865/tw2865.h
+
 define HIMPP_HI3518_INSTALL_STAGING_CMDS
-	mkdir -p $(STAGING_DIR)$(HIMPP_PREFIX)
+	mkdir -p $(STAGING_DIR)$(HIMPP_PREFIX)/include/hi3518mpp
+	mkdir -p $(STAGING_DIR)$(HIMPP_PREFIX)/lib
 	# install header files
-	cp -a $(@D)/include $(STAGING_DIR)$(HIMPP_PREFIX)
-	# tw2835
-	$(INSTALL) -m 0664 $(@D)/extdrv/tw2865/tw2865.h \
-                   $(STAGING_DIR)$(HIMPP_PREFIX)/include
+	cp -a $(@D)/include/* \
+	    $(STAGING_DIR)$(HIMPP_PREFIX)/include/hi3518mpp/
+	# install header files for extdrv
+	for f in $(extdrv-header-y); do \
+	    $(INSTALL) -m 0664 $(@D)/extdrv/$$f \
+	               $(STAGING_DIR)$(HIMPP_PREFIX)/include/hi3518mpp/; \
+	done
 	# install libraries
 	cp -a $(@D)/lib $(STAGING_DIR)$(HIMPP_PREFIX)
 	# override the sensor driver libraries
