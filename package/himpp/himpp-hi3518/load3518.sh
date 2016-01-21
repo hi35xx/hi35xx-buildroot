@@ -95,22 +95,16 @@ remove_sns()
 
 mmz_mem_info()
 {
-    K=1024
-    M=1048576
-    BASE=0x80000000
-    MEM_SIZE=40M
-    MMZ_SIZE=24M
+    BASEADDR=$((0x80000000))
+    TOTALMEM=$((0x04000000))
+    local osmem=$(($(cat /proc/cmdline 2>/dev/null | \
+                  sed -nr 's/mem=([^[:space:]]+).*/\1/p' | \
+                  sed -r  's/[kK]$/\*1024/;s/[mM]$/\*1024\*1024/')))
+    local maddr=$(printf "0x%x" $((BASEADDR+osmem)))
+    while [ $osmem -ge $TOTALMEM ]; do TOTALMEM=$((TOTALMEM<<1)); done
+    local msize=$(printf "0x%x" $((TOTALMEM-osmem)))
 
-    local cmdline=$(cat /proc/cmdline 2>/dev/null)
-    local mem=$(echo $cmdline | grep -o -E 'mem=[^[:space:]]*')
-    mem=${mem:4}
-    mem=${mem:-${MEM_SIZE}}
-    mem=${mem/[mM]/*$M}
-    mem=${mem/[kK]/*$K}
-    local mmz=$(echo $cmdline | grep -o -E 'mmz=[^[:space:]]*')
-    mmz=${mmz:4}
-    mmz=${mmz:-${MMZ_SIZE}}
-    printf 'anonymous,0,0x%08x,%s' $(($BASE+$mem)) ${mmz}
+    printf 'anonymous,0,0x%x,0x%x' ${maddr} ${msize}
 }
 
 insert_ko()
