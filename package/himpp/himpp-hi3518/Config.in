@@ -28,6 +28,10 @@ config BR2_PACKAGE_HIMPP_SNSDRV_GALAXYCORE_GC1004
 	bool "GalaxyCore GC1004"
 	default y
 
+config BR2_PACKAGE_HIMPP_SNSDRV_GALAXYCORE_GC1014
+	bool "GalaxyCore GC1014"
+	default y
+
 config BR2_PACKAGE_HIMPP_SNSDRV_HIMAX_1375
 	bool "Himax 1375"
 	default y

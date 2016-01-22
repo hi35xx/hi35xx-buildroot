@@ -6,8 +6,8 @@
 #
 
 
-# ar0130 mn34031 imx104 icx692 ov9712 9m034 imx122 mt9p006 imx138 soih22 ov2710 himax1375 gc1004
-SNS_A=gc1004
+# ar0130 mn34031 imx104 icx692 ov9712 9m034 imx122 mt9p006 imx138 soih22 ov2710 himax1375 gc1004 gc1014
+SNS_A=gc1014
 
 if [ $# -ge 2 ]; then
     SNS_A=$2
@@ -73,7 +73,7 @@ insert_sns()
             devmem  0x20030030 32 0x1;          #Sensor clock 24 MHz
             devmem  0x2003002c 32 0x6a;         #VI input associated clock phase reversed
             insmod extdrv/ssp_ad9020.ko;;
-        hm1375|ar0330|gc1004)
+        hm1375|ar0330|gc1004|gc1014)
             devmem  0x20030030 32 0x1;;         #Sensor clock 24 MHz
         imx236)
             devmem  0x20030030 32 0x6;          #Sensor clock 37.125 MHz
