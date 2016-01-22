@@ -1,0 +1,146 @@
+comment "Options for hi3520 mpp"
+
+config BR2_PACKAGE_HIMPP_PREFIX
+	string "Install prefix"
+	default "/usr"
+	help
+	  Prefix to install himpp on the target file system.
+
+menu "External kernel module & utils"
+
+config BR2_PACKAGE_HIMPP_EXTDRV_ADV7179
+	bool "adv7179"
+	default y
+	help
+	  adv7179 video codec driver
+
+config BR2_PACKAGE_HIMPP_EXTDRV_CIPHER
+	bool "cipher"
+	default y
+	help
+	  cipher driver
+
+config BR2_PACKAGE_HIMPP_EXTDRV_GPIO_I2C
+	bool "gpio-i2c"
+	default n
+	help
+	  gpio-i2c bit-bang i2c driver
+
+config BR2_PACKAGE_HIMPP_EXTDRV_I2C
+	bool "i2c"
+	default n
+	help
+	  i2c driver
+
+config BR2_PACKAGE_HIMPP_EXTDRV_IRDA
+	bool "hisi-irda"
+	default n
+	help
+	  hisi-irda driver
+
+config BR2_PACKAGE_HIMPP_EXTDRV_SIL9022
+	bool "sil9022"
+	default n
+	help
+	  sil9022 HDMI transmitter driver
+
+config BR2_PACKAGE_HIMPP_EXTDRV_SSP_GV7601
+	bool "ssp-gv7601"
+	default n
+
+config BR2_PACKAGE_HIMPP_EXTDRV_TLV320AIC31
+	bool "tlv320aic31"
+	default n
+
+config BR2_PACKAGE_HIMPP_EXTDRV_NVP1918
+	bool "nvp1918"
+	default y
+	depends on BR2_PACKAGE_HIMPP_EXTDRV_GPIO_I2C || \
+		BR2_PACKAGE_HIMPP_EXTDRV_I2C
+	help
+	  nvp1918 video codec driver
+
+config BR2_PACKAGE_HIMPP_EXTDRV_TW2865
+	bool "tw2865"
+	default y
+	depends on BR2_PACKAGE_HIMPP_EXTDRV_GPIO_I2C || \
+		BR2_PACKAGE_HIMPP_EXTDRV_I2C
+
+config BR2_PACKAGE_HIMPP_EXTDRV_TW2868
+	bool "tw2868"
+	default y
+	depends on BR2_PACKAGE_HIMPP_EXTDRV_GPIO_I2C || \
+		BR2_PACKAGE_HIMPP_EXTDRV_I2C
+
+config BR2_PACKAGE_HIMPP_EXTDRV_TW2960
+	bool "tw2960"
+	default y
+	depends on BR2_PACKAGE_HIMPP_EXTDRV_GPIO_I2C || \
+		BR2_PACKAGE_HIMPP_EXTDRV_I2C
+
+endmenu
+
+menuconfig BR2_PACKAGE_HIMPP_SAMPLES
+	bool "Build MPP samples"
+	default n
+	help
+	  Build samples for HiMPP for HI3520
+
+if BR2_PACKAGE_HIMPP_SAMPLES
+
+config BR2_PACKAGE_HIMPP_SAMPLES_AUDIO
+	bool "audio"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build audio samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_HIFB
+	bool "hifb"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build hifb samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_IQ
+	bool "iq"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build iq samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_IVE
+	bool "ive"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build ive samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_REGION
+	bool "region"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build region samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_TDE
+	bool "tde"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build tde samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_VDA
+	bool "vda"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build vda samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_VENC
+	bool "venc"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build venc samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_VIO
+	bool "vio"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build vio samples for hi3518
+
+endif #BR2_PACKAGE_HIMPP_SAMPLES
+
