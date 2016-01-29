@@ -18,7 +18,7 @@ static int hfs_revalidate_dentry(struct dentry *dentry, struct nameidata *nd)
 	struct inode *inode;
 	int diff;
 
-	if (nd->flags & LOOKUP_RCU)
+	if (nd && nd->flags & LOOKUP_RCU)
 		return -ECHILD;
 
 	inode = dentry->d_inode;

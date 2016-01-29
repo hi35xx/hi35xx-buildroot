@@ -302,7 +302,7 @@ ncp_lookup_validate(struct dentry *dentry, struct nameidata *nd)
 	if (dentry == dentry->d_sb->s_root)
 		return 1;
 
-	if (nd->flags & LOOKUP_RCU)
+	if (nd && nd->flags & LOOKUP_RCU)
 		return -ECHILD;
 
 	parent = dget_parent(dentry);

@@ -607,7 +607,7 @@ static int afs_d_revalidate(struct dentry *dentry, struct nameidata *nd)
 	void *dir_version;
 	int ret;
 
-	if (nd->flags & LOOKUP_RCU)
+	if (nd && nd->flags & LOOKUP_RCU)
 		return -ECHILD;
 
 	vnode = AFS_FS_I(dentry->d_inode);
