@@ -90,8 +90,8 @@ If something goes wrong in the steps _3_ or _4_, then the build fails.
 
 === Format and licensing of the package patches
 
-Patches are released under the same license as the software that is
-modified.
+Patches are released under the same license as the software they apply
+to (see xref:legal-info-buildroot[]).
 
 A message explaining what the patch does, and why it is needed, should
 be added in the header commentary of the patch.
@@ -105,6 +105,10 @@ upstream SCM software to generate the patch set.
 
 Otherwise, concatenate the header with the output of the
 +diff -purN package-version.orig/ package-version/+ command.
+
+If you update an existing patch (e.g. when bumping the package version),
+make sure the existing From header and Signed-off-by tags are not
+removed, but do update the rest of the patch comment when appropriate.
 
 At the end, the patch should look like:
 

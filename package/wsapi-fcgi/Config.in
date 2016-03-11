@@ -1,7 +1,7 @@
 config BR2_PACKAGE_WSAPI_FCGI
 	bool "wsapi-fcgi"
 	# Runtime dependency only
-	select BR2_PACKAGE_FCGI
+	select BR2_PACKAGE_LIBFCGI
 	select BR2_PACKAGE_COXPCALL
 	select BR2_PACKAGE_LUAFILESYSTEM
 	select BR2_PACKAGE_RINGS
