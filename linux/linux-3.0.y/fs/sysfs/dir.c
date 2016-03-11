@@ -242,7 +242,7 @@ static int sysfs_dentry_revalidate(struct dentry *dentry, struct nameidata *nd)
 	struct sysfs_dirent *sd;
 	int is_dir;
 
-	if (nd->flags & LOOKUP_RCU)
+	if (nd && nd->flags & LOOKUP_RCU)
 		return -ECHILD;
 
 	sd = dentry->d_fsdata;

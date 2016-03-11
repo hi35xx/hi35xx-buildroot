@@ -545,7 +545,7 @@ static int coda_dentry_revalidate(struct dentry *de, struct nameidata *nd)
 	struct inode *inode;
 	struct coda_inode_info *cii;
 
-	if (nd->flags & LOOKUP_RCU)
+	if (nd && nd->flags & LOOKUP_RCU)
 		return -ECHILD;
 
 	inode = de->d_inode;
