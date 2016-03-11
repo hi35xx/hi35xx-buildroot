@@ -1,0 +1,13 @@
+
+config BR2_PACKAGE_GSOAP
+	bool "gsoap"
+	depends on BR2_INSTALL_LIBSTDCPP
+	help
+	  The gSOAP Web services development toolkit offers an XML to C/C++
+	  language binding to ease the development of SOAP/XML Web services in C
+	  and C/C++.
+
+	  http://sourceforge.net/projects/gsoap2/
+
+comment "gsoap needs a toolchain w/ C++, threads"
+	depends on !BR2_INSTALL_LIBSTDCPP
