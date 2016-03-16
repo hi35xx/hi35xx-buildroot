@@ -27,6 +27,8 @@ NGINX_CONF_OPTS = \
 # ownership.
 define NGINX_PERMISSIONS
 	/var/lib/nginx d 755 33 33 - - - - -
+	/etc/nginx/conf.d d 755 33 33 - - - - -
+	/etc/nginx/default.d d 755 33 33 - - - - -
 endef
 
 # disable external libatomic_ops because its detection fails.
@@ -48,7 +50,7 @@ NGINX_CONF_ENV += \
 
 # prefix: nginx root configuration location
 NGINX_CONF_OPTS += \
-	--prefix=/usr \
+	--prefix=/usr/share/nginx \
 	--conf-path=/etc/nginx/nginx.conf \
 	--sbin-path=/usr/sbin/nginx \
 	--pid-path=/var/run/nginx.pid \
@@ -220,11 +222,23 @@ define NGINX_BUILD_CMDS
 	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D)
 endef
 
+define NGINX_INSTALL_DEFAULT_CONFIG
+	$(INSTALL) -D -m 644 package/nginx/nginx.conf \
+		$(TARGET_DIR)/etc/nginx/nginx.conf
+endef
+
+ifeq ($(BR2_PACKAGE_LOGROTATE),y)
+define NGINX_INSTALL_LOGROTATE
+	$(INSTALL) -D -m 0664 package/nginx/nginx.logrotate \
+		$(TARGET_DIR)/etc/logrotate.d/nginx
+endef
+endif
+
 define NGINX_INSTALL_TARGET_CMDS
 	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) DESTDIR=$(TARGET_DIR) install
 	$(RM) $(TARGET_DIR)/usr/sbin/nginx.old
-	$(INSTALL) -D -m 0664 package/nginx/nginx.logrotate \
-		$(TARGET_DIR)/etc/logrotate.d/nginx
+	$(NGINX_INSTALL_DEFAULT_CONFIG)
+	$(NGINX_INSTALL_LOGROTATE)
 endef
 
 define NGINX_INSTALL_INIT_SYSTEMD
