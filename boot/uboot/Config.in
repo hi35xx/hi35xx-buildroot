@@ -286,6 +286,33 @@ config BR2_TARGET_UBOOT_FORMAT_CUSTOM_NAME
 	  U-Boot, if it is not one of the default names. For example:
 	  u-boot_magic.bin
 
+config BR2_TARGET_UBOOT_HI35XX_IMAGE
+	bool "produce a hi35xx image"
+	depends on BR2_TARGET_UBOOT_FORMAT_BIN
+	depends on BR2_arm || BR2_armeb
+	help
+	  Use mkboot.sh to produce an image of u-boot.bin with
+	  a Configuration Header for booting hi35xx processors.
+	  This allows U-Boot to boot without the need for an
+	  intermediate bootloader (SPL) if it is written on the
+	  first sector of the boot medium.
+
+if BR2_TARGET_UBOOT_HI35XX_IMAGE
+
+config BR2_TARGET_UBOOT_HI35XX_IMAGE_CONFIG
+	string "hi35xx Configuration Header file"
+	help
+	  The Configuration Header (CH) contains initialization data
+	  for PLL/DDRC/PINMUX/Flash and other external devices.
+	  The default CH file for hi3518/hi3516/hi3520 can be found
+	  at board/hisilicon/{hi3518|hi3520}/boot directory, for example
+	  reg_info_hi3518e.bin.
+	  This file can be generated from u-boot-<XXXX>.xlsm file shipped
+	  with hisilicon SDK if you want to customize the initialization
+	  process.
+
+endif
+
 config BR2_TARGET_UBOOT_OMAP_IFT
 	depends on BR2_TARGET_UBOOT_FORMAT_BIN
 	depends on BR2_arm || BR2_armeb

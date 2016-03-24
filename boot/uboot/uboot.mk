@@ -72,6 +72,7 @@ UBOOT_BIN = $(call qstrip,$(BR2_TARGET_UBOOT_FORMAT_CUSTOM_NAME))
 else
 UBOOT_BIN = u-boot.bin
 UBOOT_BIN_IFT = $(UBOOT_BIN).ift
+UBOOT_HI35XX_BIN = u-boot-$(patsubst reg_info_%,%,$(patsubst %.bin,%,$(notdir $(call qstrip,$(BR2_TARGET_UBOOT_HI35XX_IMAGE_CONFIG))))).bin
 endif
 
 # The kernel calls AArch64 'arm64', but U-Boot calls it just 'arm', so
@@ -175,6 +176,13 @@ define UBOOT_BUILD_CMDS
 			nand $(@D)/u-boot.sb $(@D)/u-boot.nand)
 endef
 
+define UBOOT_BUILD_HI35XX_IMAGE
+	$(TOPDIR)/board/hisilicon/common/mkboot.sh			\
+		-o $(@D)/$(UBOOT_HI35XX_BIN)				\
+		$(call qstrip,$(BR2_TARGET_UBOOT_HI35XX_IMAGE_CONFIG))	\
+		$(@D)/u-boot.bin
+endef
+
 define UBOOT_BUILD_OMAP_IFT
 	$(HOST_DIR)/usr/bin/gpsign -f $(@D)/u-boot.bin \
 		-c $(call qstrip,$(BR2_TARGET_UBOOT_OMAP_IFT_CONFIG))
@@ -191,6 +199,23 @@ define UBOOT_INSTALL_IMAGES_CMDS
 		$(if $(BR2_TARGET_UBOOT_ENVIMAGE_REDUNDANT),-r) \
 		-o $(BINARIES_DIR)/uboot-env.bin $(BR2_TARGET_UBOOT_ENVIMAGE_SOURCE))
 endef
+
+define UBOOT_INSTALL_HI35XX_IMAGE
+	cp -dpf $(@D)/$(UBOOT_HI35XX_BIN) $(BINARIES_DIR)/
+endef
+
+ifeq ($(BR2_TARGET_UBOOT_HI35XX_IMAGE),y)
+ifeq ($(BR2_BUILDING),y)
+ifeq ($(call qstrip,$(BR2_TARGET_UBOOT_HI35XX_IMAGE_CONFIG)),)
+$(error No CH file. Check your BR2_TARGET_UBOOT_HI35XX_IMAGE_CONFIG setting)
+endif
+ifeq ($(wildcard $(call qstrip,$(BR2_TARGET_UBOOT_HI35XX_IMAGE_CONFIG))),)
+$(error CH file $(BR2_TARGET_UBOOT_HI35XX_IMAGE_CONFIG) not found. Check your BR2_TARGET_UBOOT_HI35XX_IMAGE_CONFIG setting)
+endif
+endif
+UBOOT_POST_BUILD_HOOKS += UBOOT_BUILD_HI35XX_IMAGE
+UBOOT_POST_INSTALL_IMAGES_HOOKS += UBOOT_INSTALL_HI35XX_IMAGE
+endif
 
 define UBOOT_INSTALL_OMAP_IFT_IMAGE
 	cp -dpf $(@D)/$(UBOOT_BIN_IFT) $(BINARIES_DIR)/
