@@ -113,6 +113,7 @@ unsigned int get_phy_device(char *devname, unsigned char phyaddr)
 {
 	u32 phy_id;
 	u16 id1, id2;
+	u16 bmcr;
 
 	miiphy_read(devname, phyaddr, PHY_PHYIDR1, &id1);
 	miiphy_read(devname, phyaddr, PHY_PHYIDR2, &id2);
@@ -137,6 +138,12 @@ unsigned int get_phy_device(char *devname, unsigned char phyaddr)
 		miiphy_read(devname, phyaddr, 0x16, &reg);
 		reg |= (1 << 1);
 		miiphy_write(devname, phyaddr, 0x16, reg);
+	}
+
+	/* enable auto-negotiation */
+	if (!miiphy_read(devname, phyaddr, PHY_BMCR, &bmcr)) {
+		bmcr |= PHY_BMCR_AUTON;
+		miiphy_write(devname, phyaddr, PHY_BMCR, bmcr);
 	}
 
 	return 0;
