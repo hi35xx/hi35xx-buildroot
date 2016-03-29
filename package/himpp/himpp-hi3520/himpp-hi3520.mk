@@ -134,7 +134,7 @@ define HIMPP_TARGET_INSTALL_EXTDRV
 	  $(INSTALL) -D $(@D)/$$f \
 	             $(MPPDRV_TARGET_DIR)/extdrv/$$t \
 	  || exit 1; \
-	  $(TARGET_STRIP) --strip-unneeded \
+	  $(TARGET_STRIP) -R .note -g --strip-unneeded \
 	             $(MPPDRV_TARGET_DIR)/extdrv/$$t; \
 	done
 endef
