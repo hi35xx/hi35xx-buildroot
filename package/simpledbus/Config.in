@@ -1,0 +1,11 @@
+config BR2_PACKAGE_SIMPLEDBUS
+	bool "simpledbus"
+	depends on BR2_PACKAGE_HAS_LUAINTERPRETER
+	help
+	  SimpleDBus is a Lua library which enables you to write
+	  simple scripts to act on signals, send signals, call methods
+	  on remote objects and export your own objects to DBus.
+
+	  SimpleDBus implements a simple poll()-based main loop
+	  so scripts can act asynchronously over several busses
+	  at the same time.
