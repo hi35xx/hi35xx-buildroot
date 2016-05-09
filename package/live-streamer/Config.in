@@ -8,6 +8,10 @@ config BR2_PACKAGE_LIVE_STREAMER
 	select BR2_PACKAGE_DBUS
 	select BR2_PACKAGE_DBUS_CPP
 	select BR2_PACKAGE_LIVE555
+	select BR2_PACKAGE_FONTCONFIG
+	select BR2_PACKAGE_SDL
+	select BR2_PACKAGE_SDL_TTF
+	select BR2_PACKAGE_SDL_IMAGE
 	help
 	  live-streamer is a RTP/RTSP stream server, provide D-Bus
 	  control interface. support hi3518 SoC.
