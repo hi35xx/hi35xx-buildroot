@@ -1,0 +1,12 @@
+diff -uNr a/src/message.cpp b/src/message.cpp
+--- a/src/message.cpp	2011-11-28 23:03:19.000000000 +0800
++++ b/src/message.cpp	2016-04-30 02:21:07.119632739 +0800
+@@ -350,7 +350,7 @@
+       (
+         (DBusMessageIter *) & (to._iter),
+         from.type(),
+-        from.type() == DBUS_TYPE_VARIANT ? NULL : sig,
++        from.type() == DBUS_TYPE_VARIANT ? sig : NULL,
+         (DBusMessageIter *) & (to_container._iter)
+       );
+ 
