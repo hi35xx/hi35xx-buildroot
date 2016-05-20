@@ -57,6 +57,7 @@ endef
 $(eval $(call add_snsdrv,APTINA_9M034,aptina_9m034, 9m034))
 $(eval $(call add_snsdrv,APTINA_AR0130,aptina_ar0130,ar0130_720p))
 $(eval $(call add_snsdrv,APTINA_AR0330,aptina_ar0330,ar0330_1080p))
+$(eval $(call add_snsdrv,APTINA_AR0331,aptina_ar0331,ar0331_1080p))
 $(eval $(call add_snsdrv,APTINA_MT9P006,aptina_mt9p006,mt9p006))
 $(eval $(call add_snsdrv,GALAXYCORE_GC1004,galaxycore_gc1004,gc1004))
 $(eval $(call add_snsdrv,GALAXYCORE_GC1014,galaxycore_gc1014,gc1014))

@@ -5,8 +5,9 @@
 #    default : rmmod all moules and then insmod them
 #
 
+# ar0130 mn34031 imx104 icx692 ov9712 9m034 imx122 mt9p006
+# imx138 soih22 ov2710 himax1375 gc1004 gc1014 ar0330 ar0331
 
-# ar0130 mn34031 imx104 icx692 ov9712 9m034 imx122 mt9p006 imx138 soih22 ov2710 himax1375 gc1004 gc1014
 SNS_A=gc1014
 
 if [ $# -ge 2 ]; then
@@ -75,6 +76,8 @@ insert_sns()
             insmod extdrv/ssp_ad9020.ko;;
         hm1375|ar0330|gc1004|gc1014)
             devmem  0x20030030 32 0x1;;         #Sensor clock 24 MHz
+        ar0331)
+            devmem  0x20030030 32 0x5;;         #Sensor clock 27MHz
         imx236)
             devmem  0x20030030 32 0x6;          #Sensor clock 37.125 MHz
             ;;

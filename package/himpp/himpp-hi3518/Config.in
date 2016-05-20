@@ -20,6 +20,10 @@ config BR2_PACKAGE_HIMPP_SNSDRV_APTINA_AR0330
 	bool "Aptina AR0330"
 	default y
 
+config BR2_PACKAGE_HIMPP_SNSDRV_APTINA_AR0331
+	bool "Aptina AR0331"
+	default y
+
 config BR2_PACKAGE_HIMPP_SNSDRV_APTINA_MT9P006
 	bool "Aptina MT9P006"
 	default y
