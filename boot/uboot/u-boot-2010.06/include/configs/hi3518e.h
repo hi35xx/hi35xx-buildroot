@@ -124,12 +124,12 @@
 /* env in flash instead of CFG_ENV_IS_NOWHERE */
 #define CONFIG_ENV_IS_IN_SPI_FLASH	1
 
-#define CONFIG_ENV_OFFSET		0x80000 /* environment starts here */
+#define CONFIG_ENV_OFFSET		0x40000 /* environment starts here */
 #define CONFIG_ENV_SPI_ADDR		(CONFIG_ENV_OFFSET)
 #define CONFIG_CMD_SAVEENV
 
 #define CONFIG_STACKSIZE		(128 * 1024)
-#define CONFIG_ENV_SIZE			0x40000 /* include ENV_HEADER_SIZE */
+#define CONFIG_ENV_SIZE			0x20000 /* include ENV_HEADER_SIZE */
 #define CONFIG_ENV_SECT_SIZE		CONFIG_ENV_SIZE
 #define CONFIG_NR_DRAM_BANKS		1	/* we have 1 bank of DRAM */
 #define CFG_BOOT_PARAMS			(MEM_BASE_DDR + 0x0100)
@@ -152,13 +152,13 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"meminfo=mem=32M\0" \
 	"console=ttyAMA0,115200n8\0" \
-	"mtdparts=hi_sfc:512k(uboot)ro,256k(uboot-env),256k(mfd)," \
-		"3m(kernel),8m(rootfs),-(user)\0" \
+	"mtdparts=hi_sfc:256k(uboot)ro,128k(uboot-env),128k(mfd)," \
+		"1536k(kernel),4m(rootfs),-(user)\0" \
 	"commonargs=setenv bootargs ${meminfo} " \
 		"console=${console} mtdparts=${mtdparts}\0" \
 	"flashboot=echo Booting from SPI Flash...; " \
 		"run commonargs; sf probe 0 && " \
-		"sf read ${loadaddr} 0x100000 0x300000 && " \
+		"sf read ${loadaddr} 0x80000 0x180000 && " \
 		"bootm\0" \
 	"serialboot=echo Booting from y-modem...; " \
 		"run commonargs; loady && bootm\0" \
@@ -288,14 +288,12 @@
 /*-----------------------------------------------------------------------
  * sdcard
  * ----------------------------------------------------------------------*/
-#ifdef CONFIG_AUTO_SD_UPDATE
-	#define CONFIG_HIMCI_HI3518
-	#define REG_BASE_MCI			0x10020000
-	#define CONFIG_HIMCI_V100
-	#define CONFIG_GENERIC_MMC
-	#define CONFIG_MMC			1
-	#define CONFIG_CMD_MMC
-#endif
+#define CONFIG_HIMCI_HI3518
+#define REG_BASE_MCI				0x10020000
+#define CONFIG_HIMCI_V100
+#define CONFIG_GENERIC_MMC
+#define CONFIG_MMC				1
+#define CONFIG_CMD_MMC
 
 
 /*-----------------------------------------------------------------------
