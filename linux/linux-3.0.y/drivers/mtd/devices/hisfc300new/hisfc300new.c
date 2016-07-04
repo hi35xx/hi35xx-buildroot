@@ -24,8 +24,6 @@
 #include "hisfc300new.h"
 
 #define mtd_has_partitions()             (1)
-static struct partition_info ptn_info;
-static struct partition_info ptn300_info;
 /*****************************************************************************/
 /*
  *  Defines for new spi interfaces
@@ -62,6 +60,10 @@ struct partition_info {
 	struct partition_entry entry[MAX_MTD_PARTITIONS];
 	struct mtd_partition parts[MAX_MTD_PARTITIONS];
 };
+
+static struct partition_info ptn_info;
+static struct partition_info ptn300_info;
+
 /*****************************************************************************/
 static int __init parse_spi_partitions(const struct tag *tag)
 {
