@@ -17,9 +17,28 @@ LIBS += ./product/hiosd/vo/hi3535/libvo.a
 LIBS += ./product/hiosd/hdmi/hi3535/libhdmi.a
 LIBS += ./product/hiosd/dec/libjpegd.a
 endif
+
 ifeq ($(CONFIG_PRODUCTNAME), "hi3520d")
 LIBS += ./product/hiosd/vo/hi3520d/libvo.a
 LIBS += ./product/hiosd/hdmi/hi3520d/libhdmi.a
 LIBS += ./product/hiosd/dec/libjpegd.a
 endif
+
+ifeq ($(CONFIG_PRODUCTNAME), "hi3516a")
+LIBS += ./product/hiosd/vo/hi3516a/libvo.a
+LIBS += ./product/hiosd/dec/libjpegd.a
+endif
+
+ifeq ($(CONFIG_PRODUCTNAME), "hi3536")
+LIBS += ./product/hiosd/vo/hi3536/libvo.a
+LIBS += ./product/hiosd/hdmi/hi3536/libhdmi.a
+LIBS += ./product/hiosd/dec/libjpegd.a
+endif
+
+ifeq ($(CONFIG_PRODUCTNAME), "hi3521a")
+LIBS += ./product/hiosd/vo/hi3521a/libvo.a
+LIBS += ./product/hiosd/hdmi/hi3521a/libhdmi.a
+LIBS += ./product/hiosd/dec/libjpegd.a
+endif
+
 endif

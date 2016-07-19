@@ -10,40 +10,29 @@
 #include "hinfc_common.h"
 
 /*****************************************************************************/
-
-#ifndef _2K
-#  define _2K             (2048)
-#endif
-
-#ifndef _4K
-#  define _4K             (4096)
-#endif
-
-#ifndef _8K
-#  define _8K             (8192)
-#endif
-
-#ifndef _16K
-#  define _16K            (16384)
-#endif
-
+#ifndef __HIFMC_COMMON_H__
+#define _2K             (2048)
+#define _4K             (4096)
+#define _8K             (8192)
+#define _16K            (16384)
 #define _128K           (0x20000)
 #define _256K           (0x40000)
 #define _512K           (0x80000)
-#define _768K           (_256K + _512K)
 #define _1M             (0x100000)
 #define _2M             (_1M << 1)
 #define _4M             (_2M << 1)
-
-#define _128M            (0x8000000UL)
-#define _256M            (0x10000000UL)
-#define _512M            (0x20000000UL)
+#define _128M           (0x8000000UL)
+#define _256M           (0x10000000UL)
+#define _512M           (0x20000000UL)
 #define _1G             (0x40000000ULL)
 #define _2G             (0x80000000ULL)
-#define _4G            (0x100000000ULL)
-#define _8G            (0x200000000ULL)
-#define _16G           (0x400000000ULL)
-#define _64G          (0x1000000000ULL)
+#define _4G             (0x100000000ULL)
+#define _8G             (0x200000000ULL)
+#define _16G            (0x400000000ULL)
+#define _64G            (0x1000000000ULL)
+#endif /* __HIFMC_COMMON_H__ */
+
+#define _768K           (_256K + _512K)
 
 /*****************************************************************************/
 

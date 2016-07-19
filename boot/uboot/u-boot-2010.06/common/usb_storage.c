@@ -437,18 +437,27 @@ static int usb_stor_BBB_reset(struct us_data *us)
 static int usb_stor_CB_reset(struct us_data *us)
 {
 	unsigned char cmd[12];
+#ifdef	USB_STOR_DEBUG
 	int result;
+#endif
 
 	USB_STOR_PRINTF("CB_reset\n");
 	memset(cmd, 0xff, sizeof(cmd));
 	cmd[0] = SCSI_SEND_DIAG;
 	cmd[1] = 4;
+#ifdef	USB_STOR_DEBUG
 	result = usb_control_msg(us->pusb_dev, usb_sndctrlpipe(us->pusb_dev, 0),
 				 US_CBI_ADSC,
 				 USB_TYPE_CLASS | USB_RECIP_INTERFACE,
 				 0, us->ifnum, cmd, sizeof(cmd),
 				 USB_CNTL_TIMEOUT * 5);
-
+#else
+	usb_control_msg(us->pusb_dev, usb_sndctrlpipe(us->pusb_dev, 0),
+				 US_CBI_ADSC,
+				 USB_TYPE_CLASS | USB_RECIP_INTERFACE,
+				 0, us->ifnum, cmd, sizeof(cmd),
+				 USB_CNTL_TIMEOUT * 5);
+#endif
 	/* long wait for reset */
 	wait_ms(1500);
 	USB_STOR_PRINTF("CB_reset result %d: status %X"
@@ -671,7 +680,7 @@ int usb_stor_BBB_transport(ccb *srb, struct us_data *us)
 	}
 
 	if (!(us->flags & USB_READY))
-		wait_ms(200);
+		wait_ms(5);
 	pipein = usb_rcvbulkpipe(us->pusb_dev, us->ep_in);
 	pipeout = usb_sndbulkpipe(us->pusb_dev, us->ep_out);
 	/* DATA phase + error handling */

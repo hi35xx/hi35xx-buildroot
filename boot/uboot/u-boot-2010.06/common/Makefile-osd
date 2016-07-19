@@ -14,8 +14,25 @@ ifeq ($(CONFIG_PRODUCTNAME), "hi3535")
 COBJS-y += cmd_vo_hi3535.o
 COBJS-y += cmd_dec.o
 endif
+
 ifeq ($(CONFIG_PRODUCTNAME), "hi3520d")
 COBJS-y += cmd_vo_hi3520d.o
 COBJS-y += cmd_dec.o
 endif
+
+ifeq ($(CONFIG_PRODUCTNAME), "hi3516a")
+COBJS-y += cmd_vo_hi3516a.o
+COBJS-y += cmd_dec.o
+endif
+
+ifeq ($(CONFIG_PRODUCTNAME), "hi3536")
+COBJS-y += cmd_vo_hi3536.o
+COBJS-y += cmd_dec.o
+endif
+
+ifeq ($(CONFIG_PRODUCTNAME), "hi3521a")
+COBJS-y += cmd_vo_hi3521a.o
+COBJS-y += cmd_dec.o
+endif
+
 endif

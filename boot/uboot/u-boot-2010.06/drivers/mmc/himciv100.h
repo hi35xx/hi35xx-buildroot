@@ -27,6 +27,7 @@
 
 #if HI_MCI_DEBUG
 extern int debug_type;
+extern char *get_debug_type_string(int);
 #define HIMCI_DEBUG_TYPE	(HIMCI_DEBUG_TYPE_REG | \
 				HIMCI_DEBUG_TYPE_FUN | \
 				HIMCI_DEBUG_TYPE_CMD | \

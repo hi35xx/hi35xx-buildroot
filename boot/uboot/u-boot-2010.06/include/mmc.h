@@ -128,6 +128,9 @@
  * EXT_CSD fields
  */
 
+#define EXT_CSD_WR_REL_PARAM	166	/* RO */
+#define EXT_CSD_WR_REL_SET	167	/* R/W */
+#define EXT_CSD_RST_N_FUNCTION	162	/* R/W */
 #define EXT_CSD_BOOT_BUS_WIDTH	177	/* R/W */
 #define EXT_CSD_BOOT_CONFIG	179	/* R/W */
 #define EXT_CSD_BUS_WIDTH	183	/* R/W */
@@ -140,6 +143,11 @@
 /*
  * EXT_CSD field definitions
  */
+#define EXT_CSD_WR_REL_PARAM_EN		(1<<2)
+#define EXT_CSD_WR_REL_PARAM_HCR	(1<<0)
+#define EXT_CSD_WR_REL_VALUE		(0x1f)
+#define EXT_CSD_RST_N_EN_MASK		0x3
+#define EXT_CSD_RST_N_ENABLED		(1<<0)	/* RST_n is enabled on card */
 
 #define EXT_CSD_CMD_SET_NORMAL		(1<<0)
 #define EXT_CSD_CMD_SET_SECURE		(1<<1)
@@ -245,6 +253,9 @@ struct mmc_data {
 };
 
 struct mmc {
+#ifdef CONFIG_HIMCI_V200
+	int is_init;
+#endif
 	struct list_head link;
 	char name[32];
 	void *priv;
@@ -274,7 +285,11 @@ struct mmc {
 };
 
 int mmc_register(struct mmc *mmc);
+#ifdef CONFIG_HIMCI_V200 
+int mmc_initialize(int dev_num);
+#else
 int mmc_initialize(bd_t *bis);
+#endif
 int mmc_init(struct mmc *mmc);
 int mmc_read(struct mmc *mmc, u64 src, uchar *dst, int size);
 struct mmc *find_mmc_device(int dev_num);

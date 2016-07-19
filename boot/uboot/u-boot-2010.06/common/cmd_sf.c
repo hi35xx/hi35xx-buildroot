@@ -98,12 +98,11 @@ static int do_spi_flash_read_write(int argc, char *argv[])
 	len = simple_strtoul(argv[3], &endp, 16);
 	if (*argv[3] == 0 || *endp != 0)
 		goto usage;
-		if (offset + len >
+	if (offset + len >
 		spiflash_info->chipsize * spiflash_info->numchips) {
-			printf(
-			"ERROR: read/write area is out of range!\n\n");
-							return -1;
-		}
+		printf("ERROR: read/write area is out of range!\n\n");
+		return -1;
+	}
 
 	buf = map_physmem(addr, len, MAP_WRBACK);
 	if (!buf) {
@@ -252,6 +251,71 @@ usage:
 	return 1;
 }
 
+#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+static int do_spi_flash_lock(int argc, char *argv[])
+{
+	char *endp;
+	unsigned char level;
+	unsigned char cmp = BP_CMP_BOTTOM;
+
+	if ((argc < 1) || (argc > 3))
+		goto usage;
+
+	/* sf lock */
+	if (argc == 1) {
+		spi_flash_lock(0, 0, BP_OP_GET);
+		puts("\n");
+		goto usage;
+	}
+
+	/* sf lock all/level */
+	if (argc == 2) {
+		if (strcmp(argv[1], "all") == 0)
+			level = BP_LEVEL_MAX;
+		else {
+			level = simple_strtoul(argv[1], &endp, 0);
+			if (*endp != 0)
+				goto usage;
+		}
+	}
+
+	/* sf lock t/b level */
+	if (argc == 3) {
+		if (strcmp(argv[2], "all") == 0)
+			goto usage;
+		if (strcmp(argv[1], "t") == 0)
+			cmp = BP_CMP_TOP;
+		else if (strcmp(argv[1], "b") == 0)
+			cmp = BP_CMP_BOTTOM;
+		else
+			goto usage;
+		level = simple_strtoul(argv[2], &endp, 0);
+		if (*endp != 0)
+			goto usage;
+	}
+
+	if (level > BP_LEVEL_MAX) {
+		printf("ERROR: lock level area is out of range!\n");
+		goto usage;
+	}
+
+	spi_flash_lock(cmp, level, BP_OP_SET);
+
+	return 0;
+usage:
+	printf("Usage: set spi nor chip block protection level(0 - %d).\n",
+		BP_LEVEL_MAX);
+	printf("\tall: level(%d), lock all block.\n", BP_LEVEL_MAX);
+	puts("\tt/b: start of top/bottom address, default: bottom.\n");
+	puts("\tlevel(0): unlock all block.\n");
+	printf("\tlevel(1 - %d): lock 2^(level - 1) block, start of top " \
+		"or bottom address.\n", (BP_LEVEL_MAX - 1));
+	puts("e.g.\tsf lock all\n");
+	puts("\tsf lock [t/b] level\n");
+	return 1;
+}
+#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+
 static int do_spi_flash(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	const char *cmd;
@@ -275,6 +339,10 @@ static int do_spi_flash(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 		return do_spi_flash_read_write(argc - 1, argv + 1);
 	if (strcmp(cmd, "erase") == 0)
 		return do_spi_flash_erase(argc - 1, argv + 1);
+#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+	if (strcmp(cmd, "lock") == 0)
+		return do_spi_flash_lock(argc - 1, argv + 1);
+#endif
 
 usage:
 	cmd_usage(cmdtp);
@@ -286,9 +354,15 @@ U_BOOT_CMD(
 	"SPI flash sub-system",
 	"probe [bus:]cs [hz] [mode]	- init flash device on given SPI bus\n"
 	"				  and chip select\n"
-	"sf read addr offset len  - read `len' bytes starting at\n"
+	"sf read addr offset len	- read `len' bytes starting at\n"
 	"				  `offset' to memory at `addr'\n"
 	"sf write addr offset len	- write `len' bytes from memory\n"
 	"				  at `addr' to flash at `offset'\n"
 	"sf erase offset len		- erase `len' bytes from `offset'"
+#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+	"\n"
+	"sf lock [t/b] level|all	- set spi block protection level and\n"
+	"				  start of top/bottom address"
+#endif
 );
+

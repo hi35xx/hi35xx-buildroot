@@ -45,7 +45,9 @@ COBJS-$(CONFIG_CMD_SF) += spiflash_logif.o
 COBJS-$(CONFIG_CMD_NAND) += nand_logif.o
 
 # core command
+ifndef CONFIG_HI3536_A7
 COBJS-y += cmd_getinfo.o
+endif
 COBJS-y += cmd_boot.o
 COBJS-y += cmd_bootm.o
 COBJS-y += cmd_help.o
@@ -98,8 +100,10 @@ COBJS-$(CONFIG_ENV_IS_IN_EEPROM) += cmd_eeprom.o
 COBJS-$(CONFIG_CMD_EEPROM) += cmd_eeprom.o
 COBJS-$(CONFIG_CMD_ELF) += cmd_elf.o
 COBJS-$(CONFIG_SYS_HUSH_PARSER) += cmd_exit.o
+ifndef CONFIG_HI3536_A7
 COBJS-$(CONFIG_CMD_EXT2) += cmd_ext2.o
 COBJS-$(CONFIG_CMD_FAT) += cmd_fat.o
+endif
 COBJS-$(CONFIG_CMD_FDC)$(CONFIG_CMD_FDOS) += cmd_fdc.o
 COBJS-$(CONFIG_OF_LIBFDT) += cmd_fdt.o fdt_support.o
 COBJS-$(CONFIG_CMD_FDOS) += cmd_fdos.o
@@ -123,13 +127,19 @@ COBJS-$(CONFIG_CMD_MFSL) += cmd_mfsl.o
 COBJS-$(CONFIG_CMD_MG_DISK) += cmd_mgdisk.o
 COBJS-$(CONFIG_MII) += miiphyutil.o
 COBJS-$(CONFIG_CMD_MII) += miiphyutil.o
+ifndef CONFIG_HI3536_A7
 COBJS-$(CONFIG_CMD_MII) += cmd_mii.o
+endif
 COBJS-$(CONFIG_CMD_MISC) += cmd_misc.o
+ifndef CONFIG_HI3536_A7
 COBJS-$(CONFIG_CMD_MMC) += cmd_mmc.o
+endif
 COBJS-$(CONFIG_MP) += cmd_mp.o
 COBJS-$(CONFIG_CMD_MTDPARTS) += cmd_mtdparts.o
 COBJS-$(CONFIG_CMD_NAND) += cmd_nand.o
+ifndef CONFIG_HI3536_A7
 COBJS-$(CONFIG_CMD_NET) += cmd_net.o
+endif
 COBJS-$(CONFIG_CMD_ONENAND) += cmd_onenand.o
 COBJS-$(CONFIG_CMD_OTP) += cmd_otp.o
 ifdef CONFIG_PCI
@@ -152,6 +162,7 @@ COBJS-$(CONFIG_CMD_TSI148) += cmd_tsi148.o
 COBJS-$(CONFIG_CMD_UBI) += cmd_ubi.o
 COBJS-$(CONFIG_CMD_UBIFS) += cmd_ubifs.o
 COBJS-$(CONFIG_CMD_UNIVERSE) += cmd_universe.o
+COBJS-$(CONFIG_HAS_SLAVE) += cmd_slavestart.o
 ifdef CONFIG_CMD_USB
 COBJS-y += cmd_usb.o
 COBJS-y += usb.o
@@ -176,21 +187,42 @@ COBJS-$(CONFIG_USB_KEYBOARD) += usb_kbd.o
 AOBJS-$(CONFIG_DDR_TRAINING_V300) += ddr_training_entry.o
 COBJS-$(CONFIG_DDR_TRAINING_V300) += cmd_ddr_training_v300.o
 COBJS-$(CONFIG_DDR_TRAINING_HI3535)  += hi3535_ddr_training_printf.o
+COBJS-$(CONFIG_DDR_TRAINING_HI3516A)  += hi3516a_ddr_training_printf.o
+COBJS-$(CONFIG_DDR_TRAINING_V2) += cmd_ddr_training_v2.o
 
+ifeq ($(CONFIG_AUDIO_ENABLE), y)
+ifeq ($(CONFIG_PRODUCTNAME), "hi3516a")
+COBJS-y += cmd_ao.o
+endif
+endif
+ifndef CONFIG_HI3536_A7
 sinclude Makefile-osd
+endif
 
 AOBJS	:= $(sort $(AOBJS-y))
 COBJS	:= $(sort $(COBJS-y))
 SRCS	:= $(AOBJS:.o=.S) $(COBJS:.o=.c)
 OBJS	:= $(addprefix $(obj),$(AOBJS) $(COBJS))
 
+SRCS    += $(obj)crc32.c
+
 CPPFLAGS += -I..
 
-all:	$(LIB) $(AOBJS)
+all:	$(LIB) $(AOBJS) bootss2
 
 $(LIB): $(obj).depend $(OBJS)
 	$(AR) $(ARFLAGS) $@ $(OBJS)
 
+bootss2:
+ifdef CONFIG_SNAPSHOT_BOOT
+	rm bootss2.a -rf
+ifdef CONFIG_HI3518EV200
+	cp cmd_bootss2_v300_hi3518ev200 bootss2.a -rf
+else
+	cp cmd_bootss2_v300 bootss2.a -rf
+endif
+
+endif
 $(obj)env_embedded.o: $(src)env_embedded.c $(obj)../tools/envcrc
 	$(CC) $(AFLAGS) -Wa,--no-warn \
 		-DENV_CRC=$(shell $(obj)../tools/envcrc) \
@@ -198,6 +230,9 @@ $(obj)env_embedded.o: $(src)env_embedded.c $(obj)../tools/envcrc
 
 $(obj)../tools/envcrc:
 	$(MAKE) -C ../tools
+
+$(obj)crc32.c:
+	ln -s $(src)$(SRCTREE)/lib/crc32.c $(obj)crc32.c
 
 #########################################################################
 

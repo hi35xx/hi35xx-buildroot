@@ -43,7 +43,6 @@ error_exit:
 
 int hieth_mdio_write(struct hieth_mdio_local *ld, int phy_addr, int regnum, int val)
 {
-	int ret = 0;
 	hieth_assert( (!(phy_addr & (~0x1F))) && (!(regnum & (~0x1F))) );
 
 	hieth_trace(4, "phy_addr = %d, regnum = %d", phy_addr, regnum);
@@ -52,7 +51,7 @@ int hieth_mdio_write(struct hieth_mdio_local *ld, int phy_addr, int regnum, int 
 
 	if(!wait_mdio_ready(ld)) {
 		hieth_error("mdio busy");
-		ret = -1;
+		val = -1;
 		goto error_exit;
 	}
 

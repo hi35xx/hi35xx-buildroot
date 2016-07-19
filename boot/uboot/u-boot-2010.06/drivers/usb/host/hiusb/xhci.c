@@ -33,6 +33,7 @@
 #ifndef CONFIG_USB_MAX_CONTROLLER_COUNT
 #define CONFIG_USB_MAX_CONTROLLER_COUNT 1
 #endif
+int have_xhci_device;
 
 static struct descriptor {
 	struct usb_hub_descriptor hub;
@@ -447,6 +448,9 @@ static int xhci_address_device(struct usb_device *udev)
 				virt_dev->out_ctx->size);
 	slot_ctx = xhci_get_slot_ctx(ctrl, virt_dev->out_ctx);
 
+	/* Avoid compile warning */
+	slot_ctx = slot_ctx;
+
 	debug("xHC internal address is: %d\n",
 		le32_to_cpu(slot_ctx->dev_state) & DEV_ADDR_MASK);
 
@@ -606,6 +610,10 @@ static void xhci_clear_port_change_bit(u16 wValue,
 	xhci_writel(addr, port_status | status);
 
 	port_status = xhci_readl(addr);
+
+	/* Avoid compile warning */
+	port_change_bit = port_change_bit;
+
 	debug("clear port %s change, actual port %d status  = 0x%x\n",
 			port_change_bit, wIndex, port_status);
 }
@@ -929,8 +937,17 @@ submit_control_msg_ex(struct usb_device *udev, unsigned long pipe, void *buffer,
 
 	return xhci_ctrl_tx(udev, pipe, setup, length, buffer);
 }
+
 #ifdef CONFIG_HI3535
 #include "hiusb-xhci-3535.c"
+#endif
+
+#ifdef CONFIG_HI3536
+#include "hiusb-xhci-3536.c"
+#endif
+
+#ifdef CONFIG_HI3531A
+#include "hiusb-xhci-3531a.c"
 #endif
 /**
  * Intialises the XHCI host controller
@@ -945,14 +962,18 @@ int usb_lowlevel_init_ex(void)
 	uint32_t val;
 	uint32_t val2;
 	uint32_t reg;
+	volatile uint32_t *status_reg;
 	struct xhci_hccr *hccr;
 	struct xhci_hcor *hcor;
 	struct xhci_ctrl *ctrl;
+	int cnt = 0;
 
+	hiusb_start_hcd();
 	if (xhci_hcd_init(index, &hccr, (struct xhci_hcor **)&hcor) != 0)
 		return -ENODEV;
 
-	hiusb_start_hcd();
+	ctrl = (struct xhci_ctrl *)((uint32_t) hccr +
+		xhci_readl(&hccr->cr_rtsoff));
 
 	if (xhci_reset(hcor) != 0)
 		return -ENODEV;
@@ -961,6 +982,7 @@ int usb_lowlevel_init_ex(void)
 	ctrl->hccr = hccr;
 	ctrl->hcor = hcor;
 
+	status_reg = (volatile uint32_t *)(&hcor->portregs[0].or_portsc);
 	/*
 	 * Program the Number of Device Slots Enabled field in the CONFIG
 	 * register with the max value of slots the HC can handle.
@@ -1001,6 +1023,24 @@ int usb_lowlevel_init_ex(void)
 
 	reg = HC_VERSION(xhci_readl(&hccr->cr_capbase));
 	debug("USB XHCI %x.%02x\n", reg >> 8, reg & 0xff);
+	do {
+		reg = xhci_readl(status_reg);
+		if (reg & PORT_CONNECT)
+			break;
+
+		wait_ms(10);
+		cnt++;
+	} while (cnt < 200);
+
+	have_xhci_device = 0;
+
+	if (reg & PORT_CONNECT)
+		have_xhci_device = 1;
+
+	status_reg = (volatile uint32_t *)(&hcor->portregs[1].or_portsc);
+	reg = xhci_readl(status_reg);
+	if (reg & PORT_CONNECT)
+		have_xhci_device = 1;
 
 	return 0;
 }

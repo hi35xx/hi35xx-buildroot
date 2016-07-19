@@ -30,11 +30,17 @@
 #include <part.h>
 #include <malloc.h>
 #include <linux/list.h>
-#include <mmc.h>
 #include <div64.h>
 
+#ifdef CONFIG_HIMCI_V200
+#include "himciv200.h"
+#endif
+
 static struct list_head mmc_devices;
+
+#ifndef CONFIG_HIMCI_V200
 static int cur_dev_num = -1;
+#endif
 
 int __board_mmc_getcd(u8 *cd, struct mmc *mmc) {
 	return -1;
@@ -83,7 +89,6 @@ mmc_bwrite(int dev_num, ulong start, lbaint_t blkcnt, const void*src)
 	struct mmc_cmd cmd;
 	struct mmc_data data;
 	int err;
-	int stoperr = 0;
 	struct mmc *mmc = find_mmc_device(dev_num);
 	int blklen;
 
@@ -129,7 +134,7 @@ mmc_bwrite(int dev_num, ulong start, lbaint_t blkcnt, const void*src)
 		cmd.cmdarg = 0;
 		cmd.resp_type = MMC_RSP_R1b;
 		cmd.flags = 0;
-		stoperr = mmc_send_cmd(mmc, &cmd, NULL);
+		mmc_send_cmd(mmc, &cmd, NULL);
 	}
 
 	return blkcnt;
@@ -229,8 +234,8 @@ static ulong mmc_mbread(int dev_num, ulong start, lbaint_t blkcnt, void *dst)
 	err = mmc_set_blocklen(mmc, mmc->read_bl_len);
 
 	if (err) {
-		printf("set read bl len failed\n");
-		return err;
+		printf("set read bl len failed, trying default 512Byte\n");
+	/*	return err; */
 	}
 
 	if (blkcnt > 1)
@@ -889,10 +894,18 @@ int mmc_send_if_cond(struct mmc *mmc)
 
 int mmc_register(struct mmc *mmc)
 {
+#ifdef CONFIG_HIMCI_V200
+	struct himci_host *host = mmc->priv;
+#endif
+
 	/* Setup the universal parts of the block interface just once */
 	mmc->block_dev.if_type = IF_TYPE_MMC;
 	mmc->block_dev.part_type = PART_TYPE_DOS;
+#ifdef CONFIG_HIMCI_V200
+	mmc->block_dev.dev = host->dev_id;
+#else
 	mmc->block_dev.dev = cur_dev_num++;
+#endif
 	mmc->block_dev.removable = 1;
 	mmc->block_dev.block_read = mmc_mbread;
 	mmc->block_dev.block_write = mmc_bwrite;
@@ -914,7 +927,10 @@ block_dev_desc_t *mmc_get_dev(int dev)
 int mmc_init(struct mmc *mmc)
 {
 	int err;
-
+#ifdef CONFIG_HIMCI_V200
+	if (mmc->is_init)
+		return 0;
+#endif
 	err = mmc->init(mmc);
 
 	if (err)
@@ -945,7 +961,16 @@ int mmc_init(struct mmc *mmc)
 		}
 	}
 
+#ifdef CONFIG_HIMCI_V200
+	err = mmc_startup(mmc);
+	if (err)
+		return err;
+
+	mmc->is_init++;
+	return 0;
+#else
 	return mmc_startup(mmc);
+#endif
 }
 
 /*
@@ -958,7 +983,11 @@ static int __def_mmc_init(bd_t *bis)
 }
 
 int cpu_mmc_init(bd_t *bis) __attribute__((weak, alias("__def_mmc_init")));
+#ifdef CONFIG_HIMCI_V200
+extern int board_mmc_init(int dev_num);
+#else
 extern int board_mmc_init(bd_t *bis);
+#endif
 
 void print_mmc_devices(char separator)
 {
@@ -976,10 +1005,20 @@ void print_mmc_devices(char separator)
 
 	printf("\n");
 }
+#ifdef CONFIG_HIMCI_V200
+int mmc_initialize(int dev_num)
+{
+	static int init = 0;
+	if (!init)
+		INIT_LIST_HEAD(&mmc_devices);
+	init++;
 
+	return board_mmc_init(dev_num);
+}
+#else
 int mmc_initialize(bd_t *bis)
 {
-	INIT_LIST_HEAD (&mmc_devices);
+	INIT_LIST_HEAD(&mmc_devices);
 	cur_dev_num = 0;
 
 	if (board_mmc_init(bis) < 0)
@@ -987,3 +1026,4 @@ int mmc_initialize(bd_t *bis)
 
 	return 0;
 }
+#endif

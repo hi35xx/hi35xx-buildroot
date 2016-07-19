@@ -90,7 +90,11 @@ extern void rtl8019_get_enetaddr (uchar * addr);
 #endif
 
 #ifdef CONFIG_GENERIC_MMC
+#ifdef CONFIG_HIMCI_V200
+extern int mmc_flash_init(int dev_num);
+#else
 extern int mmc_flash_init(void);
+#endif
 #endif
 #ifdef CONFIG_DDR_TRAINING_V300
 extern int check_ddr_training(void);
@@ -274,6 +278,9 @@ void start_armboot (void)
 {
 	init_fnc_t **init_fnc_ptr;
 	char *s;
+#ifdef CONFIG_HAS_SLAVE
+	char *e;
+#endif
 #if defined(CONFIG_VFD) || defined(CONFIG_LCD)
 	unsigned long addr;
 #endif
@@ -335,8 +342,12 @@ void start_armboot (void)
 	}
 #endif /* CONFIG_LCD */
 
-#if defined(CONFIG_CMD_NAND)
-	puts ("NAND:  ");
+#ifdef CONFIG_CMD_SF
+	spi_flash_probe(0, 0, 0, 0);
+#endif
+
+/* it is not needed in A7 in A17-A7  */
+#ifdef CONFIG_CMD_NAND
 	nand_init();		/* go init the NAND */
 #endif
 
@@ -349,14 +360,18 @@ void start_armboot (void)
 	dataflash_print_info();
 #endif
 
-#if defined(CONFIG_CMD_SF)
-	spi_flash_probe(0, 0, 0, 0);
+#if defined(CONFIG_ARCH_HI3536) || defined(CONFIG_HI3518EV200)
+#ifdef CONFIG_GENERIC_MMC
+	puts("MMC:   ");
+	mmc_initialize(0);
+	mmc_flash_init(0);
 #endif
-
+#else
 #ifdef CONFIG_GENERIC_MMC
 	puts("MMC:   ");
 	mmc_initialize(gd->bd);
 	mmc_flash_init();
+#endif
 #endif
 
 	/* initialize environment */
@@ -449,10 +464,24 @@ extern void davinci_eth_set_mac_addr (const u_int8_t *addr);
 	extern void download_boot(const int (*handle)(void));
 	download_boot(NULL);
 #endif
+#ifdef CONFIG_HAS_SLAVE
+	e = getenv("slave_autostart");
+	if (e && (*e == '1'))
+		slave_start();
+#endif
+
 #ifdef CONFIG_DDR_TRAINING_V300
 	check_ddr_training();
 #endif /* CONFIG_DDR_TRAINING_V300 */
 	product_control();
+
+#ifdef CONFIG_SNAPSHOT_BOOT
+	/* example */
+	/* set_mtdparts_info("mtdparts=hinand:1M(boot),3M(kernel),64M(rootfs),2M(param),16M(hibernate)"); */
+
+	extern void comp_save_snapshot_image(void);
+	comp_save_snapshot_image();
+#endif
 
 	/* main_loop() can return to retry autoboot, if so just run it again. */
 	for (;;) {

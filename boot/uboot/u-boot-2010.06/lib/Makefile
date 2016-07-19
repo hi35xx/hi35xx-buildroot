@@ -47,7 +47,8 @@ COBJS-$(CONFIG_SHA256) += sha256.o
 COBJS-y += string.o
 COBJS-y	+= strmhz.o
 COBJS-y += time.o
-COBJS-y += vsprintf.o
+COBJS-y += vsprintf.o vsnprintf.o
+COBJS-y += match_table.o
 COBJS-$(CONFIG_ZLIB) += zlib.o
 COBJS-$(CONFIG_RBTREE)	+= rbtree.o
 

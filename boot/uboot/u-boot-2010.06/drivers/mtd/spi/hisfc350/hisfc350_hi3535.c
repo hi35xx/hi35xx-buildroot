@@ -32,7 +32,6 @@ static void hisfc350_set_system_clock(struct hisfc_host *host,
 
 	if (readl(host->sysreg + HISFC350_CRG48) != regval)
 		writel(regval, (host->sysreg + HISFC350_CRG48));
-
 }
 
 /*****************************************************************************/
@@ -40,6 +39,7 @@ static void hisfc350_get_best_clock(unsigned int *clock)
 {
 	int ix;
 	int clk_reg;
+
 #define CLK_2X(_clk)	(((_clk) + 1) >> 1)
 	unsigned int sysclk[] = {
 		CLK_2X(24),	HISFC350_CRG48_CLK_24M,
@@ -58,7 +58,6 @@ static void hisfc350_get_best_clock(unsigned int *clock)
 
 	*clock = clk_reg;
 }
-
 
 /*****************************************************************************/
 #ifdef CONFIG_HISFC350_SHOW_CYCLE_TIMING

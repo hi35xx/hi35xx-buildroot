@@ -81,13 +81,20 @@ void nand_init(void)
 {
 	int i;
 	unsigned int size = 0;
+
 	for (i = 0; i < CONFIG_SYS_MAX_NAND_DEVICE; i++) {
 		nand_init_chip(&nand_info[i], &nand_chip[i], base_address[i]);
-		size += nand_info[i].size / 1024;
+		size += nand_info[i].size >> 10;
 		if (nand_curr_device == -1)
 			nand_curr_device = i;
 	}
-	printf("%u MiB\n", size / 1024);
+
+	if (size)
+#ifdef CONFIG_HIFMC_SPI_NAND
+		printf("SPI Nand total size: %uMB\n", size >> 10);
+#else
+		printf("Nand total size: %uMB\n", size >> 10);
+#endif
 
 #ifdef CONFIG_SYS_NAND_SELECT_DEVICE
 	/*

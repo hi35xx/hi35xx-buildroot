@@ -9,3 +9,11 @@ hi3535_ddr_training_data_start:
 .globl hi3535_ddr_training_data_end
 hi3535_ddr_training_data_end:
 #endif /* CONFIG_DDR_TRAINING_HI3535 */
+
+#ifdef CONFIG_DDR_TRAINING_HI3516A
+.globl hi3516a_ddr_training_data_start
+hi3516a_ddr_training_data_start:
+.incbin "../arch/arm/cpu/hi3516a/ddr_training/hi3516a/ddr_training.bin"
+.globl hi3516a_ddr_training_data_end
+hi3516a_ddr_training_data_end:
+#endif /* CONFIG_DDR_TRAINING_HI3516A */

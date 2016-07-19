@@ -184,11 +184,11 @@ typedef struct dir_slot {
 typedef struct {
 	__u8	fatbuf[FATBUFSIZE]; /* Current FAT buffer */
 	int	fatsize;	/* Size of FAT in bits */
-	__u16	fatlength;	/* Length of FAT in sectors */
+	__u32	fatlength;	/* Length of FAT in sectors */
 	__u16	fat_sect;	/* Starting sector of the FAT */
-	__u16	rootdir_sect;	/* Start sector of root directory */
+	__u32	rootdir_sect;	/* Start sector of root directory */
 	__u16	clust_size;	/* Size of clusters in sectors */
-	short	data_begin;	/* The sector of the first cluster, can be negative */
+	int	data_begin;/* The sector of the first cluster, can be negative*/
 	int	fatbufnum;	/* Used by get_fatent, init to -1 */
 } fsdata;
 

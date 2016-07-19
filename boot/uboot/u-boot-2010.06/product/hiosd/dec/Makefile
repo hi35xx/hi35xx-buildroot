@@ -4,6 +4,9 @@ LIB := libjpegd.a
 
 COBJS-y += jpegd.o
 COBJS-y += hi_JpegDecode.o
+COBJS-y += jpeg_hdec_rwreg.o
+COBJS-y += jpeg_hdec_table.o
+COBJS-y += jpeg_hdec_setpara.o
 
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)

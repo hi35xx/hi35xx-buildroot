@@ -46,6 +46,7 @@
 
 #define SZ_1G                           0x40000000
 #define SZ_2G                           0x80000000
+#define SZ_3G                           0xc0000000
 
 #endif
 

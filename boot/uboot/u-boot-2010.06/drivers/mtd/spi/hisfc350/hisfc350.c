@@ -13,6 +13,11 @@
 
 #include "../spi_ids.h"
 #include "hisfc350.h"
+
+#ifdef CONFIG_ARCH_MMU
+#include <asm/cache-cp15.h>
+#endif
+
 #define DEBUG 0
 #define THREE_BYTE_ADDR_BOOT 0
 /*****************************************************************************/
@@ -42,6 +47,7 @@ static struct mtd_info_ex spi_info_ex = {.type = 0, };
 
 extern struct spi_info hisfc350_spi_info_table[];
 
+
 #ifdef CONFIG_HI3518
 #  include "hisfc350_3518.c"
 #endif
@@ -52,6 +58,14 @@ extern struct spi_info hisfc350_spi_info_table[];
 
 #ifdef CONFIG_HI3535
 #  include "hisfc350_hi3535.c"
+#endif
+
+#ifdef CONFIG_HI3516A
+#  include "hisfc350_hi3516a.c"
+#endif
+
+#ifdef CONFIG_HI3536
+#include "hisfc350_hi3536.c"
 #endif
 
 #ifndef GET_SFC_ADDR_MODE
@@ -92,19 +106,20 @@ static void hisfc350_set_host_addr_mode(struct hisfc_host *host, int enable)
 static void hisfc350_shutdown(void)
 {
 	if (start_up_mode == THREE_BYTE_ADDR_BOOT) {
-
 		int ix;
+
 		struct hisfc_host *host = &hisfc_host;
 		struct hisfc_spi *spi = host->spi;
 
 		for (ix = 0; ix < host->num_chip; ix++, spi++) {
-			if (spi->addrcycle == 4) {
+			if (spi->addrcycle == SPI_4BYTE_ADDR_LEN) {
 				spi->driver->wait_ready(spi);
 				spi->driver->entry_4addr(spi, 0);
 			}
 		}
 	}
 }
+
 /*****************************************************************************/
 static void hisfc350_map_iftype_and_clock(struct hisfc_spi *spi)
 {
@@ -146,11 +161,23 @@ static void hisfc350_map_iftype_and_clock(struct hisfc_spi *spi)
 	hisfc350_get_best_clock(&spi->erase->clock);
 	spi->erase->iftype = HISFC350_IFCYCLE_STD;
 }
+
 /*****************************************************************************/
 static void hisfc350_dma_transfer(struct hisfc_host *host,
 	unsigned int spi_start_addr, unsigned char *dma_buffer,
 	unsigned char is_read, unsigned int size, unsigned char chipselect)
 {
+
+#ifdef CONFIG_ARCH_MMU
+	if (is_read)
+		dcache_inv_range((unsigned int)dma_buffer,
+				(unsigned int)(dma_buffer + size));
+	else
+		dcache_clean_range((unsigned int)dma_buffer,
+				(unsigned int)(dma_buffer + size));
+#endif
+
+
 	hisfc_write(host, HISFC350_BUS_DMA_MEM_SADDR, dma_buffer);
 
 	hisfc_write(host, HISFC350_BUS_DMA_FLASH_SADDR,
@@ -170,8 +197,16 @@ static void hisfc350_dma_transfer(struct hisfc_host *host,
 		| HISFC350_BUS_DMA_CTRL_START);
 
 	HISFC350_DMA_WAIT_CPU_FINISH(host);
-
+#ifdef CONFIG_ARCH_MMU
+	if (is_read)
+		dcache_inv_range((unsigned int)dma_buffer,
+				(unsigned int)(dma_buffer + size));
+	else
+		dcache_clean_range((unsigned int)dma_buffer,
+				(unsigned int)(dma_buffer + size));
+#endif
 }
+
 /*****************************************************************************/
 #ifdef HISFCV350_SUPPORT_REG_READ
 static char *hisfc350_reg_read_buf(struct hisfc_host *host,
@@ -217,8 +252,9 @@ static char *hisfc350_reg_read_buf(struct hisfc_host *host,
 		memcpy(ptr, tmp, numread);
 	}
 
-	return buffer;
+	return 0;
 }
+
 /*****************************************************************************/
 static int hisfc350_reg_read(struct spi_flash *spiflash, u32 from,
 	size_t len, void *buf)
@@ -228,7 +264,6 @@ static int hisfc350_reg_read(struct spi_flash *spiflash, u32 from,
 	unsigned char *ptr = (unsigned char *)buf;
 	struct hisfc_host *host = SPIFLASH_TO_HOST(spiflash);
 	struct hisfc_spi *spi = host->spi;
-
 
 	if ((from + len) > spiflash->size) {
 		DBG_MSG("read area out of range.\n");
@@ -281,6 +316,9 @@ fail:
 	return result;
 }
 #endif /* HISFCV350_SUPPORT_REG_READ */
+
+#if !(defined(HISFCV350_SUPPORT_REG_READ) \
+	|| defined(HISFCV350_SUPPORT_BUS_READ))
 /*****************************************************************************/
 static int hisfc350_dma_read(struct spi_flash *spiflash, u32 from,
 	size_t len, void *buf)
@@ -290,7 +328,6 @@ static int hisfc350_dma_read(struct spi_flash *spiflash, u32 from,
 	unsigned char *ptr = (unsigned char *)buf;
 	struct hisfc_host *host = SPIFLASH_TO_HOST(spiflash);
 	struct hisfc_spi *spi = host->spi;
-
 
 	if ((from + len) > spiflash->size) {
 		DBG_MSG("read area out of range.\n");
@@ -365,9 +402,10 @@ static int hisfc350_dma_read(struct spi_flash *spiflash, u32 from,
 	}
 	result = 0;
 fail:
-
 	return result;
 }
+#endif
+
 /*****************************************************************************/
 static unsigned char *hisfc350_read_ids(struct hisfc_host *host,
 	int chipselect, unsigned char *buffer)
@@ -399,12 +437,14 @@ static unsigned char *hisfc350_read_ids(struct hisfc_host *host,
 
 	return buffer;
 }
+
 /*****************************************************************************/
 static int hisfc350_reg_erase_one_block(struct hisfc_host *host,
 	struct hisfc_spi *spi, unsigned int offset)
 {
 	if (spi->driver->wait_ready(spi))
 		return 1;
+
 	spi->driver->write_enable(spi);
 	host->set_system_clock(host, spi->erase, TRUE);
 
@@ -424,6 +464,7 @@ static int hisfc350_reg_erase_one_block(struct hisfc_host *host,
 
 	return 0;
 }
+
 /*****************************************************************************/
 static int hisfc350_dma_write(struct spi_flash *spiflash, u32 to, size_t len,
 	const void *buf)
@@ -444,6 +485,29 @@ static int hisfc350_dma_write(struct spi_flash *spiflash, u32 to, size_t len,
 		DBG_MSG("write length is 0.\n");
 		return 0;
 	}
+
+#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+	if (host->level) {
+		if ((BP_CMP_TOP == host->cmp)
+		    && ((to + len) > host->start_addr)) {
+			puts("\n");
+			DBG_MSG("write area to[%#x => %#x] is locked," \
+				" please unlock these blocks.\n",
+				host->start_addr, (to + len));
+			return -EINVAL;
+		}
+
+		if ((BP_CMP_BOTTOM == host->cmp) && (to < host->end_addr)) {
+			unsigned end = ((to + len) > host->end_addr) \
+				       ? host->end_addr : (to + len);
+
+			puts("\n");
+			DBG_MSG("write area to[%#x => %#x] is locked, please" \
+				" unlock these blocks.\n", to, end);
+			return -EINVAL;
+		}
+	}
+#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
 
 	if (spi->driver->wait_ready(spi))
 		goto fail;
@@ -503,6 +567,7 @@ static int hisfc350_dma_write(struct spi_flash *spiflash, u32 to, size_t len,
 fail:
 	return result;
 }
+
 /*****************************************************************************/
 #ifdef HISFCV350_SUPPORT_REG_WRITE
 static int hisfc350_reg_write_buf(struct hisfc_host *host,
@@ -554,7 +619,6 @@ static int hisfc350_reg_write(struct spi_flash *spiflash, u32 to, size_t len,
 	struct hisfc_host *host = SPIFLASH_TO_HOST(spiflash);
 	struct hisfc_spi *spi = host->spi;
 
-
 	if ((to + len) > spiflash->size) {
 		DBG_MSG("write data out of range.\n");
 		return -EINVAL;
@@ -565,8 +629,32 @@ static int hisfc350_reg_write(struct spi_flash *spiflash, u32 to, size_t len,
 		return 0;
 	}
 
+#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+	if (host->level) {
+		if ((BP_CMP_TOP == host->cmp)
+		    && ((to + len) > host->start_addr)) {
+			puts("\n");
+			DBG_MSG("write area to[%#x => %#x] is locked," \
+				" please unlock these blocks.\n",
+				host->start_addr, (to + len));
+			return -EINVAL;
+		}
+
+		if ((BP_CMP_BOTTOM == host->cmp) && (to < host->end_addr)) {
+			unsigned end = ((to + len) > host->end_addr) \
+				       ? host->end_addr : (to + len);
+
+			puts("\n");
+			DBG_MSG("write area to[%#x => %#x] is locked, please" \
+				" unlock these blocks.\n", to, end);
+			return -EINVAL;
+		}
+	}
+#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+
 	if (spi->driver->wait_ready(spi))
 		goto fail;
+
 	host->set_system_clock(host, spi->write, TRUE);
 
 	if (to & HISFC350_REG_BUF_MASK) {
@@ -582,6 +670,7 @@ static int hisfc350_reg_write(struct spi_flash *spiflash, u32 to, size_t len,
 
 			if (spi->driver->wait_ready(spi))
 				goto fail;
+
 			host->set_system_clock(host, spi->write, TRUE);
 		}
 		if (hisfc350_reg_write_buf(host, spi, to, num, ptr))
@@ -602,6 +691,7 @@ static int hisfc350_reg_write(struct spi_flash *spiflash, u32 to, size_t len,
 
 			if (spi->driver->wait_ready(spi))
 				goto fail;
+
 			host->set_system_clock(host, spi->write, TRUE);
 		}
 		if (hisfc350_reg_write_buf(host, spi, to, num, ptr))
@@ -615,6 +705,7 @@ fail:
 	return result;
 }
 #endif /* HISFCV350_SUPPORT_REG_WRITE */
+
 /*****************************************************************************/
 static int hisfc350_reg_erase(struct spi_flash *spiflash, u32 offset,
 	size_t length)
@@ -637,6 +728,29 @@ static int hisfc350_reg_erase(struct spi_flash *spiflash, u32 offset,
 		return -EINVAL;
 	}
 
+#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+	if (host->level) {
+		if ((BP_CMP_TOP == host->cmp)
+		    && ((offset + length) > host->start_addr)) {
+			puts("\n");
+			DBG_MSG("erase area offset[%#x => %#x] is locked," \
+				" please unlock these blocks.\n",
+				host->start_addr, (offset + length));
+			return -EINVAL;
+		}
+
+		if ((BP_CMP_BOTTOM == host->cmp) && (offset < host->end_addr)) {
+			unsigned end = ((offset + length) > host->end_addr) \
+				       ? host->end_addr : (offset + length);
+
+			puts("\n");
+			DBG_MSG("erase area offset[%#x => %#x] is locked," \
+				" please unlock these blocks.\n", offset, end);
+			return -EINVAL;
+		}
+	}
+#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+
 	while (length) {
 		if (spi->chipsize <= offset) {
 			offset -= spi->chipsize;
@@ -644,6 +758,7 @@ static int hisfc350_reg_erase(struct spi_flash *spiflash, u32 offset,
 			if (!spi->name)
 				DBG_BUG("erase memory out of range.\n");
 		}
+
 		if (hisfc350_reg_erase_one_block(host, spi, offset))
 			return -1;
 
@@ -653,6 +768,7 @@ static int hisfc350_reg_erase(struct spi_flash *spiflash, u32 offset,
 
 	return 0;
 }
+
 /*****************************************************************************/
 #ifdef HISFCV350_SUPPORT_BUS_READ
 static int hisfc350_bus_read(struct spi_flash *spiflash, u32 from,
@@ -706,60 +822,80 @@ fail:
 }
 #endif /* HISFCV350_SUPPORT_BUS_READ */
 
-
 #ifdef HISFCV350_SUPPORT_BUS_WRITE
 static int hisfc350_bus_write(struct spi_flash *spiflash, u32 to, size_t len,
 		const void *buf)
 {
-		int num;
-		int result = -EIO;
-		unsigned char *ptr = (unsigned char *)buf;
-		struct hisfc_host *host = SPIFLASH_TO_HOST(spiflash);
-		struct hisfc_spi *spi = host->spi;
+	int num;
+	int result = -EIO;
+	unsigned char *ptr = (unsigned char *)buf;
+	struct hisfc_host *host = SPIFLASH_TO_HOST(spiflash);
+	struct hisfc_spi *spi = host->spi;
 
-		if ((to + len) > spiflash->size) {
-				DBG_MSG("write data out of range.\n");
-				return -EINVAL;
+	if ((to + len) > spiflash->size) {
+		DBG_MSG("write data out of range.\n");
+		return -EINVAL;
+	}
+
+	if (!len) {
+		DBG_MSG("write length is 0.\n");
+		return 0;
+	}
+
+#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+	if (host->level) {
+		if ((BP_CMP_TOP == host->cmp)
+		    && ((to + len) > host->start_addr)) {
+			puts("\n");
+			DBG_MSG("write area to[%#x => %#x] is locked," \
+				" please unlock these blocks.\n",
+				host->start_addr, (to + len));
+			return -EINVAL;
 		}
 
-		if (!len) {
-				DBG_MSG("write length is 0.\n");
-				return 0;
-		}
+		if ((BP_CMP_BOTTOM == host->cmp) && (to < host->end_addr)) {
+			unsigned end = ((to + len) > host->end_addr) \
+				       ? host->end_addr : (to + len);
 
-		if (spi->driver->wait_ready(spi))
+			puts("\n");
+			DBG_MSG("write area to[%#x => %#x] is locked, please" \
+				" unlock these blocks.\n", to, end);
+			return -EINVAL;
+		}
+	}
+#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+
+	if (spi->driver->wait_ready(spi))
+		goto fail;
+
+	spi->driver->bus_prepare(spi, WRITE);
+
+	while (len > 0) {
+		while (to >= spi->chipsize) {
+			to -= spi->chipsize;
+			spi++;
+			if (!spi->name)
+				DBG_BUG("write spi space out of range.\n");
+
+			if (spi->driver->wait_ready(spi))
 				goto fail;
-		spi->driver->bus_prepare(spi, WRITE);
-
-		while (len > 0) {
-				while (to >= spi->chipsize) {
-					to -= spi->chipsize;
-					spi++;
-					if (!spi->name)
-						DBG_BUG(
-						"write spi space out of range.\n");
-
-					if (spi->driver->wait_ready(spi))
-						goto fail;
-					spi->driver->bus_prepare(spi, WRITE);
-				}
-
-				num = ((to + len) >= spi->chipsize)
-					? (spi->chipsize - to) : len;
-
-				if (num) {
-					memcpy((char *)spi->iobase + to,
-						ptr, num);
-					ptr += num;
-					to += num;
-					len -= num;
-				}
+			spi->driver->bus_prepare(spi, WRITE);
 		}
 
-		result = 0;
-fail:
-		return result;
+		num = ((to + len) >= spi->chipsize)
+				? (spi->chipsize - to) : len;
 
+		if (num) {
+			memcpy((char *)spi->iobase + to, ptr, num);
+			ptr += num;
+			to += num;
+			len -= num;
+		}
+	}
+
+	result = 0;
+fail:
+	return result;
 }
 #endif /* HISFCV350_SUPPORT_BUS_WRITE */
 
@@ -775,6 +911,7 @@ static int hisfc350_map_chipsize(unsigned long long chipsize)
 	}
 	return shift;
 }
+
 /*****************************************************************************/
 static int hisfc350_spi_probe(struct hisfc_host *host)
 {
@@ -849,11 +986,11 @@ static int hisfc350_spi_probe(struct hisfc_host *host)
 
 			if (start_up_mode == THREE_BYTE_ADDR_BOOT) {
 				if (DEBUG)
-					printf("start up mode is 3 bytes\n");
+					puts("SPI nor boot mode is 3 Bytes\n");
 				spi->driver->entry_4addr(spi, TRUE);
 			} else {
 				if (DEBUG)
-					printf("start up mode is 4 bytes\n");
+					puts("SPI nor boot mode is 4 Bytes\n");
 			}
 
 			printf("Spi(cs%d): ", spi->chipselect);
@@ -862,7 +999,7 @@ static int hisfc350_spi_probe(struct hisfc_host *host)
 			printf("Name:\"%s\"\n", spi->name);
 	if (DEBUG) {
 			printf("Spi(cs%d): ", spi->chipselect);
-			if (spi->addrcycle == 4)
+			if (spi->addrcycle == SPI_4BYTE_ADDR_LEN)
 				printf("4 addr SPI ");
 			else
 				printf("3 addr SPI ");
@@ -905,8 +1042,8 @@ static int hisfc350_spi_probe(struct hisfc_host *host)
 #ifdef CONFIG_HISFC350_SHOW_CYCLE_TIMING
 
 			printf("Spi(cs%d): ", spi->chipselect);
-			if (spi->addrcycle == 4)
-				printf("4 addrcycle\n");
+			if (spi->addrcycle == SPI_4BYTE_ADDR_LEN)
+				printf("4 Byte addrcycle ");
 			printf("read:%s,%02X,%s ",
 				hisfc350_get_ifcycle_str(spi->read->iftype),
 				spi->read->cmd,
@@ -957,10 +1094,9 @@ static int hisfc350_probe(struct hisfc_host *host)
 	struct spi_flash *spiflash = host->spiflash;
 
 	host->set_system_clock(host, NULL, TRUE);
-	hisfc_write(host, HISFC350_TIMING,
-		HISFC350_TIMING_TCSS(0x6)
-		| HISFC350_TIMING_TCSH(0x6)
-		| HISFC350_TIMING_TSHSL(0xf));
+	hisfc_write(host, HISFC350_TIMING, HISFC350_TIMING_TCSS(0x6)
+			| HISFC350_TIMING_TCSH(0x6)
+			| HISFC350_TIMING_TSHSL(0xf));
 
 	if (!hisfc350_spi_probe(host))
 		return -1;
@@ -1021,6 +1157,11 @@ static struct spi_flash *hisfc350_init(void)
 	}
 	hisfc_probe_spi_size(host, spiflash);
 
+#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+	host->cmp = BP_CMP_UPDATE_FLAG;
+	hisfc350_get_spi_lock_info(&(host->cmp), &(host->level));
+#endif
+
 success:
 	return spiflash;
 
@@ -1057,3 +1198,184 @@ int hisfc350_spiflash_init(struct spi_flash **spiflash,
 
 	return 1;
 }
+/*****************************************************************************/
+
+#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+/*****************************************************************************/
+void spi_lock_update_address(unsigned char cmp, unsigned char level,
+			unsigned int *start_addr, unsigned int *end_addr)
+{
+	unsigned int lock_len, erasesize, chipsize;
+
+	erasesize = *start_addr;
+	chipsize = *end_addr;
+
+	*start_addr = 0;
+
+	if (level) {
+		lock_len = erasesize << (level - 1);
+		if (lock_len > chipsize)
+			lock_len = chipsize;
+
+		if (BP_CMP_BOTTOM == cmp)
+			*end_addr = lock_len;
+		else if (BP_CMP_TOP == cmp)
+			*start_addr = chipsize - lock_len;
+
+		printf("Spi is locked. lock address[%#x => %#x]\n",
+			*start_addr, *end_addr);
+	} else {
+		if (BP_CMP_BOTTOM == cmp)
+			*end_addr = 0;
+		else if (BP_CMP_TOP == cmp)
+			*start_addr = chipsize;
+	}
+}
+
+/*****************************************************************************/
+unsigned hisfc350_get_spi_lock_info(unsigned char *cmp, unsigned char *level)
+{
+	unsigned char status, config, update_flag = *cmp;
+	struct hisfc_host *host = &hisfc_host;
+	struct hisfc_spi *spi = host->spi;
+
+	spi->driver->wait_ready(spi);
+
+	status = spi_general_get_flash_register(spi, SPI_CMD_RDSR);
+	*level = (status & SPI_NOR_SR_BP_MASK) >> SPI_NOR_SR_BP0_SHIFT;
+
+	config = spi_general_get_flash_register(spi, SPI_CMD_RDCR);
+	*cmp = (config & SPI_NOR_SR_TB_MASK) >> SPI_NOR_SR_TB_SHIFT;
+
+	if (update_flag == BP_CMP_UPDATE_FLAG) {
+		host->start_addr = host->erasesize;
+		host->end_addr = host->spiflash[0].size;
+		spi_lock_update_address(*cmp, *level, &(host->start_addr),
+				&(host->end_addr));
+	}
+
+	return (config << SPI_NOR_CR_SHIFT) | status;
+}
+
+/*****************************************************************************/
+static void hisfc350_set_BP_level(struct hisfc_host *host, unsigned char cmp,
+					unsigned char level)
+{
+	unsigned char old_level, old_cmp = 0;
+	unsigned int val, reg;
+	struct hisfc_spi *spi = host->spi;
+
+	if (DEBUG_SPI_NOR_BP)
+		printf("* Set BP %s level %d start.\n",
+			(cmp ? "bottom" : "top"), level);
+
+	val = hisfc350_get_spi_lock_info(&old_cmp, &old_level);
+	if (DEBUG_SPI_NOR_BP)
+		printf("  Read CR:SR[%#x]\n", val);
+
+	if ((old_cmp == cmp) && (old_level == level))
+		return;
+
+	spi->driver->write_enable(spi);
+
+	if ((old_cmp != cmp) && level && (level != BP_LEVEL_MAX)) {
+		val &= ~(SPI_NOR_SR_TB_MASK << SPI_NOR_CR_SHIFT);
+		val |= cmp << (SPI_NOR_SR_TB_SHIFT + SPI_NOR_CR_SHIFT);
+	}
+
+	if (old_level != level) {
+		val &= ~SPI_NOR_SR_BP_MASK;
+		val |= level << SPI_NOR_SR_BP0_SHIFT;
+	}
+
+	reg = hisfc_read(host, HISFC350_GLOBAL_CONFIG);
+	if (reg & HISFC350_GLOBAL_CONFIG_WRITE_PROTECT) {
+		if (DEBUG_SPI_NOR_BP)
+			printf("  Hardware protected enable!");
+		reg = ~HISFC350_GLOBAL_CONFIG_WRITE_PROTECT;
+		hisfc_write(host, HISFC350_GLOBAL_CONFIG, reg);
+		val &= ~SPI_NOR_SR_SRWD_MASK;
+		if (DEBUG_SPI_NOR_BP)
+			printf("Disable SR[%d]:SRWD and WP#\n",
+					SPI_NOR_SR_SRWD_SHIFT);
+	}
+
+	if (DEBUG_SPI_NOR_BP)
+		printf("  Set DATABUF0[%#x]%#x\n", HISFC350_CMD_DATABUF0, val);
+	hisfc_write(host, HISFC350_CMD_DATABUF0, val);
+
+	if (DEBUG_SPI_NOR_BP)
+		printf("  Set INS[%#x]%#x\n", HISFC350_CMD_INS, SPI_CMD_WRSR);
+	hisfc_write(host, HISFC350_CMD_INS, SPI_CMD_WRSR);
+
+	val = HISFC350_CMD_CONFIG_DATA_CNT(SPI_NOR_SR_LEN + SPI_NOR_CR_LEN)
+		| HISFC350_CMD_CONFIG_DATA_EN
+		| HISFC350_CMD_CONFIG_SEL_CS(spi->chipselect)
+		| HISFC350_CMD_CONFIG_START;
+	if (DEBUG_SPI_NOR_BP)
+		printf("  Set CONFIG[%#x]%#x\n", HISFC350_CMD_CONFIG, val);
+	hisfc_write(host, HISFC350_CMD_CONFIG, val);
+
+	HISFC350_CMD_WAIT_CPU_FINISH(host);
+
+	if (DEBUG_SPI_NOR_BP)
+		printf("* Set BP level end.\n");
+}
+
+/*****************************************************************************/
+void hisfc350_spi_lock(unsigned char cmp, unsigned char level)
+{
+	unsigned char old_level, old_cmp = 0;
+	struct hisfc_host *host = &hisfc_host;
+
+	/* Set lock start of top to bottom, warning */
+	if ((cmp == BP_CMP_BOTTOM) && (host->cmp == BP_CMP_TOP)) {
+		puts("Warning: Set bottom option will change a OTP(One Time " \
+			"Program) bit!\nThere is no way to recover if them " \
+			"are changed.\nAre sure of what you are doing!\n" \
+			"Really set start of bottom address? <y/n>\n");
+		if (getc() != 'y') {
+			puts("Set start of bottom address aborted\n");
+			return;
+		}
+	}
+
+	/* Set lock start of bottom to top, error */
+	if ((level != BP_LEVEL_0) && (level != BP_LEVEL_MAX)
+	    && (cmp == BP_CMP_TOP) && (host->cmp == BP_CMP_BOTTOM)) {
+		DBG_MSG("ERROR: Set top option will change a OTP(One Time " \
+			"Program) bit when it is changed!\n");
+		return;
+	}
+
+	hisfc350_set_BP_level(host, cmp, level);
+
+	hisfc350_get_spi_lock_info(&old_cmp, &old_level);
+	if ((old_cmp != cmp) && level && (level != BP_LEVEL_MAX)) {
+		DBG_MSG("ERROR: Current lock start of %s address, but set " \
+			"value: %s\n", (old_cmp ? "bottom" : "top"),
+			(cmp ? "bottom" : "top"));
+		return;
+	}
+
+	if (old_level != level) {
+		DBG_MSG("ERROR: Current lock level: %d, but set value: %d\n",
+			old_level, level);
+		return;
+	}
+
+	host->start_addr = host->erasesize;
+	host->end_addr = host->spiflash[0].size;
+	spi_lock_update_address(cmp, level, &(host->start_addr),
+				&(host->end_addr));
+
+	if ((level != BP_LEVEL_0) && (level != BP_LEVEL_MAX))
+		host->cmp = cmp;
+	host->level = level;
+
+	return;
+}
+
+/*****************************************************************************/
+#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+

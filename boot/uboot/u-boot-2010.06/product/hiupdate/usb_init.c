@@ -7,10 +7,10 @@ try_again:
 		debug("usb_stop failed\n");
 		return ret;
 	}
-
+#if 0
 	if (usb_init_debug() < 0)
 		debug("usb_init_debug failed\n");
-
+#endif
 	wait_ms(1000);
 	ret = usb_init();
 	if (ret == -3)

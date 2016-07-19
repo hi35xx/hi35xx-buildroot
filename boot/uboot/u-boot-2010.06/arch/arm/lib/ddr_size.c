@@ -17,12 +17,13 @@
 unsigned int get_ddr_size(void)
 {
 #define TO_UINT32(_p)   (*(volatile unsigned int *)(_p))
-
+#define MAX_DDR_SIZE (0xc0000000)
 	static unsigned int ddr_size;
 	volatile unsigned char *memskip;
 	volatile unsigned char *membase = (unsigned char *)MEM_BASE_DDR;
 	unsigned int orgin = TO_UINT32(membase);
 	unsigned int rd_origin = 0, rd_verify = 0;
+	unsigned int offset = 0;
 
 	if (ddr_size)
 		return ddr_size;
@@ -30,7 +31,11 @@ unsigned int get_ddr_size(void)
 	for (memskip = membase + _16M;
 	     memskip <= membase + get_max_ddr_size();
 	     memskip += _16M) {
-
+		offset = memskip - membase;
+		if (offset == MAX_DDR_SIZE) {
+			ddr_size = MAX_DDR_SIZE;
+			break;
+		}
 		TO_UINT32(membase) = 0xA9A9A9A9;
 		rd_origin = TO_UINT32(memskip);
 

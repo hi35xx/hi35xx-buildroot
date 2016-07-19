@@ -30,6 +30,7 @@
 #include <common.h>
 #include <watchdog.h>
 #include <command.h>
+
 #ifdef CONFIG_MODEM_SUPPORT
 #include <malloc.h>		/* for free() prototype */
 #endif
@@ -55,6 +56,7 @@ extern int do_reset (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);		/* fo
 #endif
 
 extern int do_bootd (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
+extern int do_bootm(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
 
 #if defined(CONFIG_UPDATE_TFTP)
 void update_tftp (void);
@@ -276,7 +278,9 @@ void main_loop (void)
 #ifndef CONFIG_SYS_HUSH_PARSER
 	static char lastcommand[CONFIG_SYS_CBSIZE] = { 0, };
 	int len;
+#ifdef CONFIG_BOOT_RETRY_TIME
 	int rc = 1;
+#endif
 	int flag;
 #endif
 
@@ -393,8 +397,11 @@ void main_loop (void)
 	}
 	else
 #endif /* CONFIG_BOOTCOUNT_LIMIT */
-		s = getenv ("bootcmd");
-
+#ifdef CONFIG_HI3536_A7
+		s = getenv("slave_cmd");
+#else
+		s = getenv("bootcmd");
+#endif
 	debug ("### main_loop: bootcmd=\"%s\"\n", s ? s : "<UNDEFINED>");
 
 	if (bootdelay >= 0 && s && !abortboot (bootdelay)) {
@@ -453,6 +460,13 @@ void main_loop (void)
 			reset_cmd_timeout();
 		}
 #endif
+
+#ifdef CONFIG_PRODUCT_HDMI_PHY
+        {
+            extern void update_hdmi_status(void);
+            update_hdmi_status();
+        }
+#endif
 		len = readline (CONFIG_SYS_PROMPT);
 
 		flag = 0;	/* assume no special flags for now */
@@ -477,7 +491,11 @@ void main_loop (void)
 		if (len == -1)
 			puts ("<INTERRUPT>\n");
 		else
-			rc = run_command (lastcommand, flag);
+#ifdef CONFIG_BOOT_RETRY_TIME
+			rc = run_command(lastcommand, flag);
+#else
+			run_command(lastcommand, flag);
+#endif
 
 			/* invalid command or not repeatable, forget it */
 			lastcommand[0] = 0;
@@ -1409,6 +1427,146 @@ int run_command (const char *cmd, int flag)
 
 		/* Did the user stop this? */
 		if (had_ctrlc ())
+			return -1;	/* if stopped then not repeatable */
+	}
+
+	return rc ? rc : repeatable;
+}
+
+int run_command_slave(const char *cmd, int flag)
+{
+	cmd_tbl_t *cmdtp;
+	char cmdbuf[CONFIG_SYS_CBSIZE];	/* working copy of cmd		*/
+	char buf[CONFIG_SYS_CBSIZE];	/* working copy of cmd		*/
+	char *token;			/* start of token in cmdbuf	*/
+	char *sep;			/* end of token (separator) in cmdbuf */
+	char finaltoken[CONFIG_SYS_CBSIZE];
+	char *str = cmdbuf;
+	char *argv[CONFIG_SYS_MAXARGS + 1];	/* NULL terminated	*/
+	int argc, inquotes;
+	int repeatable = 1;
+	int rc = 0;
+	unsigned int slave_bootaddr, slave_kerneladdr, slave_initrdaddr;
+
+#ifdef DEBUG_PARSER
+	printf("[RUN_COMMAND] cmd[%p]=\"", cmd);
+	puts(cmd ? cmd : "NULL");	/* use puts - string may be loooong */
+	puts("\"\n");
+#endif
+
+	clear_ctrlc();		/* forget any previous Control C */
+
+	if (!cmd || !*cmd)
+		return -1;	/* empty command */
+
+	if (strlen(cmd) >= CONFIG_SYS_CBSIZE) {
+		puts("## Command too long!\n");
+		return -1;
+	}
+
+	strcpy(cmdbuf, cmd);
+
+	/* Process separators and check for invalid
+	 * repeatable commands
+	 */
+
+#ifdef DEBUG_PARSER
+	printf("[PROCESS_SEPARATORS] %s\n", cmd);
+#endif
+	while (*str) {
+
+		/*
+		 * Find separator, or string end
+		 * Allow simple escape of ';' by writing "\;"
+		 */
+		for (inquotes = 0, sep = str; *sep; sep++) {
+			if ((*sep == '\'') &&
+					(*(sep-1) != '\\'))
+				inquotes = !inquotes;
+
+			if (!inquotes &&
+					/* separator */
+					(*sep == ';') &&
+					/* past string start */
+					(sep != str) &&
+					/* and NOT escaped */
+					(*(sep-1) != '\\'))
+				break;
+		}
+
+		/*
+		 * Limit the token to data between separators
+		 */
+		token = str;
+		if (*sep) {
+			str = sep + 1;	/* start of command for next pass */
+			*sep = '\0';
+		} else
+			str = sep;	/* no more commands for next pass */
+#ifdef DEBUG_PARSER
+		printf("token: \"%s\"\n", token);
+#endif
+
+		/* find macros in this token and replace them */
+		process_macros(token, finaltoken);
+
+		/* Extract arguments */
+		if ((argc = parse_line(finaltoken, argv)) == 0) {
+			rc = -1;	/* no command at all */
+			continue;
+		}
+
+		/* Look up command in command table */
+		if ((cmdtp = find_cmd(argv[0])) == NULL) {
+			printf("Unknown command '%s' - try 'help'\n", argv[0]);
+			rc = -1;	/* give up after bad command */
+			continue;
+		}
+
+		/* found - check max args */
+		if (argc > cmdtp->maxargs) {
+			cmd_usage(cmdtp);
+			rc = -1;
+			continue;
+		}
+
+#if defined(CONFIG_CMD_BOOTD)
+		/* avoid "bootd" recursion */
+		if (cmdtp->cmd == do_bootd) {
+#ifdef DEBUG_PARSER
+			printf("[%s]\n", finaltoken);
+#endif
+			if (flag & CMD_FLAG_BOOTD) {
+				puts("'bootd' recursion detected\n");
+				rc = -1;
+				continue;
+			} else {
+				flag |= CMD_FLAG_BOOTD;
+			}
+		}
+#endif
+
+		if (cmdtp->cmd == do_bootm) {
+			slave_bootaddr = simple_strtoul(argv[1], NULL, 16);
+			slave_kerneladdr = simple_strtoul(argv[2], NULL, 16);
+			slave_initrdaddr = simple_strtoul(argv[3], NULL, 16);
+			sprintf(buf, "setenv slave_cmd bootm %p %p %p",
+				(void *)slave_bootaddr,
+				(void *)slave_kerneladdr,
+				(void *)slave_initrdaddr);
+			run_command(buf, 0);
+			return 0;
+		}
+
+
+		/* OK - call function to do the command */
+		if ((cmdtp->cmd)(cmdtp, flag, argc, argv) != 0)
+			rc = -1;
+
+		repeatable &= cmdtp->repeatable;
+
+		/* Did the user stop this? */
+		if (had_ctrlc())
 			return -1;	/* if stopped then not repeatable */
 	}
 

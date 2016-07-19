@@ -8,6 +8,7 @@
 #include <asm/arch/platform.h>
 #include <asm/sizes.h>
 #include <config.h>
+#include "hi_jpeg_config.h"
 
 unsigned long jpeg_size=0;
 
@@ -19,7 +20,15 @@ extern UINT32  LoadJpegFile(void *pImg);
 extern unsigned long ImgWidth, ImgHeight;
 
 const char hilogo_magic_str[] = "HISILICON LOGO MAGIC";
-unsigned char hilogo[786*1024];
+
+#define JPEG_BUFFER_SIZE (1*1024*1024)
+
+#ifndef HARD_DEC
+unsigned char hilogo[JPEG_BUFFER_SIZE];
+#else
+unsigned char * hilogo = NULL;
+#endif
+
 unsigned long VIDEO_DATA_BASE=0;
 
 extern void dcache_enable(void);
@@ -31,7 +40,9 @@ extern void stop_mmu(void);
 int jpeg_decode(void)
 {
     enable_mmu();
+
     dcache_enable();
+    
     printf("mmu_enable\n");
 
     LoadJpegFile((void *)VIDEO_DATA_BASE);
@@ -77,19 +88,31 @@ int load_jpeg(void)
 
     t = getenv("jpeg_addr");
 
-    memset(hilogo,0x0,786*1024);
+#ifndef HARD_DEC
+    memset(hilogo,0x0,JPEG_BUFFER_SIZE);
+#endif
 
     if(t)
     {
     	u=  simple_strtol(t,NULL,0);
         printf("<<addr=%#lx, size=%#lx, vobuf=%#lx>>\n", u,jpeg_size,VIDEO_DATA_BASE);
+
+        #ifndef HARD_DEC 
+        if(jpeg_size > JPEG_BUFFER_SIZE)
+		{
+			printf("jpeg_size %lx is bigger than buffer size %lx\n",jpeg_size, (unsigned long)JPEG_BUFFER_SIZE);
+			return -1;
+		}
     	memcpy(hilogo, (char*)u,jpeg_size);
-    	if (*(volatile unsigned char *)hilogo != 0xFF || *(volatile unsigned char *)(hilogo+1) != 0xD8)
-    	{
-    		printf("addr:%#x,size:%ld,logoaddr:%#lx,:%2x,%2x\n",(unsigned int)(void *)hilogo,jpeg_size,u
-    			,*(volatile unsigned char *)hilogo,*(volatile unsigned char *)(hilogo+1));
-    	    return -1;
-    	}
+        #else 
+        hilogo = (unsigned char *)u;
+        #endif
+        if (*(volatile unsigned char *)hilogo != 0xFF || *(volatile unsigned char *)(hilogo+1) != 0xD8)
+        {
+        	printf("addr:%#x,size:%ld,logoaddr:%#lx,:%2x,%2x\n",(unsigned int)(void *)hilogo,jpeg_size,u
+        		,*(volatile unsigned char *)hilogo,*(volatile unsigned char *)(hilogo+1));
+            return -1;
+        }
     	return 0;
     }
     else

@@ -18,7 +18,6 @@ extern struct cpu_info_t cpu_info[];
 
 extern long long get_chipid_reg(void);
 
-extern unsigned int get_ca_vendor_reg(void);
 /*****************************************************************************/
 
 static struct cpu_info_t *get_cpuinfo(void)
@@ -86,14 +85,6 @@ unsigned int get_max_ddr_size(void)
 }
 /******************************************************************************/
 
-unsigned int get_ca_vendor(void)
-{
-	static unsigned long ca_vendor;
-	if (ca_vendor)
-		return ca_vendor;
-	ca_vendor = get_ca_vendor_reg();
-	return ca_vendor;
-}
 /******************************************************************************/
 
 const int get_cpu_version(char **version)

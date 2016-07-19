@@ -16,8 +16,7 @@
 #define SPI_EN4B	0x80
 #define SPI_EX4B	0x00
 /*
-  enable 4byte address mode for
-  s25fl256
+  enable 4byte address mode for s25fl256
 */
 static int spi_s25fl256s_entry_4addr(struct hisfc_spi *spi, int enable)
 {
@@ -50,9 +49,8 @@ static int spi_s25fl256s_entry_4addr(struct hisfc_spi *spi, int enable)
 		if (!(regval & SPI_EN4B)) {
 			printf("now is 3-byte address mode\n");
 			printf("regval_read_SPI : 0x%x\n", regval);
-		} else {
+		} else
 			printf("now is 4-byte address mode\n");
-		}
 	}
 	host->set_host_addr_mode(host, enable);
 

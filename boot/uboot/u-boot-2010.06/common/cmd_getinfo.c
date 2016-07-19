@@ -118,7 +118,13 @@ print_info:
 		} else if (*cmd == 'n') {
 			printf("Page:%sB ", ultohstr(mtd_info->pagesize));
 			printf("OOB:%sB ", ultohstr(mtd_info->oobsize));
+#if defined(CONFIG_NAND_FLASH_HINFC610) \
+	|| defined(CONFIG_NAND_FLASH_HISNFC100) \
+	|| defined(CONFIG_HIFMC_SPI_NAND)
+			printf("ECC:%s ", get_ecctype_str(mtd_info->ecctype));
+#else
 			printf("ECC:%s ", get_ecctype_str((mtd_info->ecctype & 0x7)));
+#endif
 		}
 		printf("\nID:");
 

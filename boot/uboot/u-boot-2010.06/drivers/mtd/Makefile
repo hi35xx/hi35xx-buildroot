@@ -35,6 +35,7 @@ COBJS-$(CONFIG_HAS_DATAFLASH) += dataflash.o
 COBJS-$(CONFIG_FLASH_CFI_LEGACY) += jedec_flash.o
 COBJS-$(CONFIG_MW_EEPROM) += mw_eeprom.o
 COBJS-$(CONFIG_SPEARSMI) += spr_smi.o
+COBJS-$(CONFIG_HIFMC) += hifmc_common.o
 
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)

@@ -26,6 +26,35 @@
 #include <spi.h>
 #include <linux/types.h>
 
+#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+#define BP_OP_SET	0
+#define BP_OP_GET	1
+
+#define BP_CMP_TOP	0
+#define BP_CMP_BOTTOM	1
+#define BP_CMP_UPDATE_FLAG	0xff
+
+enum block_protection_level {
+	BP_LEVEL_0	= 0,
+	BP_LEVEL_1	= 1,
+	BP_LEVEL_2	= 2,
+	BP_LEVEL_3	= 3,
+	BP_LEVEL_4	= 4,
+	BP_LEVEL_5	= 5,
+	BP_LEVEL_6	= 6,
+	BP_LEVEL_7	= 7,
+	BP_LEVEL_8	= 8,
+	BP_LEVEL_9	= 9,
+	BP_LEVEL_10	= 10,
+	BP_LEVEL_END,
+};
+
+#define BP_LEVEL_MAX	(BP_LEVEL_END - 1)
+
+void spi_flash_lock(unsigned char cmp, unsigned char level, unsigned char op);
+
+#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+
 struct spi_flash_region {
 	unsigned int	count;
 	unsigned int	size;

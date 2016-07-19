@@ -9,6 +9,10 @@
 #include "sys_godarm.h"
 #endif
 
+#ifdef CONFIG_HI3536
+#include "sys_hi3536.h"
+#endif
+
 #ifdef CONFIG_HI3535
 #include "sys_hi3535.h"
 #endif
@@ -36,7 +40,10 @@ unsigned int FLAG;
 #define INTERFACE_MODE_RGMII 0x20
 #define INTERFACE_MODE_MII 0x0
 #define INTERFACE_MODE_RMII 0x80
+
+#ifndef CONFIG_HI3536_A7
 static unsigned int g_interface_mode = INTERFACE_MODE_RGMII;
+#endif
 
 struct dma_desc_rx rd __attribute__ ((aligned(16)));
 struct dma_desc_tx td __attribute__ ((aligned(16)));
@@ -109,6 +116,7 @@ void random_ether_addr(char *mac)
 
 }
 
+#ifndef CONFIG_HI3536_A7
 static int set_random_mac_address(char *mac, char *ethaddr)
 {
 	random_ether_addr(mac);
@@ -166,12 +174,15 @@ static int stmmac_init_hw_desc_queue(struct stmmac_netdev_local *ld)
 	return 0;
 }
 
+#endif
+
 static void stmmac_destroy_hw_desc_queue(struct stmmac_netdev_local *ld)
 {
 	ld->tx_addr = NULL;
 	ld->rx_addr = NULL;
 }
 
+#ifndef CONFIG_HI3536_A7
 static void stmmac_net_adjust_link(struct stmmac_netdev_local *ld)
 {
 	int stat = 0;
@@ -242,6 +253,7 @@ static void stmmac_net_adjust_link(struct stmmac_netdev_local *ld)
 	ld->link_stat = stat;
 	return;
 }
+#endif
 
 int eth_rx(void)
 {
@@ -355,6 +367,7 @@ int eth_send(volatile void *packet, int length)
 	return 0;
 }
 
+#ifndef CONFIG_HI3536_A7
 static int stmmac_dev_probe_init(int port)
 {
 	struct stmmac_netdev_local *ld = &g_stmmac_ld[port];
@@ -436,9 +449,9 @@ static int stmmac_init(void)
 			return -1;
 		}
 		GMAC0_PHY_ADDR = (unsigned char)tmp;
-		sprintf(GMAC0_PHY_NAME, "0:%d", GMAC0_PHY_ADDR);
-	} else
-		sprintf(GMAC0_PHY_NAME, "0:%d", GMAC0_PHY_ADDR);
+	}
+
+	sprintf(GMAC0_PHY_NAME, "mdio0");
 
 #ifndef STMMAC_SINGLE_MAC
 	/*get phy addr of GMAC1 port*/
@@ -458,9 +471,9 @@ static int stmmac_init(void)
 			return -1;
 		}
 		GMAC1_PHY_ADDR = (unsigned char)tmp;
-		sprintf(GMAC1_PHY_NAME, "0:%d", GMAC1_PHY_ADDR);
-	} else
-		sprintf(GMAC1_PHY_NAME, "0:%d", GMAC1_PHY_ADDR);
+	}
+
+	sprintf(GMAC1_PHY_NAME, "mdio0");
 #endif
 
 	memset(g_stmmac_ld, 0, sizeof(g_stmmac_ld));
@@ -493,6 +506,7 @@ static int stmmac_init(void)
 
 	return 0;
 }
+#endif
 
 static void stmmac_exit(int port)
 {
@@ -514,6 +528,7 @@ static void stmmac_exit(int port)
 	stmmac_mdiobus_driver_exit();
 }
 
+#ifndef CONFIG_HI3536_A7
 static int stmmac_net_open(struct stmmac_netdev_local *ld)
 {
 	ld->link_stat = 0;
@@ -521,12 +536,20 @@ static int stmmac_net_open(struct stmmac_netdev_local *ld)
 
 	return 0;
 }
+#endif
 
-
+#ifdef CONFIG_HI3536_A7
+int eth_init(bd_t *bd)
+{
+	printf("network is not supported \n");
+	return -1;
+}
+#else
+static int gmac_inited;
 int eth_init(bd_t *bd)
 {
 	int ret;
-	int count = 10;
+	int count = DEFAULT_PHY_LINK_TIMES;
 	char *timeout;
 	unsigned int data;
 
@@ -534,6 +557,18 @@ int eth_init(bd_t *bd)
 
 	if (timeout)
 		count = simple_strtoul(timeout, 0, 10);
+
+	/* init once to save time */
+	if (!gmac_inited) {
+		gmac_inited = 1;
+
+#ifdef CONFIG_HI3536
+		stmmac_external_phy_reset(GMAC0_PORT);
+#ifndef STMMAC_SINGLE_MAC
+		stmmac_external_phy_reset(GMAC1_PORT);
+#endif
+#endif
+	}
 
 	ret = stmmac_init();
 
@@ -588,6 +623,7 @@ link_on:
 
 	return 0;
 }
+#endif
 
 void eth_halt(void)
 {

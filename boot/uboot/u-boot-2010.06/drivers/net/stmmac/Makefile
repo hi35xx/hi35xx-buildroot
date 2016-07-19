@@ -4,6 +4,7 @@ LIB	:= $(obj)libstmmac.a
 
 COBJS-$(CONFIG_GODNET) += sys_godnet.o
 COBJS-$(CONFIG_GODARM) += sys_godarm.o
+COBJS-$(CONFIG_HI3536) += sys_hi3536.o
 COBJS-$(CONFIG_HI3535) += sys_hi3535.o
 COBJS-$(CONFIG_NET_STMMAC) \
 		 += mdio.o ctrl.o stmmac.o

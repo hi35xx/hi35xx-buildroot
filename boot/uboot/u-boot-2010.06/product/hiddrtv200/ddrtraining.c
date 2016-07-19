@@ -407,13 +407,25 @@ static unsigned int ddrt_dq_overflowing(unsigned int bit_num,
 
 	return overflowing_result;
 }
-
 #define ddrt_tmp_check() do {\
 	ddrt_config_ddrt();\
 	ddrt_start_ddrt();\
 	do {\
 		tmp_check1 = ddrt_read(DDRT_BASE_ADDR + DDRT_STATUS);\
-	} while (0 == (DDRT_DONE & tmp_check1));\
+	} while (0 == (DDRT_DONE & tmp_check1) && (wait_times--));\
+	if (0 == (DDRT_DONE & tmp_check1)) {\
+		try_times = ddrt_read(CUR_RDDQS_TRY);\
+		if (try_times > TRY_MAX_TIME) {\
+			if (ddrt_read(CUR_RDDQS_REG) == INIT_RDDQS_MIN) \
+				ddrt_write(CUR_RDDQS_REG, INIT_RDDQS_VALUE);\
+			else \
+				ddrt_write(CUR_RDDQS_REG,\
+						ddrt_read(CUR_RDDQS_REG) - 1);\
+			ddrt_write(CUR_RDDQS_TRY, 0x1);\
+		} else \
+			ddrt_write(CUR_RDDQS_TRY, try_times + 1);\
+		reset_cpu(0);\
+	} \
 	if (0 == (DDRT_PASS & tmp_check1)) {\
 		if (ddrt_dq_overflowing(bit_num, DDRT_BYTE0))\
 			word_cmp_result[0] = 1;\
@@ -438,6 +450,13 @@ static unsigned int mutibyte_check_multi_ssn(unsigned int bit_num)
 	unsigned int word_cmp_result[2] = {0};
 	unsigned int final_result = 0;
 	unsigned int tmp_check1 = 0;
+	unsigned int wait_times = 0x200;
+	unsigned int try_times = 0;
+
+	if (0 == ddrt_read(CUR_RDDQS_FLAG)) {
+		ddrt_write(CUR_RDDQS_REG, INIT_RDDQS_VALUE);
+		ddrt_write(CUR_RDDQS_FLAG, RDDQS_MAGIC);
+	}
 
 	ddrt_reset_ddrt();
 
@@ -628,14 +647,17 @@ static int ddrt_bit_travel_rddqs(p_ddrt_struct pddrt,
 {
 	unsigned int i = 0, j = 0;
 	unsigned int tmp = 0;
+	unsigned int cur_rddqs = 0;
 	unsigned int bit_num1 = 0, bit_num2;
 	unsigned int level = 0;
 	unsigned int check_result = 0;
 
+	cur_rddqs = ddrt_read(CUR_RDDQS_REG);
+
 	bit_num1 = byte * 8 + bit;
 	bit_num2 = (byte + 1) * 8 + bit;
 
-	for (i = 1; i < 8; i++) {
+	for (i = 1; i < cur_rddqs; i++) {
 		tmp =  pddrt->dq_dqs_level[i];
 
 		for (j = 0; j < DDRT_BYTE_NR; ++j) {

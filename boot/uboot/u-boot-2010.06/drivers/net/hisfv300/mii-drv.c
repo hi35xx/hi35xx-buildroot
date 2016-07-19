@@ -62,6 +62,8 @@ unsigned int get_phy_device(char *devname, unsigned char phyaddr)
 	return 0;
 }
 
+static int mdio_registered;
+
 int hieth_mdiobus_driver_init(void)
 {
 	mdio_bus_ld.iobase_phys = ETH_IO_ADDRESS_BASE;
@@ -69,17 +71,23 @@ int hieth_mdiobus_driver_init(void)
 
 	hieth_mdio_init(&mdio_bus_ld);
 	
-	/* UpEther PHY init */
-	miiphy_register(U_PHY_NAME, hieth_mdiobus_read, hieth_mdiobus_write);
-	
-	
+	if (!mdio_registered) {
+		/* UpEther PHY init */
+		miiphy_register(U_PHY_NAME, hieth_mdiobus_read,
+				hieth_mdiobus_write);
+
+		/* DownEther PHY init */
+		miiphy_register(D_PHY_NAME, hieth_mdiobus_read,
+				hieth_mdiobus_write);
+
+		mdio_registered = 1;
+	}
+
 	if(!get_phy_device(U_PHY_NAME,U_PHY_ADDR))
 	{
 		miiphy_reset(U_PHY_NAME, U_PHY_ADDR);
 	    miiphy_set_current_dev(U_PHY_NAME);
 	}
-	/* DownEther PHY init */
-	miiphy_register(D_PHY_NAME, hieth_mdiobus_read, hieth_mdiobus_write);
 
 	if(!get_phy_device(D_PHY_NAME,D_PHY_ADDR))
 	{	
@@ -91,9 +99,9 @@ int hieth_mdiobus_driver_init(void)
 
 void hieth_mdiobus_driver_exit(void)
 {
-    /*add this to avoid the first time to use eth will print 'No such device: XXXXX' message.*/
-    if (!miiphy_get_current_dev())
-        return;
+	/*add this to avoid the first time to use eth will print 'No such device: XXXXX' message.*/
+	if (!miiphy_get_current_dev())
+		return;
 
 	/* UpEther PHY exit */
 	if(!get_phy_device(U_PHY_NAME,U_PHY_ADDR))

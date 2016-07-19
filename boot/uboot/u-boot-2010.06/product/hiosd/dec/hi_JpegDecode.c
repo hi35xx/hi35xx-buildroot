@@ -29,6 +29,9 @@
 #include <asm/arch/platform.h>
 #include <asm/sizes.h>
 #include <config.h>
+#include "jpeglib.h"
+#include "jpeg_hdec_rwreg.h"
+#include "hi_drv_jpeg_reg.h"
 
 
 #define MAKEWORD(a, b)      ((UINT16)((unsigned char)(a)) | ((UINT16)((unsigned char)(b)) << 8))
@@ -64,6 +67,21 @@ const int Zig_Zag[8][8]=
 {21,34,37,47,50,56,59,61},
 {35,36,48,49,57,58,62,63}
 };
+
+const int unzig_zag[80] = {
+  0,  1,  8, 16,  9,  2,  3, 10,
+ 17, 24, 32, 25, 18, 11,  4,  5,
+ 12, 19, 26, 33, 40, 48, 41, 34,
+ 27, 20, 13,  6,  7, 14, 21, 28,
+ 35, 42, 49, 56, 57, 50, 43, 36,
+ 29, 22, 15, 23, 30, 37, 44, 51,
+ 58, 59, 52, 45, 38, 31, 39, 46,
+ 53, 60, 61, 54, 47, 55, 62, 63,
+ 63, 63, 63, 63, 63, 63, 63, 63, /* extra entries for safety in decoder */
+ 63, 63, 63, 63, 63, 63, 63, 63
+};
+
+#define MAX2(x,y)       ( (x)>(y) ? (x):(y) )
 #define HI_OK 0
 #define HI_ERROR 1
 typedef unsigned int UINT32;
@@ -75,6 +93,7 @@ typedef unsigned short UINT16;
 int InitTag(void);
 void InitTable(void);
 int Decode(void);
+int Jpeg_HDEDC_Uboot(void);
 int DecodeMCUBlock(void);
 int HufBlock(UINT8 dchufindex,UINT8 achufindex);
 int DecodeElement(void);
@@ -87,6 +106,10 @@ void Initialize_Fast_IDCT(void);
 void Fast_IDCT(int * block);
 void idctrow(int * blk);
 void idctcol(int * blk);
+
+extern HI_VOID JPEG_HDEC_Uboot_SetDC(JHUFF_TBL * dat);
+extern HI_VOID JPEG_HDEC_Uboot_SetAC(JHUFF_TBL * dat);
+extern HI_VOID JPEG_HDEC_Uboot_SetDqt(int *YQtTable,int *UQtTable,int *VQtTable);
 
 
 UINT32 ImgWidth = 0,ImgHeight = 0;
@@ -101,7 +124,9 @@ UINT8 comp_index[3];
 UINT8 YDcIndex,YAcIndex,UVDcIndex,UVAcIndex,HufTabIndex;
 int *YQtTable,*UQtTable,*VQtTable;
 UINT8 MyAnd[9]={0,1,3,7,0x0f,0x1f,0x3f,0x7f,0xff};
-int code_pos_table[4][16],code_len_table[4][16];
+int code_pos_table[4][16];
+
+int code_len_table[4][16];
 UINT16 code_value_table[4][256];
 UINT16 huf_max_value[4][16],huf_min_value[4][16];
 int BitPos,CurByte,rrun,vvalue;
@@ -113,12 +138,160 @@ int sizei,sizej;
 int restart;
 int iclip[1024];
 int LineBytes;
+int value_type; 
+
+#ifndef HARD_DEC
 extern  unsigned char hilogo[];
+#else
+extern unsigned char * hilogo;
+#endif
+extern  unsigned long jpeg_size;
+
+#define JPEGD_ALAIN(u32Val, u32Align)	((u32Val +u32Align -1)&(~(u32Align-1)))
+
+
+JHUFF_TBL value_ptr[2];
+
+
+int Jpeg_HDEDC_Uboot(void)
+{
+    int result = 0;
+    int l;
+    unsigned int  u32Align       = 128;  
+	unsigned int  u32Offset      = 0; 
+    
+	unsigned char  *pStartStreamPhy  = NULL;
+    unsigned char  *pEndStreamPhy = NULL;
+    unsigned char  * pUvAddr = NULL;
+    unsigned int  size = 64;
+    unsigned int tmpHeight = (SampRate_Y_V== 1)? (ImgHeight * 2): ImgHeight;
+    unsigned int tmpWidth = (SampRate_Y_H== 1)? (ImgWidth * 2): ImgWidth;   
+        
+    volatile unsigned int * crgReg = (unsigned int *)JPGD_CRG_REG_PHYADDR;
+    * crgReg |= JPGD_CLOCK_ON ;
+    * crgReg &= JPGD_UNRESET_REG_VALUE;
+    
+    /*设置Stride*/
+    LineBytes = JPEGD_ALAIN((unsigned int)ImgWidth, 128);
+    JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_STRIDE, LineBytes << 16| LineBytes);
+
+    /*统计亮度和*/
+    JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_LPIXSUM1,0x80000000);    
+
+    /*设置图片大小*/    
+    size = (unsigned int)(((unsigned int)tmpWidth+ 0x0f)  >> 4)  \
+         | (unsigned int)(((unsigned int)tmpHeight + 0x0f) >> 4 )<< 16 ;
+
+    JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_PICSIZE,size);
+
+    /*Jpeg图片类型420*/
+    JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_PICTYPE,value_type);
+    
+     /*Y，UV输出地址*/  
+     JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_YSTADDR, (int)lpPtr);  
+     pUvAddr = (unsigned char*)((unsigned char *)lpPtr + LineBytes * JPEGD_ALAIN((unsigned int)ImgHeight, 16));
+
+     JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_UVSTADDR, (int)pUvAddr);  
+     printf("PicType: %x ,Output Addr, Y: %p,UV: %p\n",value_type, lpPtr, pUvAddr);
+
+     /*裸数据大小*/ 
+     u32Offset = (unsigned int)lp - (unsigned int)hilogo;
+     size = jpeg_size - u32Offset;   
+     
+     /*硬件地址*/  
+     pStartStreamPhy =(unsigned char *)JPEGD_ALAIN((unsigned int)hilogo, u32Align);
+     pEndStreamPhy = (unsigned char *)JPEGD_ALAIN((unsigned int)(hilogo)+jpeg_size, u32Align);
+     JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_STADDR, (int)pStartStreamPhy);
+     JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_ENDADDR,(int)pEndStreamPhy);   
+
+     /*码流BUFFER地址*/ 
+     pStartStreamPhy = lp;
+     pEndStreamPhy = (unsigned char *)((unsigned int)lp + size);
+     
+     JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_STADD, (int)pStartStreamPhy); 
+     JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_ENDADD, (int)pEndStreamPhy);      
+
+     JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR,JPGD_REG_OUTTYPE,0x4);     
+     JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR,JPGD_REG_SCALE, 0x3c);
+
+     /*采样因子*/
+     JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_SAMPLINGFACTOR,
+     SampRate_Y_H << 20 | SampRate_Y_V<< 16 | SampRate_U_H << 12 | 
+     SampRate_U_V<< 8 | SampRate_V_V<< 4 | SampRate_V_V
+     );       
+ 
+     /*量化表*/
+    for(l = 0; l < 64; l++)
+    {        
+         BlockBuffer[l] = YQtTable[l] + (UQtTable[l]<<8) + (VQtTable[l]<<16);
+    }
+    JPEG_HDEC_CpyData2Reg((HI_CHAR *)JPGD_REG_BASEADDR,BlockBuffer, JPGD_REG_QUANT,256);
+
+    //JPEG_HDEC_CpyData2Reg(JPGD_REG_BASEADDR,qt_test, JPGD_REG_QUANT,256);
+
+     /*Huf DC表*/
+     memset(value_ptr, 0,sizeof(value_ptr));     
+     for(l = 0;l < 16; l++)
+     {
+         value_ptr[0].bits[l+1] =(unsigned char) code_len_table[YDcIndex][l];          
+         value_ptr[1].bits[l+1] = (unsigned char) code_len_table[UVDcIndex][l];      
+       }
+     for(l = 0;l < 256; l++)
+     {
+       value_ptr[0].huffval[l]=  code_value_table[YDcIndex][l]; 
+       value_ptr[1].huffval[l] = code_value_table[UVDcIndex][l];  
+     }        
+     JPEG_HDEC_Uboot_SetDC(&value_ptr[0]);
+     
+     /*Huf AC表*/
+     memset(value_ptr, 0,sizeof(value_ptr));     
+     for(l = 0;l < 16; l++)
+     {
+         value_ptr[0].bits[l+1] =(unsigned char) code_len_table[YAcIndex][l];          
+         value_ptr[1].bits[l+1] = (unsigned char) code_len_table[UVAcIndex][l];      
+     }
+     for(l = 0;l < 256; l++)
+     {
+       value_ptr[0].huffval[l]=  code_value_table[YAcIndex][l]; 
+       value_ptr[1].huffval[l] = code_value_table[UVAcIndex][l];  
+     }     
+     JPEG_HDEC_Uboot_SetAC(&value_ptr[0]);    
+ 
+      /*中断屏蔽*/   
+     JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_INTMASK, 0x17);
+
+     //JPEG_HDEC_WriteReg(JPGD_REG_BASEADDR, JPGD_REG_INT,0x1f);
+     JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_RESUME,0x02);
+
+    /*启动解码*/
+    JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_START,0x05);
+
+    /*读取中断状态*/
+    while(1)
+    {       
+        result = JPEG_HDEC_ReadReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_INT);
+        if (result & 0x1f)
+        {
+            break;
+        }
+    }
+
+    if (result & 0x01)
+    {   
+        /* 调试时注释这两行 */
+        * crgReg |= JPGD_RESET_REG_VALUE;
+        * crgReg &= JPGD_CLOCK_OFF;
+       return FUNC_OK;
+    }
+     //复位
+     printf("Decoded...%x\n",result);
+     return HI_ERROR;
+}
+
 
 UINT32 LoadJpegFile(void *pImg)
 {
-    UINT32 ImgSize;
-    int funcret;
+    UINT32 funcret;
     lpJpegBuf = hilogo;
 
     InitTable();
@@ -130,8 +303,17 @@ UINT32 LoadJpegFile(void *pImg)
         return HI_ERROR;
     }
 
-#if 0
-    LineBytes = ((ImgWidth * 16 + 31) >> 5) * 4;
+    lpPtr = pImg;    /* 分配变换后的存储空间 */
+
+    if((SampRate_Y_H == 0) || (SampRate_Y_V == 0))
+    {
+        return HI_ERROR;
+    }
+
+
+#ifdef HARD_DEC
+
+    funcret = Jpeg_HDEDC_Uboot();
 #else
     if (1)
     {
@@ -148,19 +330,12 @@ UINT32 LoadJpegFile(void *pImg)
             LineBytes = ImgWidth * 2;
         }
     }
+
+    funcret = Decode();
 #endif
-
-    ImgSize = LineBytes * ImgHeight;       /* 变化后的图象空间 */
-    lpPtr = pImg;    /* 分配变换后的存储空间 */
-
-    if((SampRate_Y_H == 0) || (SampRate_Y_V == 0))
-    {
-        return HI_ERROR;
-    }
 
     printf("<<imgwidth=%d, imgheight=%d, linebytes=%d>>\n", ImgWidth, ImgHeight, LineBytes);
 
-    funcret = Decode();
     if(funcret == FUNC_OK)      /* 解码成功 */
     {
     	printf("decode success!!!!\n");
@@ -203,8 +378,14 @@ int InitTag(void)
                 {
                     for(i = 0;i < 64;i++)
                     {
+                        #ifdef HARD_DEC
+                        qt_table[qt_table_index][*(unzig_zag+i)] = (int)(*(lptemp++));
+                        #else
                         qt_table[qt_table_index][i] = (int)(*(lptemp++));
+                        #endif
+                       // printf("%d  %d,", *(unzig_zag+i), qt_table[qt_table_index][*(unzig_zag+i)]);
                     }
+                    
                 }
                 else
                 {
@@ -214,7 +395,8 @@ int InitTag(void)
                  //       printf("qt_table_index  %d\n",qt_table_index);
                         for(i = 0;i < 64;i++)
                         {
-                            qt_table[qt_table_index][i] = (int)(*(lptemp++));
+                            //qt_table[qt_table_index][**(Zig_Zag)] = (int)(*(lptemp++));
+                            qt_table[qt_table_index][*(unzig_zag+i)] = (int)(*(lptemp++));
                         }
                         qt_table_index = (*(lptemp++)) & 0x0f;
                         if(qt_table_index > 3)
@@ -264,8 +446,8 @@ int InitTag(void)
     	  			comp_index[2] = *(lp + 14);         /* component id */
     	  			SampRate_V_H = (*(lp  + 15)) >> 4;     /* 水平采样系数 */
     	  			SampRate_V_V = (*(lp + 15)) & 0x0f;   /* 水平采样系数 */
-    				VQtTable = (int *)qt_table[*(lp + 16)];   /* 通过量化表号取得量化表地址	*/
-	            }
+    				VQtTable = (int *)qt_table[*(lp + 16)];   /* 通过量化表号取得量化表地址	*/                      
+                }
 	            else
 	            {
     	  			comp_index[0] = *(lp + 8);
@@ -283,21 +465,69 @@ int InitTag(void)
     	  			SampRate_V_V = 1;
     	  			VQtTable = (int *)qt_table[*(lp + 10)];
 	            }
+            
+                if (comp_num == 1)
+                 {
+                      if (SampRate_Y_H==SampRate_Y_V)
+                      {/**不管采样因子是多少都按照(1*1)配置，T81协议36页**/
+                            value_type = 0;
+                            SampRate_Y_H = 1;
+                            SampRate_Y_V = 1;                          
+                            SampRate_U_H = 0;
+                            SampRate_U_V = 0;                            
+                            SampRate_V_H = 0;
+                            SampRate_V_V = 0;
+
+                      }
+                 }
+                 else if ((comp_num == 3) && (SampRate_U_H==SampRate_V_H) && (SampRate_U_V==SampRate_V_V))
+                 {
+                       if (SampRate_Y_H==(SampRate_U_H<<1))
+                       {
+                            if (SampRate_Y_V==(SampRate_U_V<<1))
+                            {
+                               value_type= 3;
+                            }
+                            else if (SampRate_Y_V==SampRate_U_V)
+                            {
+                                 value_type = 4;
+                            }
+                            
+                        }
+                        else if (SampRate_Y_H==SampRate_U_H)
+                        {
+                              if (SampRate_Y_V==(SampRate_U_V<<1))
+                              {
+                                   value_type = 5;
+                              }
+                              else if (SampRate_Y_V==SampRate_U_V)
+                              {
+                                   value_type = 6;
+                              }
+                         }
+
+                 }                
 	            lp += llength;
                 break;
             case M_DHT:  /* 定义 Huffman Table(0xFF,0xC4) */
     			llength = MAKEWORD(*(lp + 1),*lp);       /* 长度 (高字节, 低字节) */
-    			if (llength < 0xd0)                /* Huffman Table信息 (1 byte) */
+				
+				/* 
+				   HSCP201407070001: 客户JPEG图片解码错误。
+				   原因分析: 这里不应该限制当huffman表语法长度<0xd0时就认为图片只有一张huffman表，
+				   JPEG协议没有这个限制。客户的图片恰巧huffman表语法长度小于0xd0，但是有4张huffman表，
+				   进入这个分支只能解码出一张huffman表，故导致JPEG解码错误。
+				   解决办法:把这个if条件注释掉，进入else解析多张huffman表
+				*/
+    			if (0)//(llength < 0xd0)                /* Huffman Table信息 (1 byte) */
                 {
     				huftab1 = (int)(*(lp + 2)) >> 4;     /* huftab1=0,1(HT 类型,0 = DC 1 = AC) */
     		 		huftab2 = (int)(*(lp + 2)) & 0x0f;   /* huftab2=0,1(HT 号  ,0 = Y  1 = UV) */
     				huftabindex = huftab1 * 2 + huftab2;           /* 0 = YDC 1 = UVDC 2 = YAC 3 = UVAC */
-    		 		lptemp = lp + 3;
     				for(i = 0;i < 16;i++)                     /* 16 bytes: 长度是 1..16 代码的符号数 */
                     {
     					code_len_table[huftabindex][i] = (int)(*(lptemp++));/* 码长为 */
-    					                                /* i的码字个数 */
-                    }
+    	            }
     				j = 0;
     				for(i = 0;i < 16;i++)             /* 得出HT的所有码字的对应值 */
                     {
@@ -347,11 +577,12 @@ int InitTag(void)
     					huftabindex = huftab1 * 2 + huftab2;
     					lptemp = lp;
     					lptemp++;
-    					ccount = 0;
+    					ccount = 0;     
     					for(i = 0;i < 16;i++)
                         {
                             code_len_table[huftabindex][i] = (int)(*(lptemp++));
     						ccount = ccount + code_len_table[huftabindex][i];
+                             /* i的码字个数 */
     					}
     					ccount = ccount + 17;
     					j = 0;
@@ -635,6 +866,24 @@ void StoreBuffer(void)
     int *pY;
     int *pU;
     int *pV;
+
+//printf("\n------------y------------------\n");
+//    for(i = 0;i < 64;i++)
+//    {
+//       printf("%x, ",   Y[i]); 
+//    }
+//
+//    printf("\n------------u------------------\n");
+//    for(i = 0;i < 64;i++)
+//    {
+//       printf("%x, ", U[i]); 
+//    }
+//    printf("\n------------v------------------\n");
+//    for(i = 0;i < 64;i++)
+//    {
+//       printf("%x, ", V[i]); 
+//    }
+//    printf("\n");
 
     for(i = 0;i < TempSamp1;i++)
    	{                                  /* sizei表示行 sizej 表示列 */

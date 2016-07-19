@@ -12,8 +12,7 @@
 #include "../spi_ids.h"
 #include "hisfc350.h"
 /*
-  enable 4byte address mode for
-  n25q256a
+  enable 4byte address mode for n25q256a
 */
 static int spi_n25q256a_entry_4addr(struct hisfc_spi *spi, int enable)
 {

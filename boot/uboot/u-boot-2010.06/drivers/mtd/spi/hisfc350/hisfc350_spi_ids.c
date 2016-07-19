@@ -159,15 +159,16 @@ SET_READ_DUAL(1, INFINITE, 104);
 SET_READ_DUAL(2, INFINITE, 104);
 SET_READ_DUAL(1, INFINITE, 108);
 
-SET_READ_QUAD(1, INFINITE, 64);
-SET_READ_QUAD(1, INFINITE, 80);
-SET_READ_QUAD(1, INFINITE, 108);
-
 SET_READ_DUAL_ADDR(2, INFINITE, 64);
 SET_READ_DUAL_ADDR(0, INFINITE, 80);
 SET_READ_DUAL_ADDR(1, INFINITE, 80);
 SET_READ_DUAL_ADDR(1, INFINITE, 84);
 SET_READ_DUAL_ADDR(2, INFINITE, 108);
+
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
+SET_READ_QUAD(1, INFINITE, 64);
+SET_READ_QUAD(1, INFINITE, 80);
+SET_READ_QUAD(1, INFINITE, 108);
 
 SET_READ_QUAD_ADDR(2, INFINITE, 80);
 SET_READ_QUAD_ADDR(3, INFINITE, 50);
@@ -175,6 +176,7 @@ SET_READ_QUAD_ADDR(3, INFINITE, 75);
 SET_READ_QUAD_ADDR(3, INFINITE, 80);
 SET_READ_QUAD_ADDR(5, INFINITE, 64);
 SET_READ_QUAD_ADDR(5, INFINITE, 108);
+#endif
 /*****************************************************************************/
 SET_WRITE_STD(0, 256, 0);
 SET_WRITE_STD(0, 256, 50);
@@ -191,17 +193,18 @@ SET_WRITE_DUAL(0, 256, 64);
 SET_WRITE_DUAL(0, 256, 75);
 SET_WRITE_DUAL(0, 256, 108);
 
+SET_WRITE_DUAL_ADDR(0, 256, 64);
+SET_WRITE_DUAL_ADDR(0, 256, 108);
+
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 SET_WRITE_QUAD(0, 256, 64);
 SET_WRITE_QUAD(0, 256, 80);
 SET_WRITE_QUAD(0, 256, 108);
 
-SET_WRITE_DUAL_ADDR(0, 256, 64);
-SET_WRITE_DUAL_ADDR(0, 256, 108);
-
 SET_WRITE_QUAD_ADDR(0, 256, 64);
 SET_WRITE_QUAD_ADDR(0, 256, 108);
+#endif
 /*****************************************************************************/
-
 SET_ERASE_SECTOR_32K(0, _32K, 0);
 
 SET_ERASE_SECTOR_64K(0, _64K, 0);
@@ -217,8 +220,8 @@ SET_ERASE_SECTOR_64K(0, _64K, 108);
 
 SET_ERASE_SECTOR_256K(0, _256K, 50);
 SET_ERASE_SECTOR_256K(0, _256K, 104);
-/*****************************************************************************/
 
+/*****************************************************************************/
 #include "hisfc350_spi_general.c"
 static struct spi_driver  spi_driver_general = {
 	.wait_ready   = spi_general_wait_ready,
@@ -254,6 +257,7 @@ static struct spi_driver  spi_driver_mx25l25635e = {
 	.bus_prepare  = spi_general_bus_prepare,
 	.qe_enable = spi_mx25l25635e_qe_enable,
 };
+
 static struct spi_driver  spi_driver_f25l64q = {
 	.wait_ready   = spi_general_wait_ready,
 	.write_enable = spi_general_write_enable,
@@ -261,6 +265,7 @@ static struct spi_driver  spi_driver_f25l64q = {
 	.bus_prepare  = spi_general_bus_prepare,
 	.qe_enable = spi_mx25l25635e_qe_enable,
 };
+
 #include "hisfc350_spi_gd25qxxx.c"
 static struct spi_driver  spi_driver_gd25qxxx = {
 	.wait_ready   = spi_general_wait_ready,
@@ -282,9 +287,9 @@ static struct spi_driver  spi_driver_en25q64 = {
 
 /*****************************************************************************/
 struct spi_info hisfc350_spi_info_table[] = {
-	/* name        id                id_len chipsize(Bytes) erasesize */
+	/* name		id	id_len	chipsize(Bytes)	erasesize */
 	{
-		"at25fs010",  {0x1f, 0x66, 0x01}, 3,  _128K,  _32K, 3,
+		"at25fs010", {0x1f, 0x66, 0x01}, 3, _128K, _32K, 3,
 		{
 			&READ_STD(0, INFINITE, 0),
 			0
@@ -530,7 +535,7 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&ERASE_SECTOR_64K(0, _64K, 108),
 			0
 		},
-		&spi_driver_general,
+		&spi_driver_mx25l25635e,
 	},
 	/*
 	 The follow chips have the same chipid, but command have some difference
@@ -552,14 +557,16 @@ struct spi_info hisfc350_spi_info_table[] = {
 	*/
 
 	{
-		"MX25L25635E/735E/635F",
+		"MX25L(256/257)35(E/F)",
 		{0xc2, 0x20, 0x19}, 3, _32M, _64K, 4,
 		{
 			&READ_STD(0, INFINITE, 40/*50*/),
 			&READ_FAST(1, INFINITE, 104),
 			&READ_DUAL(2, INFINITE, 104),
 			&READ_DUAL_ADDR(1, INFINITE, 84),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD_ADDR(3, INFINITE, 75),
+#endif
 			0
 		},
 
@@ -674,13 +681,17 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&READ_STD(0, INFINITE, 40),
 			&READ_FAST(1, INFINITE, 104),
 			&READ_DUAL(1, INFINITE, 80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD(1, INFINITE, 80),
+#endif
 			0
 		},
 
 		{
 			&WRITE_STD(0, 256, 104),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, 80),
+#endif
 			0
 		},
 
@@ -717,15 +728,19 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&READ_STD(0, INFINITE, 40),
 			&READ_FAST(1, INFINITE, 104),
 			&READ_DUAL(1, INFINITE, 80),
-			&READ_QUAD(1, INFINITE, 80),
 			&READ_DUAL_ADDR(0, INFINITE, 80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
+			&READ_QUAD(1, INFINITE, 80),
 			&READ_QUAD_ADDR(2, INFINITE, 80),
+#endif
 			0
 		},
 
 		{
 			&WRITE_STD(0, 256, 104),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, 80),
+#endif
 			0
 		},
 
@@ -803,15 +818,19 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&READ_STD(0, INFINITE, 40),
 			&READ_FAST(1, INFINITE, 104),
 			&READ_DUAL(1, INFINITE, 80),
-			&READ_QUAD(1, INFINITE, 80),
 			&READ_DUAL_ADDR(0, INFINITE, 80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
+			&READ_QUAD(1, INFINITE, 80),
 			&READ_QUAD_ADDR(2, INFINITE, 80),
+#endif
 			0
 		},
 
 		{
 			&WRITE_STD(0, 256, 104),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, 80),
+#endif
 			0
 		},
 
@@ -830,14 +849,18 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&READ_FAST(1, INFINITE, 104),
 			&READ_DUAL(1, INFINITE, 64),
 			&READ_DUAL_ADDR(1, INFINITE, 80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD(1, INFINITE, 80),
 			&READ_QUAD_ADDR(3, INFINITE, 80),
+#endif
 			0
 		},
 
 		{
 			&WRITE_STD(0, 256, 104),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, 80),
+#endif
 			0
 		},
 
@@ -855,14 +878,18 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&READ_FAST(1, INFINITE, 104),
 			&READ_DUAL(1, INFINITE, 64),
 			&READ_DUAL_ADDR(1, INFINITE, 80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD(1, INFINITE, 80),
 			&READ_QUAD_ADDR(3, INFINITE, 80),
+#endif
 			0
 		},
 
 		{
 			&WRITE_STD(0, 256, 104),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, 80),
+#endif
 			0
 		},
 
@@ -1323,18 +1350,22 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&READ_STD(0, INFINITE, 32/*54*/),
 			&READ_FAST(1, INFINITE, 64/*108*/),
 			&READ_DUAL(1, INFINITE, 64/*108*/),
-			&READ_QUAD(1, INFINITE, 64/*108*/),
 			&READ_DUAL_ADDR(2, INFINITE, 64/*108*/),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
+			&READ_QUAD(1, INFINITE, 64/*108*/),
 			&READ_QUAD_ADDR(5, INFINITE, 64/*108*/),
+#endif
 			0
 		},
 
 		{
 			&WRITE_STD(0, 256, 64/*108*/),
 			&WRITE_DUAL(0, 256, 64/*108*/),
-			&WRITE_QUAD(0, 256, 64/*108*/),
 			&WRITE_DUAL_ADDR(0, 256, 64/*108*/),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
+			&WRITE_QUAD(0, 256, 64/*108*/),
 			&WRITE_QUAD_ADDR(0, 256, 64/*108*/),
+#endif
 			0
 		},
 
@@ -1351,18 +1382,22 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&READ_STD(0, INFINITE, 54),
 			&READ_FAST(1, INFINITE, 108),
 			&READ_DUAL(1, INFINITE, 108),
-			&READ_QUAD(1, INFINITE, 108),
 			&READ_DUAL_ADDR(2, INFINITE, 108),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
+			&READ_QUAD(1, INFINITE, 108),
 			&READ_QUAD_ADDR(5, INFINITE, 108),
+#endif
 			0
 		},
 
 		{
 			&WRITE_STD(0, 256, 108),
 			&WRITE_DUAL(0, 256, 108),
-			&WRITE_QUAD(0, 256, 108),
 			&WRITE_DUAL_ADDR(0, 256, 108),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
+			&WRITE_QUAD(0, 256, 108),
 			&WRITE_QUAD_ADDR(0, 256, 108),
+#endif
 			0
 		},
 
@@ -1570,13 +1605,17 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&READ_STD(0, INFINITE, 50),
 			&READ_FAST(1, INFINITE, 80),
 			&READ_DUAL(1, INFINITE, 80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD(1, INFINITE, 80),
+#endif
 			0
 		},
 
 		{
 			&WRITE_STD(0, 256, 80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, 80),
+#endif
 			0
 		},
 
@@ -1594,13 +1633,17 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&READ_STD(0, INFINITE, 50),
 			&READ_FAST(1, INFINITE, 80),
 			&READ_DUAL(1, INFINITE, 80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD(1, INFINITE, 80),
+#endif
 			0
 		},
 
 		{
 			&WRITE_STD(0, 256, 80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, 80),
+#endif
 			0
 		},
 
@@ -1659,13 +1702,17 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&READ_STD(0, INFINITE, 50),
 			&READ_FAST(1, INFINITE, 80),
 			&READ_DUAL(1, INFINITE, 80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD(1, INFINITE, 80),
+#endif
 			0
 		},
 
 		{
 			&WRITE_STD(0, 256, 80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, 80),
+#endif
 			0
 		},
 
@@ -1682,13 +1729,17 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&READ_STD(0, INFINITE, 50),
 			&READ_FAST(1, INFINITE, 80),
 			&READ_DUAL(1, INFINITE, 80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD(1, INFINITE, 80),
+#endif
 			0
 		},
 
 		{
 			&WRITE_STD(0, 256, 80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, 80),
+#endif
 			0
 		},
 
@@ -1700,18 +1751,22 @@ struct spi_info hisfc350_spi_info_table[] = {
 	},
 
 	{
-		"W25Q128B", {0xEF, 0x40, 0x18}, 3, _16M, _64K, 3,
+		"W25Q128(B/F)V", {0xEF, 0x40, 0x18}, 3, _16M, _64K, 3,
 		{
 			&READ_STD(0, INFINITE, 33),
 			&READ_FAST(1, INFINITE, 104),
 			&READ_DUAL(1, INFINITE, 104),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD(1, INFINITE, /*70*/80),
+#endif
 			0
 		},
 
 		{
 			&WRITE_STD(0, 256, 104),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, /*70*/80),
+#endif
 			0
 		},
 
@@ -1728,13 +1783,17 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&READ_STD(0, INFINITE, 33),
 			&READ_FAST(1, INFINITE, 104),
 			&READ_DUAL(1, INFINITE, 104),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD(1, INFINITE, 80),
+#endif
 			0
 		},
 
 		{
 			&WRITE_STD(0, 256, 104),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, 80),
+#endif
 			0
 		},
 
@@ -1817,7 +1876,9 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&READ_FAST(1, INFINITE, 100),
 			&READ_DUAL(1, INFINITE, 80),
 			&READ_DUAL_ADDR(1, INFINITE, 80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD_ADDR(3, INFINITE, 50),
+#endif
 			0
 		},
 
@@ -1863,12 +1924,16 @@ struct spi_info hisfc350_spi_info_table[] = {
 			&READ_STD(0, INFINITE, 66),
 			&READ_FAST(1, INFINITE, /*66*/100),
 			&READ_DUAL(1, INFINITE, /*66*/80),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD(1, INFINITE, 80),
+#endif
 			0
 		},
 		{
 			&WRITE_STD(0, 256, /*66*/100),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, 80),
+#endif
 			0
 		},
 		{
@@ -1882,12 +1947,16 @@ struct spi_info hisfc350_spi_info_table[] = {
 		"GD25Q128", {0xC8, 0x40, 0x18}, 3, _16M,  _64K, 3,
 		{
 			&READ_STD(0, INFINITE, 66),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD(1, INFINITE, 80),
+#endif
 			0
 		},
 		{
 			&WRITE_STD(0, 256, 100),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, 80),
+#endif
 			0
 		},
 		{
@@ -1896,16 +1965,21 @@ struct spi_info hisfc350_spi_info_table[] = {
 		},
 		&spi_driver_gd25qxxx,
 	},
+
 	{
 		"GD25Q64", {0xC8, 0x40, 0x17}, 3, _8M,  _64K, 3,
 		{
 			&READ_STD(0, INFINITE, 66),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD(1, INFINITE, 80),
+#endif
 			0
 		},
 		{
 			&WRITE_STD(0, 256, 100),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, 80),
+#endif
 			0
 		},
 		{
@@ -1918,12 +1992,16 @@ struct spi_info hisfc350_spi_info_table[] = {
 		"GD25Q32", {0xC8, 0x40, 0x16}, 3, _4M,  _64K, 3,
 		{
 			&READ_STD(0, INFINITE, 66),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&READ_QUAD(1, INFINITE, 80),
+#endif
 			0
 		},
 		{
 			&WRITE_STD(0, 256, 100),
+#ifndef CONFIG_CLOSE_SPI_8PIN_4IO
 			&WRITE_QUAD(0, 256, 80),
+#endif
 			0
 		},
 		{
@@ -1932,5 +2010,6 @@ struct spi_info hisfc350_spi_info_table[] = {
 		},
 		&spi_driver_general,
 	},
+
 	{0, {0}, 0, 0, 0, 0, {0}, {0}, {0}, NULL},
 };

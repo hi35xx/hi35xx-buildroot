@@ -12,8 +12,6 @@
 #include "../spi_ids.h"
 #include "hisfc350.h"
 
-#define EQPI 0x38
-
 static int spi_en25q64_qe_enable(struct hisfc_spi *spi)
 {
 	return 0;

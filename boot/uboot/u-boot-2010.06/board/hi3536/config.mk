@@ -1,0 +1,7 @@
+#
+#
+ifeq ($(CONFIG_HI3536_A7),y)
+TEXT_BASE = 0x80c00000
+else
+TEXT_BASE = 0x40c00000
+endif

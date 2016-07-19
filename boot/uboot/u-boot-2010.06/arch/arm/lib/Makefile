@@ -36,7 +36,10 @@ GLSOBJS	+= _umodsi3.o
 
 GLCOBJS	+= div0.o
 SOBJS-y	+= mmu.o
-
+SOBJS-$(CONFIG_HI3516A) += cache_ops.o
+SOBJS-$(CONFIG_HI3536) += cache_ops.o
+SOBJS-$(CONFIG_HI3521A) += cache_ops.o
+SOBJS-$(CONFIG_HI3531A) += cache_ops.o
 COBJS-y	+= board.o
 COBJS-y	+= bootm.o
 COBJS-y	+= cache.o
@@ -49,6 +52,19 @@ COBJS-y	+= reset.o
 COBJS-y += ddr_layout.o
 COBJS-y += ddr_size.o
 COBJS-y += cpu_info.o
+
+SOBJS-$(CONFIG_USE_ARCH_MEMSET) += memset.o
+SOBJS-$(CONFIG_USE_ARCH_MEMCPY) += memcpy.o
+
+ifdef CONFIG_SNAPSHOT_BOOT
+ifndef CONFIG_HI3518EV200
+COBJS-y += hibernate.o
+SOBJS-y += cpu_helper_a7.o
+else
+COBJS-y += hibernate_arm9.o
+endif
+SOBJS-y += bootm_asm.o
+endif
 
 SRCS	:= $(GLSOBJS:.o=.S) $(GLCOBJS:.o=.c) \
 	   $(SOBJS-y:.o=.S) $(COBJS-y:.o=.c)

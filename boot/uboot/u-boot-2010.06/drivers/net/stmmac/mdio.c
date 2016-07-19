@@ -14,6 +14,10 @@
 #include "sys_hi3535.h"
 #endif
 
+#ifdef CONFIG_HI3536
+#include "sys_hi3536.h"
+#endif
+
 #define MII_BUSY 0x00000001
 #define MII_WRITE 0x00000002
 
@@ -113,7 +117,6 @@ unsigned int get_phy_device(char *devname, unsigned char phyaddr)
 {
 	u32 phy_id;
 	u16 id1, id2;
-	u16 bmcr;
 
 	miiphy_read(devname, phyaddr, PHY_PHYIDR1, &id1);
 	miiphy_read(devname, phyaddr, PHY_PHYIDR2, &id2);
@@ -140,15 +143,10 @@ unsigned int get_phy_device(char *devname, unsigned char phyaddr)
 		miiphy_write(devname, phyaddr, 0x16, reg);
 	}
 
-	/* enable auto-negotiation */
-	if (!miiphy_read(devname, phyaddr, PHY_BMCR, &bmcr)) {
-		bmcr |= PHY_BMCR_AUTON;
-		miiphy_write(devname, phyaddr, PHY_BMCR, bmcr);
-	}
-
 	return 0;
 }
 
+static int mdio_registed;
 int stmmac_mdiobus_driver_init(void)
 {
 	stmmac_mdio_local_device.iobase_phys = STMMAC_MDIO_IO_BASE;
@@ -156,9 +154,12 @@ int stmmac_mdiobus_driver_init(void)
 
 	stmmac_mdio_clk_init(&stmmac_mdio_local_device);
 
-	/* GMAC0 PHY init */
-	miiphy_register(GMAC0_PHY_NAME, stmmac_mdiobus_read,
-			stmmac_mdiobus_write);
+	if (!mdio_registed) {
+		/* GMAC0 PHY init */
+		miiphy_register(GMAC0_PHY_NAME, stmmac_mdiobus_read,
+				stmmac_mdiobus_write);
+		mdio_registed = 1;
+	}
 
 	if (!get_phy_device(GMAC0_PHY_NAME, GMAC0_PHY_ADDR))
 		miiphy_set_current_dev(GMAC0_PHY_NAME);

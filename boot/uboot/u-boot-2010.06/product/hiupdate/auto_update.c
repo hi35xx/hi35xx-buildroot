@@ -128,7 +128,11 @@ struct flash_layout aufl_layout[AU_MAXFILES] = {
 };
 
 /* where to load files into memory */
+#if defined(CONFIG_HI3536) || defined(CONFIG_HI3531A)
+#define LOAD_ADDR ((unsigned char *)0x42000000)
+#else
 #define LOAD_ADDR ((unsigned char *)0x82000000)
+#endif
 /* the app is the largest image */
 #define MAX_LOADSZ ausize[IDX_ROOTFS]
 

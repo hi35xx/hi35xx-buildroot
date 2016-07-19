@@ -21,17 +21,18 @@
 #define HISFC350_DMA_MAX_MASK			(HISFC350_DMA_MAX_SIZE-1)
 
 /*****************************************************************************/
-
 /* These macroes are for debug only, reg read is slower then dma read */
-#undef HISFCV350_SUPPORT_REG_READ
-/* #define HISFCV350_SUPPORT_REG_READ */
+/* #undef HISFCV350_SUPPORT_REG_READ */
+#define HISFCV350_SUPPORT_REG_READ
+
 #undef HISFCV350_SUPPORT_REG_WRITE
 /* #define HISFCV350_SUPPORT_REG_WRITE */
+
 #undef HISFCV350_SUPPORT_BUS_READ
 /* #define HISFCV350_SUPPORT_BUS_READ */
+
 #undef HISFCV350_SUPPORT_BUS_WRITE
 /* #define HISFCV350_SUPPORT_BUS_WRITE */
-
 
 #define HISFC350_GLOBAL_CONFIG				0x0100
 #define HISFC350_GLOBAL_CONFIG_READ_DELAY(_n)		(((_n) & 0x03) << 3)
@@ -129,6 +130,30 @@
 #undef  TRUE
 #define TRUE           1
 
+#define SPI_NOR_SR_LEN		1	/* Status Register length(byte) */
+#define SPI_NOR_CR_LEN		1	/* Config Register length(byte) */
+
+#define SPI_NOR_CR_SHIFT	8	/* Config Register shift(bit) */
+
+#define SPI_NOR_CR_QE_SHIFT	1
+#define SPI_NOR_CR_QE_MASK	(1 << SPI_NOR_CR_QE_SHIFT)
+
+#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+#define DEBUG_SPI_NOR_BP	0
+
+#define SPI_NOR_SR_SRWD_SHIFT	7
+#define SPI_NOR_SR_SRWD_MASK	(1 << SPI_NOR_SR_SRWD_SHIFT)
+
+#define SPI_NOR_SR_BP0_SHIFT	2
+#define SPI_NOR_SR_BP_WIDTH	0xf
+#define SPI_NOR_SR_BP_MASK	(SPI_NOR_SR_BP_WIDTH << SPI_NOR_SR_BP0_SHIFT)
+
+#define SPI_NOR_SR_TB_SHIFT	3
+#define SPI_NOR_SR_TB_MASK	(1 << SPI_NOR_SR_TB_SHIFT)
+
+#define SPI_NOR_SR_WIP_MASK	(1 << 0)
+#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+
 /*****************************************************************************/
 struct hisfc_spi;
 
@@ -156,7 +181,7 @@ struct hisfc_spi {
 };
 
 struct hisfc_host {
-	struct spi_flash  spiflash[1];
+	struct spi_flash spiflash[1];
 	void  *iobase;
 	void  *regbase;
 	void  *lock;
@@ -172,7 +197,19 @@ struct hisfc_host {
 	int num_chip;
 	struct hisfc_spi spi[CONFIG_HISFC350_CHIP_NUM+1];
 	char buffer[HISFC350_DMA_MAX_SIZE];
+#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+	unsigned int start_addr;
+	unsigned int end_addr;
+	unsigned char cmp;
+	unsigned char level;
+#endif
 };
+
+#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+unsigned hisfc350_get_spi_lock_info(unsigned char *cmp, unsigned char *level);
+void hisfc350_spi_lock(unsigned char cmp, unsigned char level);
+extern u_char spi_general_get_flash_register(struct hisfc_spi *spi, u_char cmd);
+#endif
 
 #define SPIFLASH_TO_HOST(_spiflash)     ((struct hisfc_host *)(_spiflash))
 /*****************************************************************************/
@@ -211,11 +248,15 @@ struct hisfc_host {
 #define DBG_WARN(_fmt, arg...) \
 	printf("%s(%d): " _fmt, __FILE__, __LINE__, ##arg);
 
-#define DBG_BUG(fmt, args...) do {\
-	printf("%s(%d): BUG: " fmt, __FILE__, __LINE__, ##args); \
-	while (1) \
-		; \
-} while (0)
+#ifndef DBG_BUG
+#define DBG_BUG(fmt, args...) \
+	do { \
+		printf("%s(%d): BUG: " fmt, __FILE__, __LINE__, ##args); \
+		while (1) \
+			; \
+	} while (0)
+#endif
+
 /*****************************************************************************/
 #ifndef NULL
 #  define NULL         (void *)0

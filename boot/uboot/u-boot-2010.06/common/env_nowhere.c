@@ -28,19 +28,57 @@
 #include <command.h>
 #include <environment.h>
 #include <linux/stddef.h>
+#include <asm/io.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
+#ifdef CONFIG_HI3536_A7
+extern env_t *env_ptr;
+#else
 env_t *env_ptr = NULL;
+#endif
 
 extern uchar default_environment[];
 
-
-void env_relocate_spec (void)
+#ifdef CONFIG_HI3536_A7
+int nw_saveenv(void)
 {
+	return 0;
+}
+#endif
+
+#ifdef CONFIG_HI3536_A7
+void nw_env_relocate_spec(void)
+#else
+void env_relocate_spec (void)
+#endif
+{
+#ifdef CONFIG_HI3536_A7
+	unsigned int slave_env;
+
+	slave_env = readl(SYS_CTRL_REG_BASE + REG_SC_GEN2);
+
+	memcpy((void *)env_ptr, (void *)slave_env, sizeof(env_t));
+
+	if (crc32(0, env_ptr->data, ENV_SIZE) != env_ptr->crc)
+		goto err_crc;
+
+	gd->env_valid = 1;
+
+	return;
+
+err_crc:
+	puts("*** Warning - bad CRC, using default environment\n\n");
+
+	set_default_env();
+#endif
 }
 
+#ifdef CONFIG_HI3536_A7
+uchar nw_env_get_char_spec(int index)
+#else
 uchar env_get_char_spec (int index)
+#endif
 {
 	return ( *((uchar *)(gd->env_addr + index)) );
 }
@@ -50,10 +88,17 @@ uchar env_get_char_spec (int index)
  *
  * We are still running from ROM, so data use is limited
  */
-int  env_init(void)
+#ifdef CONFIG_HI3536_A7
+int nw_env_init(void)
+#else
+int env_init(void)
+#endif
 {
+#ifdef CONFIG_HI3536_A7
+	gd->env_valid = 1;
+#else
 	gd->env_addr  = (ulong)&default_environment[0];
 	gd->env_valid = 0;
-
+#endif
 	return (0);
 }

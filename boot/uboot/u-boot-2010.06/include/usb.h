@@ -164,6 +164,8 @@ enum usb_init_type {
 	defined(CONFIG_USB_R8A66597_HCD) || defined(CONFIG_USB_DAVINCI) || \
 	defined(CONFIG_USB_OMAP3) || defined(CONFIG_USB_DA8XX) || \
 	defined(CONFIG_USB_BLACKFIN) || defined(CONFIG_USB_XHCI)
+
+extern int have_xhci_device;
 #ifdef CONFIG_USB_XHCI
 int usb_lowlevel_init_ex(void);
 int usb_lowlevel_stop_ex(void);
@@ -174,6 +176,7 @@ int submit_control_msg_ex(struct usb_device *dev, unsigned long pipe,
 int submit_int_msg_ex(struct usb_device *dev, unsigned long pipe, void *buffer,
 			int transfer_len, int interval);
 #endif
+
 int usb_lowlevel_init(void);
 int usb_lowlevel_stop(void);
 int submit_bulk_msg(struct usb_device *dev, unsigned long pipe,
@@ -227,7 +230,7 @@ int usb_submit_int_msg(struct usb_device *dev, unsigned long pipe,
 			void *buffer, int transfer_len, int interval);
 void usb_disable_asynch(int disable);
 int usb_maxpacket(struct usb_device *dev, unsigned long pipe);
-inline void wait_ms(unsigned long ms);
+void wait_ms(unsigned long ms);
 int usb_get_configuration_no(struct usb_device *dev, unsigned char *buffer,
 				int cfgno);
 int usb_get_report(struct usb_device *dev, int ifnum, unsigned char type,

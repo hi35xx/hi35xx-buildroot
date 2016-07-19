@@ -19,10 +19,12 @@
 	printf("%s(%d): " _fmt, __FILE__, __LINE__, ##arg);
 #endif
 
+#ifndef DBG_BUG
 #define DBG_BUG(fmt, args...) do{\
 	printf("%s(%d): BUG !!! " fmt, __FILE__, __LINE__, ##args); \
 	while(1); \
 } while (0)
+#endif
 
 /*****************************************************************************/
 struct spi_tag spitag[1] = {{{0},{0},0,0,0,0,{{0},},{{0},},{{0},}}};
@@ -128,7 +130,7 @@ void spi_get_erase(struct spi_info *spiinfo, struct spi_operation *spiop_erase,
 		if (spiinfo->erase[ix] == NULL)
 			break;
 
-		memcpy(&spiop_erase[ix], spiinfo->erase[ix], 
+		memcpy(&spiop_erase[ix], spiinfo->erase[ix],
 			sizeof(struct spi_operation));
 
 		switch (spiop_erase[ix].size) {

@@ -32,6 +32,8 @@
 #define PORT_MOD_100M_RGMII	4
 #define PORT_MOD_1000M_RGMII	5
 
+#define DEFAULT_PHY_LINK_TIMES  20000
+
 #define STMMAC_LINKED		(1 << 0)
 #define STMMAC_DUP_FULL	(1 << 1)
 #define STMMAC_SPD_10M		(1 << 2)

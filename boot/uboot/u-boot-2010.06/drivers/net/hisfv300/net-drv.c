@@ -28,7 +28,7 @@ unsigned char D_PHY_ADDR = HISFV_PHY_D;
 
 #define INTERFACE_MODE_MII 0x0
 #define INTERFACE_MODE_RMII 0x1
-static unsigned int g_interface_mode = INTERFACE_MODE_MII;
+static unsigned int g_interface_mode = HIETH_MII_RMII_MODE_U;
 
 #ifndef INNER_PHY
 void set_efuse_unread(void)
@@ -209,7 +209,7 @@ int eth_set_host_mac_address(void)
 static void phy_print_status(struct hieth_netdev_local *ld, int stat)
 {
 	printf("%s : phy status change : LINK=%s : DUPLEX=%s : SPEED=%s\n", \
-			(ld->port==UP_PORT) ? "UP_PORT" : "DOWN_PORT", \
+			(ld->port == UP_PORT) ? "eth0" : "eth1", \
 			(stat & HIETH_LINKED) ? "UP" : "DOWN", \
 			(stat & HIETH_DUP_FULL) ? "FULL" : "HALF", \
 			(stat & HIETH_SPD_100M) ? "100M" : "10M");
@@ -346,7 +346,7 @@ static int hieth_init(void)
 	set_inner_phy_addr(U_PHY_ADDR);
 	#endif
 
-	sprintf(U_PHY_NAME, "0:%d", U_PHY_ADDR);
+	sprintf(U_PHY_NAME, "eth0:%d", U_PHY_ADDR);
 
 	/*get phy addr of down port*/
 	phyaddr = getenv("phyaddrd");
@@ -365,7 +365,7 @@ static int hieth_init(void)
 		D_PHY_ADDR = INNER_PHY_ADDR_D;
 		#endif
 	}
-	sprintf(D_PHY_NAME, "0:%d", D_PHY_ADDR);
+	sprintf(D_PHY_NAME, "eth1:%d", D_PHY_ADDR);
 
 	printf(OSDRV_MODULE_VERSION_STRING"\n");
 
@@ -450,7 +450,7 @@ retry:
 	if( --count )
 		goto retry;
 
-	printf("Up/Down PHY not link.\n");
+	printf("PHY not link.\n");
 
 _error_hieth_init:
 

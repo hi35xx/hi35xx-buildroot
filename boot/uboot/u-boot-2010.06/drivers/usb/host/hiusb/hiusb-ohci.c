@@ -763,10 +763,10 @@ static void td_submit_job(struct usb_device *dev, unsigned long pipe,
 
 static void dl_transfer_length(struct td *td)
 {
-	__u32 tdINFO, tdBE, tdCBP;
+	__u32 tdBE, tdCBP;
 	struct urb_priv *lurb_priv = &urb_priv;
 
-	tdINFO = m32_swap(td->hwINFO);
+	/* tdINFO = m32_swap(td->hwINFO); */
 	tdBE = m32_swap(td->hwBE);
 	tdCBP = m32_swap(td->hwCBP);
 
@@ -1669,6 +1669,21 @@ static char ohci_inited;
 #endif
 #ifdef CONFIG_HI3535
 #include "hiusb-3535.c"
+#endif
+#ifdef CONFIG_HI3516A
+#include "hiusb-3516a.c"
+#endif
+#ifdef CONFIG_HI3536
+#include "hiusb-3536.c"
+#endif
+#ifdef CONFIG_HI3521A
+#include "hiusb-3521a.c"
+#endif
+#ifdef CONFIG_HI3518EV200
+#include "hiusb-3518ev200.c"
+#endif
+#ifdef CONFIG_HI3531A
+#include "hiusb-3531a.c"
 #endif
 
 int usb_lowlevel_init(void)

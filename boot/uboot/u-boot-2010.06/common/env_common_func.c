@@ -4,10 +4,10 @@
 #include <asm/arch/platform.h>
 
 struct env_common_func_t {
-	int (* env_init)(void);
-	unsigned char (* env_get_char_spec)(int);
-	int (* saveenv)(void);
-	void (* env_relocate_spec)(void);
+	int (*env_init)(void);
+	unsigned char (*env_get_char_spec)(int);
+	int (*saveenv)(void);
+	void (*env_relocate_spec)(void);
 	char *env_name_spec;
 };
 
@@ -16,6 +16,8 @@ extern int nand_env_init(void);
 extern unsigned char nand_env_get_char_spec(int);
 extern int nand_saveenv(void);
 extern void nand_env_relocate_spec(void);
+
+#ifndef CONFIG_HI3536_A7
 static struct env_common_func_t nand_env_cmn_func = {
 	.env_init = nand_env_init,
 	.env_get_char_spec = nand_env_get_char_spec,
@@ -23,8 +25,14 @@ static struct env_common_func_t nand_env_cmn_func = {
 	.env_relocate_spec = nand_env_relocate_spec,
 	.env_name_spec = "NAND",
 };
+#endif
+
 #else
+
+#ifndef CONFIG_HI3536_A7
 static struct env_common_func_t nand_env_cmn_func = {0};
+#endif
+
 #endif /* CONFIG_ENV_IS_IN_NAND */
 
 #ifdef CONFIG_ENV_IS_IN_SPI_FLASH
@@ -32,6 +40,8 @@ extern int sf_env_init(void);
 extern unsigned char sf_env_get_char_spec(int);
 extern int sf_saveenv(void);
 extern void sf_env_relocate_spec(void);
+
+#ifndef CONFIG_HI3536_A7
 static struct env_common_func_t sf_env_cmn_func = {
 	.env_init = sf_env_init,
 	.env_get_char_spec = sf_env_get_char_spec,
@@ -39,8 +49,14 @@ static struct env_common_func_t sf_env_cmn_func = {
 	.env_relocate_spec = sf_env_relocate_spec,
 	.env_name_spec = "SPI Flash",
 };
+#endif
+
 #else
+
+#ifndef CONFIG_HI3536_A7
 static struct env_common_func_t sf_env_cmn_func = {0};
+#endif
+
 #endif /* CONFIG_ENV_IS_IN_SPI_FLASH */
 
 #ifdef CONFIG_ENV_IS_IN_EMMC
@@ -48,6 +64,8 @@ extern int emmc_env_init(void);
 extern unsigned char emmc_env_get_char_spec(int);
 extern int emmc_saveenv(void);
 extern void emmc_env_relocate_spec(void);
+
+#ifndef CONFIG_HI3536_A7
 static struct env_common_func_t emmc_env_cmn_func = {
 	.env_init = emmc_env_init,
 	.env_get_char_spec = emmc_env_get_char_spec,
@@ -55,9 +73,39 @@ static struct env_common_func_t emmc_env_cmn_func = {
 	.env_relocate_spec = emmc_env_relocate_spec,
 	.env_name_spec = "eMMC Flash",
 };
+#endif
+
 #else
+
+#ifndef CONFIG_HI3536_A7
 static struct env_common_func_t emmc_env_cmn_func = {0};
+#endif
+
 #endif /* CONFIG_ENV_IS_IN_EMMC_FLASH */
+
+#ifdef CONFIG_ENV_IS_NOWHERE
+extern int nw_env_init(void);
+extern unsigned char nw_env_get_char_spec(int);
+extern int nw_saveenv(void);
+extern void nw_env_relocate_spec(void);
+
+#ifdef CONFIG_HI3536_A7
+static struct env_common_func_t nw_env_cmn_func = {
+	.env_init = nw_env_init,
+	.env_get_char_spec = nw_env_get_char_spec,
+	.saveenv = nw_saveenv,
+	.env_relocate_spec = nw_env_relocate_spec,
+	.env_name_spec = "NO WHERE",
+};
+#endif
+
+#else
+
+#ifdef CONFIG_HI3536_A7
+static struct env_common_func_t nw_env_cmn_func = {0};
+#endif
+
+#endif /* CONFIG_ENV_IS_IN_NOWHERE */
 
 char *env_name_spec;
 env_t *env_ptr = 0;
@@ -81,6 +129,9 @@ void env_relocate_spec(void)
 
 int env_init(void)
 {
+#ifdef CONFIG_HI3536_A7
+	env_cmn_func = &nw_env_cmn_func;
+#else
 	switch (get_boot_media()) {
 	default:
 		env_cmn_func = NULL;
@@ -98,6 +149,7 @@ int env_init(void)
 		env_cmn_func = &sf_env_cmn_func;
 		break;
 	}
+#endif
 
 	if (env_cmn_func && !env_cmn_func->env_name_spec)
 		env_cmn_func = NULL;

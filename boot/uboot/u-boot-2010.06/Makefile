@@ -182,9 +182,13 @@ OBJS := $(addprefix $(obj),$(OBJS))
 LIBS  = lib/libgeneric.a
 LIBS += lib/lzma/liblzma.a
 LIBS += lib/lzo/liblzo.a
+LIBS += lib/hw_dec/libhw_dec.a
 LIBS += $(shell if [ -f board/$(VENDOR)/common/Makefile ]; then echo \
 	"board/$(VENDOR)/common/lib$(VENDOR).a"; fi)
 LIBS += $(CPUDIR)/lib$(CPU).a
+ifdef CONFIG_DDR_TRAINING_V2
+LIBS += drivers/ddr/libddr.a
+endif
 ifdef SOC
 LIBS += $(CPUDIR)/$(SOC)/lib$(SOC).a
 endif
@@ -207,17 +211,25 @@ LIBS += drivers/i2c/libi2c.a
 LIBS += drivers/input/libinput.a
 LIBS += drivers/misc/libmisc.a
 LIBS += drivers/mmc/libmmc.a
+ifdef CONFIG_EXT4
+LIBS += fs/ext4/libext4.a
+endif
 LIBS += drivers/mtd/libmtd.a
 LIBS += drivers/mtd/nand/libnand.a
 LIBS += drivers/mtd/nand/hinfc301/libhinfcv301.a
 LIBS += drivers/mtd/nand/hinfc504/libhinfcv504.a
+LIBS += drivers/mtd/nand/hinfc610/libhinfcv610.a
+LIBS += drivers/mtd/nand/hisnfc100/libhisnfcv100.a
+LIBS += drivers/mtd/nand/hifmc100/libhifmcv100.a
 LIBS += drivers/mtd/onenand/libonenand.a
 LIBS += drivers/mtd/ubi/libubi.a
 LIBS += drivers/mtd/spi/libspi_flash.a
 LIBS += drivers/mtd/spi/hisfc350/libhisfcv350.a
+LIBS += drivers/mtd/spi/hifmc100/libhifmcv100.a
 LIBS += drivers/mtd/spi/hisfc300new/libhisfcv300new.a
 LIBS += drivers/net/libnet.a
 LIBS += drivers/net/phy/libphy.a
+LIBS += drivers/net/higmacv300/libhigmacv300.a
 LIBS += drivers/net/hisfv300/libhisfv300.a
 LIBS += drivers/net/higmac/libhigmac.a
 LIBS += drivers/net/stmmac/libstmmac.a
@@ -225,6 +237,9 @@ LIBS += drivers/pci/libpci.a
 LIBS += drivers/pcmcia/libpcmcia.a
 LIBS += drivers/power/libpower.a
 LIBS += drivers/spi/libspi.a
+ifdef CONFIG_SNAPSHOT_BOOT
+LIBS += common/bootss2.a
+endif
 ifeq ($(CPU),mpc83xx)
 LIBS += drivers/qe/qe.a
 endif
@@ -237,6 +252,7 @@ ifeq ($(CPU),mpc86xx)
 LIBS += arch/powerpc/cpu/mpc8xxx/ddr/libddr.a
 LIBS += arch/powerpc/cpu/mpc8xxx/lib8xxx.a
 endif
+
 LIBS += drivers/rtc/librtc.a
 LIBS += drivers/serial/libserial.a
 LIBS += drivers/twserial/libtws.a
@@ -254,7 +270,16 @@ LIBS += post/libpost.a
 LIBS += product/libproduct.a
 LIBS += product/hiupdate/libhiupdate.a
 LIBS += product/hiddrtv200/libhiddrtv200.a
+ifeq ($(CONFIG_AUDIO_ENABLE), y)
+ifeq ($(CONFIG_PRODUCTNAME), "hi3516a")
+LIBS += product/hiaudio/acodec/v500/libacodec.a
+LIBS += product/hiaudio/ao/hi3516a/libao.a
+endif
+endif
+
+ifndef CONFIG_HI3536_A7
 sinclude Makefile-osd
+endif
 
 LIBS := $(addprefix $(obj),$(LIBS))
 .PHONY : $(LIBS) $(TIMESTAMP_FILE) $(VERSION_FILE)
@@ -314,11 +339,6 @@ $(obj)u-boot.srec:	$(obj)u-boot
 $(obj)u-boot.bin:	$(obj)u-boot
 		$(OBJCOPY) ${OBJCFLAGS} -O binary $< $@
 
-.PHONY: mini-boot.bin
-mini-boot.bin: $(TOPDIR)/full-boot.bin
-	make -C $(TOPDIR)/arch/$(ARCH)/cpu/$(CPU)/compressed \
-		CROSS_COMPILE=$(CROSS_COMPILE) \
-		BINIMAGE=$(TOPDIR)/full-boot.bin TOPDIR=$(TOPDIR)
 
 $(obj)u-boot.ldr:	$(obj)u-boot
 		$(CREATE_LDR_ENV)
@@ -374,6 +394,24 @@ ifdef CONFIG_DDR_TRAINING_V300
 		TOPDIR=$(TOPDIR) \
 		CROSS_COMPILE=$(CROSS_COMPILE)
 endif
+
+ifdef CONFIG_DDR_TRAINING_V2
+	touch $(TOPDIR)/drivers/ddr/ddr_cmd_loc.S
+	make -C $(TOPDIR)/drivers/ddr/cmd_bin \
+		TOPDIR=$(TOPDIR) \
+		CROSS_COMPILE=$(CROSS_COMPILE)
+endif
+
+.PHONY: mini-boot.bin
+mini-boot.bin: $(TOPDIR)/full-boot.bin
+	make -C $(TOPDIR)/arch/$(ARCH)/cpu/$(CPU)/compressed \
+		CROSS_COMPILE=$(CROSS_COMPILE) \
+		BINIMAGE=$(TOPDIR)/full-boot.bin TOPDIR=$(TOPDIR)
+
+.PHONY: mini-boot.clean
+mini-boot.clean: $(TOPDIR)/full-boot.bin
+	make -C $(TOPDIR)/arch/$(ARCH)/cpu/$(CPU)/compressed \
+		CROSS_COMPILE=$(CROSS_COMPILE) clean
 
 $(OBJS):	depend
 		$(MAKE) -C $(CPUDIR) $(if $(REMOTE_BUILD),$@,$(notdir $@))
@@ -3231,6 +3269,15 @@ hi3518c_config: unconfig
 hi3518e_config: unconfig
 	@$(MKCONFIG) hi3518e arm hi3518 hi3518 NULL hi3518
 
+hi3518ev200_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3518ev200 hi3518ev200 NULL hi3518ev200
+
+hi3518ev201_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3518ev200 hi3518ev200 NULL hi3518ev200
+
+hi3516cv200_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3518ev200 hi3518ev200 NULL hi3518ev200
+
 hi3516c_config: unconfig
 	@$(MKCONFIG) hi3516c arm hi3518 hi3518 NULL hi3518
 
@@ -3239,6 +3286,32 @@ hi3520d_config: unconfig
 
 hi3535_config: unconfig
 	@$(MKCONFIG) $(@:_config=) arm hi3535 hi3535 NULL hi3535
+
+hi3516a_config: unconfig
+	@$(MKCONFIG) hi3516a arm hi3516a hi3516a NULL hi3516a
+hi3516a_spinand_config: unconfig
+	@$(MKCONFIG) hi3516a_spinand arm hi3516a hi3516a NULL hi3516a
+
+hi3536_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3536 hi3536 NULL hi3536
+
+hi3536_spinand_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3536 hi3536 NULL hi3536
+
+hi3536_slave_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3536 hi3536 NULL hi3536
+
+hi3521a_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3521a hi3521a NULL hi3521a
+
+hi3520dv300_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3521a hi3521a NULL hi3521a
+
+hi3531a_config: unconfig
+	@$(MKCONFIG) hi3531a arm hi3531a hi3531a NULL hi3531a
+hi3531a_spinand_config: unconfig
+	@$(MKCONFIG) hi3531a_spinand arm hi3531a hi3531a NULL hi3531a
+
 godarm_config:	unconfig
 	@$(MKCONFIG) $(@:_config=) arm godarm godarm NULL godarm
 
@@ -3252,7 +3325,7 @@ godnet_config: unconfig
 	@$(MKCONFIG) $(@:_config=) arm godnet godnet NULL godnet
 
 godbox_config: unconfig
-	@$(MKCONFIG) $(@:_config=) arm godbox godbox 
+	@$(MKCONFIG) $(@:_config=) arm godbox godbox
 
 godeyes_config: unconfig
 	@$(MKCONFIG) $(@:_config=) arm godeyes godeyes NULL godeyes
@@ -3751,7 +3824,7 @@ grsim_leon2_config : unconfig
 #########################################################################
 #########################################################################
 #########################################################################
-TARGETS := hi3535
+TARGETS := $(CPU)
 .PHONY: ddr_training.clean
 ddr_training.clean:
 ifdef CONFIG_DDR_TRAINING_V300

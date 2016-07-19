@@ -7,6 +7,12 @@
 #ifndef DDR_TRAININGH
 #define DDR_TRAININGH
 
+#define DDR_TRAINING_STAT_REG           (0x20050098) /* DDRT2 */
+#define DDR_TRAINING_STAT_BITS_RD       (0)
+#define DDR_TRAINING_STAT_BITS_WAIT     (1)
+#define DDR_TRAINING_STAT_BITS_WS       (2)
+#define DDR_TRAINING_STAT_BITS_RS       (3)
+
 struct regval_t {
 	unsigned int reg;
 	unsigned int val;

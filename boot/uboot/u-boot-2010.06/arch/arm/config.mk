@@ -63,4 +63,8 @@ ifeq (,$(findstring arch/arm/lib/eabi_compat.o,$(PLATFORM_LIBS)))
 PLATFORM_LIBS += $(OBJTREE)/arch/arm/lib/eabi_compat.o
 endif
 endif
+ifeq ($(CONFIG_HI3536_A7),y)
+LDSCRIPT := $(SRCTREE)/$(CPUDIR)/u-boot-a7.lds
+else
 LDSCRIPT := $(SRCTREE)/$(CPUDIR)/u-boot.lds
+endif

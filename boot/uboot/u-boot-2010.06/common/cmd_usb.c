@@ -290,7 +290,7 @@ static inline char *portspeed(int speed)
 void usb_show_tree_graph(struct usb_device *dev, char *pre)
 {
 	int i, index;
-	int has_child, last_child, port;
+	int has_child, last_child;
 
 	index = strlen(pre);
 	printf(" %s", pre);
@@ -309,7 +309,6 @@ void usb_show_tree_graph(struct usb_device *dev, char *pre)
 				/* found our pointer, see if we have a
 				 * little sister
 				 */
-				port = i;
 				while (i++ < dev->parent->maxchild) {
 					if (dev->parent->children[i] != NULL) {
 						/* found a sister */
@@ -535,16 +534,9 @@ int do_usb(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 	if ((strncmp(argv[1], "reset", 5) == 0) ||
 		 (strncmp(argv[1], "start", 5) == 0)) {
-try_again:
 		usb_stop();
 		printf("(Re)start USB...\n");
-		i = usb_init_debug(); //FIXME
-		wait_ms(1000);
 		i = usb_init();
-#if defined CONFIG_USB_XHCI && defined CONFIG_USB_OHCI
-		if (i == NO_DEV_FD)
-			goto try_again;
-#endif
 #ifdef CONFIG_USB_STORAGE
 		/* try to recognize storage devices immediately */
 		if (i >= 0)

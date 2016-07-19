@@ -17,22 +17,19 @@
 #include <jffs2/jffs2.h>
 #include <nand.h>
 
-#if defined(CONFIG_CMD_MTDPARTS)
+#include <hinfc_common.h>
 
+#ifdef CONFIG_CMD_MTDPARTS
 /* partition handling routines */
 int mtdparts_init(void);
 int id_parse(const char *id, const char **ret_id, u8 *dev_type, u8 *dev_num);
 int find_dev_and_part(const char *id, struct mtd_device **dev,
 		      u8 *part_num, struct part_info **part);
 #endif
-
-#define HINFC_VER_300                   (0x300)
-#define HINFC_VER_301                   (0x301)
-#define HINFC_VER_310                   (0x310)
-#define HINFC_VER_504                   (0x504)
-#define HINFC_VER_505                   (0x505)
-#define HINFC_VER_600                   (0x600)
-
+#if !(defined(CONFIG_NAND_FLASH_HISNFC100) \
+		|| defined(CONFIG_NAND_FLASH_HINFC610) \
+		|| defined(CONFIG_HIFMC_SPI_NAND))
+#define DEBUG 0
 #define _512B                               (512)
 #define _2K                                 (2048)
 #define _4K                                 (4096)
@@ -43,10 +40,10 @@ enum ecc_type {
 	et_ecc_none    = 0x00,
 	et_ecc_1bit    = 0x01,
 	et_ecc_4bit    = 0x02,
-	et_ecc_4bytes  = 0x02,
-	et_ecc_8bytes  = 0x03,
+	et_ecc_8bit    = 0x03,
 	et_ecc_24bit1k = 0x04,
 	et_ecc_40bit1k = 0x05,
+	et_ecc_64bit1k = 0x06,
 };
 
 enum page_type {
@@ -56,14 +53,18 @@ enum page_type {
 	pt_pagesize_8K    = 0x03,
 	pt_pagesize_16K   = 0x04,
 };
-
-
-
+#endif
 /*
+ * hifmc :
+ * v100: 2k4b 2k8b 2k24b 4k4b 4k8b 4k24b
+ *
+ * hisnfc :
+ * v100: 2k4b 2k8b 2k24b 4k4b 4k8b 4k24b
+ *
+ * hinfc :
  * v504: 2k1b 2k4b 2k24b 4k1b 4k4b 4k24b 8k24b 8k40b
  * v301: 2k1b            4k1b 4k4b 4k24b 8k24b
  * v300: 2k1b            4k1b 4k4b 4k24b 8k24b
- *
  */
 
 #define HINFC_VER_VER          (0xFFF00000)
@@ -76,7 +77,7 @@ static unsigned int hinfc300_support_yaffs2[] = {
 	SET_HINFC_VER(HINFC_VER_300, _2K, et_ecc_1bit),
 
 	SET_HINFC_VER(HINFC_VER_300, _4K, et_ecc_1bit),
-	SET_HINFC_VER(HINFC_VER_300, _4K, et_ecc_4bytes),
+	SET_HINFC_VER(HINFC_VER_300, _4K, et_ecc_4bit),
 	SET_HINFC_VER(HINFC_VER_300, _4K, et_ecc_24bit1k),
 
 	SET_HINFC_VER(HINFC_VER_300, _8K, et_ecc_24bit1k),
@@ -87,7 +88,7 @@ static unsigned int hinfc301_support_yaffs2[] = {
 	SET_HINFC_VER(HINFC_VER_301, _2K, et_ecc_1bit),
 
 	SET_HINFC_VER(HINFC_VER_301, _4K, et_ecc_1bit),
-	SET_HINFC_VER(HINFC_VER_301, _4K, et_ecc_4bytes),
+	SET_HINFC_VER(HINFC_VER_301, _4K, et_ecc_4bit),
 	SET_HINFC_VER(HINFC_VER_301, _4K, et_ecc_24bit1k),
 
 	SET_HINFC_VER(HINFC_VER_301, _8K, et_ecc_24bit1k),
@@ -96,36 +97,84 @@ static unsigned int hinfc301_support_yaffs2[] = {
 
 static unsigned int hinfc504_support_yaffs2[] = {
 	SET_HINFC_VER(HINFC_VER_504, _2K, et_ecc_4bit),
-	SET_HINFC_VER(HINFC_VER_504, _2K, et_ecc_8bytes),
+	SET_HINFC_VER(HINFC_VER_504, _2K, et_ecc_8bit),
 	SET_HINFC_VER(HINFC_VER_504, _2K, et_ecc_24bit1k),
 
-	SET_HINFC_VER(HINFC_VER_301, _4K, et_ecc_1bit),
-	SET_HINFC_VER(HINFC_VER_301, _4K, et_ecc_4bytes),
-	SET_HINFC_VER(HINFC_VER_504, _4K, et_ecc_8bytes),
-	SET_HINFC_VER(HINFC_VER_301, _4K, et_ecc_24bit1k),
+	SET_HINFC_VER(HINFC_VER_504, _4K, et_ecc_1bit),
+	SET_HINFC_VER(HINFC_VER_504, _4K, et_ecc_4bit),
+	SET_HINFC_VER(HINFC_VER_504, _4K, et_ecc_8bit),
+	SET_HINFC_VER(HINFC_VER_504, _4K, et_ecc_24bit1k),
 
-	SET_HINFC_VER(HINFC_VER_301, _8K, et_ecc_24bit1k),
+	SET_HINFC_VER(HINFC_VER_504, _8K, et_ecc_24bit1k),
 	SET_HINFC_VER(HINFC_VER_504, _8K, et_ecc_40bit1k),
 	0,
 };
-/*****************************************************************************/
 
+static unsigned int hinfc610_support_yaffs2[] = {
+	SET_HINFC_VER(HINFC_VER_610, _2K, et_ecc_4bit),
+	SET_HINFC_VER(HINFC_VER_610, _2K, et_ecc_24bit1k),
+
+	SET_HINFC_VER(HINFC_VER_610, _4K, et_ecc_4bit),
+	SET_HINFC_VER(HINFC_VER_610, _4K, et_ecc_24bit1k),
+
+	SET_HINFC_VER(HINFC_VER_610, _8K, et_ecc_24bit1k),
+	SET_HINFC_VER(HINFC_VER_610, _8K, et_ecc_40bit1k),
+	SET_HINFC_VER(HINFC_VER_610, _8K, et_ecc_64bit1k),
+
+	SET_HINFC_VER(HINFC_VER_610, _16K, et_ecc_40bit1k),
+	SET_HINFC_VER(HINFC_VER_610, _16K, et_ecc_64bit1k),
+	0,
+};
+
+static unsigned int hisnfc100_support_yaffs2[] = {
+	SET_HINFC_VER(HISNFC_VER_100, _2K, et_ecc_4bit),
+	SET_HINFC_VER(HISNFC_VER_100, _2K, et_ecc_8bit),
+	SET_HINFC_VER(HISNFC_VER_100, _2K, et_ecc_24bit1k),
+
+	SET_HINFC_VER(HISNFC_VER_100, _4K, et_ecc_4bit),
+	SET_HINFC_VER(HISNFC_VER_100, _4K, et_ecc_8bit),
+	SET_HINFC_VER(HISNFC_VER_100, _4K, et_ecc_24bit1k),
+	0,
+};
+
+#ifdef CONFIG_HIFMC_SPI_NAND
+static unsigned int hifmc100_support_yaffs2[] = {
+	SET_HINFC_VER(HIFMC_VER_100, _2K, et_ecc_4bit),
+	SET_HINFC_VER(HIFMC_VER_100, _2K, et_ecc_8bit),
+	SET_HINFC_VER(HIFMC_VER_100, _2K, et_ecc_24bit1k),
+
+	SET_HINFC_VER(HIFMC_VER_100, _4K, et_ecc_4bit),
+	SET_HINFC_VER(HIFMC_VER_100, _4K, et_ecc_8bit),
+	SET_HINFC_VER(HIFMC_VER_100, _4K, et_ecc_24bit1k),
+	0,
+};
+#endif
+
+/*****************************************************************************/
 static unsigned int *get_support_yaffs2(unsigned int nandip)
 {
 	switch (nandip) {
-		default:
-		case HINFC_VER_300:
-			return hinfc300_support_yaffs2;
-		case HINFC_VER_301:
-			return hinfc301_support_yaffs2;
-		case HINFC_VER_504:
-			return hinfc504_support_yaffs2;
+	default:
+	case HINFC_VER_300:
+		return hinfc300_support_yaffs2;
+	case HINFC_VER_301:
+		return hinfc301_support_yaffs2;
+	case HINFC_VER_504:
+		return hinfc504_support_yaffs2;
+	case HINFC_VER_610:
+		return hinfc610_support_yaffs2;
+	case HISNFC_VER_100:
+		return hisnfc100_support_yaffs2;
+#ifdef CONFIG_HIFMC_SPI_NAND
+	case HIFMC_VER_100:
+		return hifmc100_support_yaffs2;
+#endif
 	}
 }
-/*****************************************************************************/
 
+/*****************************************************************************/
 static unsigned int get_yaffs2_version(unsigned int nandip, int pagesize,
-	int ecc)
+					int ecc)
 {
 	int ix;
 	unsigned int *ver = get_support_yaffs2(nandip);
@@ -138,55 +187,65 @@ static unsigned int get_yaffs2_version(unsigned int nandip, int pagesize,
 
 	return 0;
 }
+
+#ifdef CONFIG_HIFMC_SPI_NAND
+	extern unsigned int hifmc_ip_ver;
+#else
+	extern unsigned int nand_ip_version;
+#endif
+	extern int nand_get_ecctype(void);
+
+/*****************************************************************************/
 static int yaffs_tag_check(unsigned char *buffer, unsigned int writesize,
 	unsigned int length)
 {
+#ifdef CONFIG_HIFMC_SPI_NAND
+	unsigned int ip_version = hifmc_ip_ver;
+#else
+	unsigned int ip_version = nand_ip_version;
+#endif
 	unsigned int hinfc_yaff_ver;
 	unsigned int yaffs_yaff_ver;
-	static char *ecctype_str[] = 
-		{ "None", "1bit", "4Bytes", "8Bytes", "24bits/1K", "unknown", "unknown", "unknown"};
+	static char *ecctype_str[] = { "None", "1bit", "4Bytes", "8Bytes",
+		"24bits/1K", "40bits/1K", "64bits/1K", "unknown"};
 
 	/* this follow must be consistent with mkyaffs2image !!! */
-	struct yaffs2_tag
-	{
+	struct yaffs2_tag {
 	#define YAFFS2_SIGN_MAGIC    "YFSS!V10"
 		unsigned char magic[8];
 		unsigned int nandip;
 		unsigned char yaffs2ver[4];
-		unsigned int pagesize; 
-		unsigned int ecctype; 
+		unsigned int pagesize;
+		unsigned int ecctype;
 	};
-	
-	extern unsigned int nand_ip_version;
-	extern int nand_get_ecctype(void);
 
 	struct yaffs2_tag *tags = (struct yaffs2_tag *)buffer;
 	unsigned int ecctype = nand_get_ecctype();
 
-	if (length < 512)
-	{
+	if (length < 512) {
 		printf("buffer length is too short.\n");
 		return -1;
 	}
 
-	if (memcmp(tags->magic, (unsigned char *)YAFFS2_SIGN_MAGIC, 8))
-	{
-		printf("!!! The yaffs2 filesystem image has no tag information. \n"
-			"please update your mkyaffs2image tool, and remake yaffs2 filesystem image.\n");
+	if (memcmp(tags->magic, (unsigned char *)YAFFS2_SIGN_MAGIC, 8))	{
+		printf("!!! The yaffs2 filesystem image has no tag " \
+			"information.\n please update your mkyaffs2image" \
+			" tool, and remake yaffs2 filesystem image.\n");
 		return -1;
 	}
 
-	if (writesize != tags->pagesize)
-	{
-		printf("!!! yaffs2 filesystem image pagesize(%d) is NOT consistent with hardware pagesize(%d).\n",
+	if (writesize != tags->pagesize) {
+		printf("!!! yaffs2 filesystem image pagesize(%d) is NOT" \
+			" consistent with hardware pagesize(%d).\n",
 			tags->pagesize, writesize);
 		goto fail;
 	}
-	
-	if (ecctype != tags->ecctype)
-	{
-		printf("!!! yaffs2 filesystem image ecctype(%s) is NOT consistent with hardware ecctype(%s).\n",
-			ecctype_str[tags->ecctype & 0xF], ecctype_str[ecctype & 0xF]);
+
+	if (ecctype != tags->ecctype) {
+		printf("!!! yaffs2 filesystem image ecctype(%s) is NOT" \
+			" consistent with hardware ecctype(%s).\n",
+			ecctype_str[tags->ecctype & 0xF],
+			ecctype_str[ecctype & 0xF]);
 		goto fail;
 	}
 
@@ -194,63 +253,68 @@ static int yaffs_tag_check(unsigned char *buffer, unsigned int writesize,
 	 * When write 8k40bit yaffs2 filesystem to hinfc301,
 	 * It will print this error, because cpu not support.
 	 */
-	hinfc_yaff_ver = get_yaffs2_version(nand_ip_version, writesize,
+	hinfc_yaff_ver = get_yaffs2_version(ip_version, writesize,
 			ecctype);
 	if (!hinfc_yaff_ver) {
-		printf("!!! The yaffs2 filesystem "
-			"or mkyaffs2image for cpu ver(0x%X) "
+		printf("!!! The yaffs2 filesystem " \
+			"or mkyaffs2image for cpu ver(0x%X) " \
 			"But your demo board cpu ver(0x%X).\n",
-			tags->nandip, nand_ip_version);
+			tags->nandip, ip_version);
 		goto fail1;
 	}
 
 	yaffs_yaff_ver = get_yaffs2_version(tags->nandip, writesize, ecctype);
 	if (!yaffs_yaff_ver) {
-		printf("!!! The yaffs2 filesystem image"
+		printf("!!! The yaffs2 filesystem image" \
 			" has invalid tag information.\n");
 		goto fail1;
 	}
 
 	if (hinfc_yaff_ver != yaffs_yaff_ver) {
-		printf("!!! The yaffs2 filesystem "
-			"or mkyaffs2image for cpu ver(0x%X) "
+		printf("!!! The yaffs2 filesystem " \
+			"or mkyaffs2image for cpu ver(0x%X) " \
 			"But your demo board cpu ver(0x%X).\n",
-			tags->nandip, nand_ip_version);
+			tags->nandip, ip_version);
 		goto fail1;
 	}
 	return 0;
 
 fail:
-	printf("Please remake yaffs2 filesystem image, "
-		"make sure your yaffs2 filesystem image pagesize and ecctype is consistent with hardware config.\n");
-	printf("Current hardware config, pagesize:%d, ecctype:%s\n", 
+	printf("Please remake yaffs2 filesystem image, " \
+		"make sure your yaffs2 filesystem image pagesize and ecctype" \
+		" is consistent with hardware config.\n");
+	printf("Current hardware config, pagesize:%d, ecctype:%s\n",
 		writesize, ecctype_str[ecctype & 0xF]);
 
 	return -1;
 fail1:
-	printf("1. Confirm your yaffs2 filesystem image version.\n"
-			"2. Update your mkyaffs2image tool,"
+	printf("1. Confirm your yaffs2 filesystem image version.\n" \
+			"2. Update your mkyaffs2image tool," \
 			" remake yaffs2 filesystem image.\n");
 
 	return -1;
 }
 
+/*****************************************************************************/
 static int nand_dump(nand_info_t *nand, loff_t off, int only_oob)
 {
 	int i;
-	u_char *datbuf, *oobbuf, *p;
+	u_char *datbuf, *p;
+	struct mtd_oob_ops ops;
 
 	datbuf = malloc(nand->writesize + nand->oobsize);
-	oobbuf = malloc(nand->oobsize);
-	if (!datbuf || !oobbuf) {
+	if (!datbuf) {
 		puts("No memory for page buffer\n");
 		return 1;
 	}
+	memset(datbuf, 0xff, nand->writesize + nand->oobsize);
 	off &= ~((loff_t)nand->writesize - 1);
-	struct mtd_oob_ops ops;
+
 	memset(&ops, 0, sizeof(ops));
-	ops.datbuf = datbuf;
-	ops.oobbuf = oobbuf; /* must exist, but oob data will be appended to ops.datbuf */
+
+	if (!only_oob)
+		ops.datbuf = datbuf;
+	ops.oobbuf = (uint8_t *)((char *)datbuf + nand->writesize);
 	ops.len = nand->writesize;
 	ops.ooblen = nand->oobsize;
 	ops.mode = MTD_OOB_RAW;
@@ -258,7 +322,6 @@ static int nand_dump(nand_info_t *nand, loff_t off, int only_oob)
 	if (i < 0) {
 		printf("Error (%d) reading page %08llx\n", i, off);
 		free(datbuf);
-		free(oobbuf);
 		return 1;
 	}
 	printf("Page %08llx dump:\n", off);
@@ -267,7 +330,7 @@ static int nand_dump(nand_info_t *nand, loff_t off, int only_oob)
 
 	while (i--) {
 		if (!only_oob)
-			printf("\t%02x %02x %02x %02x %02x %02x %02x %02x"
+			printf("\t%02x %02x %02x %02x %02x %02x %02x %02x" \
 			       "  %02x %02x %02x %02x %02x %02x %02x %02x\n",
 			       p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
 			       p[8], p[9], p[10], p[11], p[12], p[13], p[14],
@@ -275,20 +338,18 @@ static int nand_dump(nand_info_t *nand, loff_t off, int only_oob)
 		p += 16;
 	}
 	puts("OOB:\n");
-	i = nand->oobsize >> 3;
+	i = (nand->oobsize >> 3);
 	while (i--) {
 		printf("\t%02x %02x %02x %02x %02x %02x %02x %02x\n",
 		       p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
 		p += 8;
 	}
 	free(datbuf);
-	free(oobbuf);
 
 	return 0;
 }
 
 /* ------------------------------------------------------------------------- */
-
 static inline int str2ll(char *p, loff_t *num)
 {
 	char *endptr;
@@ -298,7 +359,8 @@ static inline int str2ll(char *p, loff_t *num)
 }
 
 static int
-arg_off_size(int argc, char *argv[], nand_info_t *nand, loff_t *off, loff_t *size)
+arg_off_size(int argc, char *argv[], nand_info_t *nand, loff_t *off,
+		loff_t *size)
 {
 	int idx = nand_curr_device;
 #if defined(CONFIG_CMD_MTDPARTS)
@@ -412,7 +474,7 @@ static void nand_print_info(int idx)
 	       nand->name, nand->erasesize >> 10);
 }
 
-int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
+int do_nand(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	int i, dev, ret = 0;
 	ulong addr;
@@ -458,7 +520,8 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 			return 0;
 		}
 		dev = (int)simple_strtoul(argv[2], NULL, 10);
-		if (dev < 0 || dev >= CONFIG_SYS_MAX_NAND_DEVICE || !nand_info[dev].name) {
+		if (dev < 0 || dev >= CONFIG_SYS_MAX_NAND_DEVICE
+			|| !nand_info[dev].name) {
 			puts("No such device\n");
 			return 1;
 		}
@@ -476,17 +539,17 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 		return 0;
 	}
 
-	if (strcmp(cmd, "bad") != 0 && strcmp(cmd, "erase") != 0 &&
-	    strncmp(cmd, "dump", 4) != 0 &&
-	    strncmp(cmd, "read", 4) != 0 && strncmp(cmd, "write", 5) != 0 &&
-	    strcmp(cmd, "scrub") != 0 && strcmp(cmd, "markbad") != 0 &&
-	    strcmp(cmd, "biterr") != 0 &&
-	    strcmp(cmd, "lock") != 0 && strcmp(cmd, "unlock") != 0 )
+	if (strcmp(cmd, "bad") != 0 && strcmp(cmd, "markbad") != 0
+	    && strcmp(cmd, "erase") != 0 && strcmp(cmd, "scrub") != 0
+	    && strncmp(cmd, "read", 4) != 0 && strncmp(cmd, "write", 5) != 0
+	    && strncmp(cmd, "dump", 4) != 0 && strcmp(cmd, "biterr") != 0
+	    && strcmp(cmd, "lock") != 0 && strcmp(cmd, "unlock") != 0)
 		goto usage;
 
 	/* the following commands operate on the current device */
-	if (nand_curr_device < 0 || nand_curr_device >= CONFIG_SYS_MAX_NAND_DEVICE ||
-	    !nand_info[nand_curr_device].name) {
+	if (nand_curr_device < 0
+		|| nand_curr_device >= CONFIG_SYS_MAX_NAND_DEVICE
+		|| !nand_info[nand_curr_device].name) {
 		puts("\nno devices available\n");
 		return 1;
 	}
@@ -513,7 +576,8 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 		int scrub = !strcmp(cmd, "scrub");
 
 		printf("\nNAND %s: ", scrub ? "scrub" : "erase");
-		/* skip first two or three arguments, look for offset and size */
+		/* skip first two or three arguments,
+		   look for offset and size */
 		if (arg_off_size(argc - o, argv + o, nand, &off, &size) != 0)
 			return 1;
 
@@ -523,13 +587,13 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 		}
 
 		if (off & (nand->erasesize - 1)) {
-			printf("ERROR: erase start address is "
+			printf("ERROR: erase start address is " \
 					"not block aligned!\n\n");
 			return 1;
 		}
 
 		if (size & (nand->erasesize - 1)) {
-			printf("ERROR: erase length is "
+			printf("ERROR: erase length is " \
 					"not block aligned!\n\n");
 			return 1;
 		}
@@ -541,16 +605,16 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 		opts.quiet  = quiet;
 
 		if (scrub) {
-			puts("Warning: "
-			     "scrub option will erase all factory set "
-			     "bad blocks!\n"
-			     "         "
-			     "There is no reliable way to recover them.\n"
-			     "         "
-			     "Use this command only for testing purposes "
-			     "if you\n"
-			     "         "
-			     "are sure of what you are doing!\n"
+			puts("Warning: " \
+			     "scrub option will erase all factory set " \
+			     "bad blocks!\n" \
+			     "         " \
+			     "There is no reliable way to recover them.\n" \
+			     "         " \
+			     "Use this command only for testing purposes " \
+			     "if you\n" \
+			     "         " \
+			     "are sure of what you are doing!\n" \
 			     "\nReally scrub this NAND flash? <y/N>\n");
 
 			if (getc() == 'y') {
@@ -585,7 +649,6 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 			ret = nand_dump(nand, off, 0);
 
 		return ret == 0 ? 1 : 0;
-
 	}
 
 	if (strncmp(cmd, "read", 4) == 0 || strncmp(cmd, "write", 5) == 0) {
@@ -617,12 +680,12 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 							 (u_char *)addr);
 			else {
 				if (off & (nand->writesize - 1)) {
-					printf("ERROR: write start address is "
-						"not page aligned!\n\n");
+					printf("ERROR: write start address is" \
+						" not page aligned!\n\n");
 					return 1;
 				}
 				if (rw_size & (nand->writesize - 1)) {
-					printf("ERROR: write length is "
+					printf("ERROR: write length is " \
 						"not page aligned!\n\n");
 					return 1;
 				}
@@ -643,18 +706,16 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 			else
 				ret = nand->write_oob(nand, off, &ops);
 		} else if (s != NULL && !strcmp(s, ".yaffs")) {
-			if (read)
-			{
+			if (read) {
 				ret = nand_read_yaffs_skip_bad(nand, off,
 					&rw_size, (u_char *)addr);
-			}
-			else
-			{
-				if (yaffs_tag_check((unsigned char *)addr, nand->writesize, size))
+			} else {
+				if (yaffs_tag_check((unsigned char *)addr,
+					nand->writesize, size))
 					return 1;
 
-				ret = nand_write_yaffs_skip_bad(nand, off, &rw_size,
-					(u_char *)addr);
+				ret = nand_write_yaffs_skip_bad(nand, off,
+						&rw_size, (u_char *)addr);
 			}
 		} else if (s != NULL && !strcmp(s, ".yaffsuc")) {
 			if (read) {
@@ -685,12 +746,12 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 			off = simple_strtoull(*argv, NULL, 16);
 
 			if (nand->block_markbad(nand, off)) {
-				printf("block 0x%08llx NOT marked "
+				printf("block 0x%08llx NOT marked " \
 					"as bad! ERROR %d\n",
 					off, ret);
 				ret = 1;
 			} else {
-				printf("block 0x%08llx successfully "
+				printf("block 0x%08llx successfully " \
 					"marked as bad\n",
 					off);
 			}
@@ -735,7 +796,7 @@ int do_nand(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
 		if (!nand_unlock(nand, off, size)) {
 			puts("NAND flash successfully unlocked\n");
 		} else {
-			puts("Error unlocking NAND flash, "
+			puts("Error unlocking NAND flash, " \
 			     "write and erase will probably fail\n");
 			return 1;
 		}
@@ -796,53 +857,54 @@ static int nand_load_image(cmd_tbl_t *cmdtp, nand_info_t *nand,
 	r = nand_read_skip_bad(nand, offset, &cnt, (u_char *) addr);
 	if (r) {
 		puts("** Read error\n");
-		show_boot_progress (-56);
+		show_boot_progress(-56);
 		return 1;
 	}
-	show_boot_progress (56);
+	show_boot_progress(56);
 
-	switch (genimg_get_format ((void *)addr)) {
+	switch (genimg_get_format((void *)addr)) {
 	case IMAGE_FORMAT_LEGACY:
 		hdr = (image_header_t *)addr;
 
-		show_boot_progress (57);
-		image_print_contents (hdr);
+		show_boot_progress(57);
+		image_print_contents(hdr);
 
-		cnt = image_get_image_size (hdr);
+		cnt = image_get_image_size(hdr);
 		break;
 #if defined(CONFIG_FIT)
 	case IMAGE_FORMAT_FIT:
 		fit_hdr = (const void *)addr;
-		puts ("Fit image detected...\n");
+		puts("Fit image detected...\n");
 
-		cnt = fit_get_size (fit_hdr);
+		cnt = fit_get_size(fit_hdr);
 		break;
 #endif
 	default:
-		show_boot_progress (-57);
-		puts ("** Unknown image type\n");
+		show_boot_progress(-57);
+		puts("** Unknown image type\n");
 		return 1;
 	}
-	show_boot_progress (57);
+	show_boot_progress(57);
 
 	r = nand_read_skip_bad(nand, offset, &cnt, (u_char *) addr);
 	if (r) {
 		puts("** Read error\n");
-		show_boot_progress (-58);
+		show_boot_progress(-58);
 		return 1;
 	}
-	show_boot_progress (58);
+	show_boot_progress(58);
 
 #if defined(CONFIG_FIT)
-	/* This cannot be done earlier, we need complete FIT image in RAM first */
-	if (genimg_get_format ((void *)addr) == IMAGE_FORMAT_FIT) {
-		if (!fit_check_format (fit_hdr)) {
-			show_boot_progress (-150);
-			puts ("** Bad FIT image format\n");
+	/* This cannot be done earlier,
+	   we need complete FIT image in RAM first */
+	if (genimg_get_format((void *)addr) == IMAGE_FORMAT_FIT) {
+		if (!fit_check_format(fit_hdr)) {
+			show_boot_progress(-150);
+			puts("** Bad FIT image format\n");
 			return 1;
 		}
-		show_boot_progress (151);
-		fit_print_contents (fit_hdr);
+		show_boot_progress(151);
+		fit_print_contents(fit_hdr);
 	}
 #endif
 
@@ -851,7 +913,8 @@ static int nand_load_image(cmd_tbl_t *cmdtp, nand_info_t *nand,
 	load_addr = addr;
 
 	/* Check if we should attempt an auto-start */
-	if (((ep = getenv("autostart")) != NULL) && (strcmp(ep, "yes") == 0)) {
+	ep = getenv("autostart");
+	if ((ep != NULL) && (strcmp(ep, "yes") == 0)) {
 		char *local_args[2];
 		extern int do_bootm(cmd_tbl_t *, int, int, char *[]);
 
@@ -866,7 +929,7 @@ static int nand_load_image(cmd_tbl_t *cmdtp, nand_info_t *nand,
 	return 0;
 }
 
-int do_nandboot(cmd_tbl_t * cmdtp, int flag, int argc, char *argv[])
+int do_nandboot(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 {
 	char *boot_device = NULL;
 	int idx;
@@ -935,7 +998,8 @@ usage:
 
 	idx = simple_strtoul(boot_device, NULL, 16);
 
-	if (idx < 0 || idx >= CONFIG_SYS_MAX_NAND_DEVICE || !nand_info[idx].name) {
+	if (idx < 0 || idx >= CONFIG_SYS_MAX_NAND_DEVICE
+	    || !nand_info[idx].name) {
 		printf("\n** Device %d not available\n", idx);
 		show_boot_progress(-55);
 		return 1;

@@ -30,6 +30,10 @@
 #include "sys-hi3520d.c"
 #endif/*CONFIG_NET_HISFV300_HI3520D*/
 
+#ifdef CONFIG_NET_HISFV300_HI3518EV200
+#include "sys-hi3518ev200.c"
+#endif
+
 #ifndef INNER_PHY
 void revise_led_shine(void)
 {
@@ -60,9 +64,10 @@ void hieth_sys_init(void)
 {
 	hieth_funsel_config();
 	hieth_sys_allstop();
-	hieth_phy_reset();
 	hieth_clk_ena();
+	hieth_reset(1);
 	hieth_reset(0);
+	hieth_phy_reset();
 	revise_led_shine();
 }
 

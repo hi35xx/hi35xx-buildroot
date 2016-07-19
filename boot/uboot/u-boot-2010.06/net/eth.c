@@ -507,7 +507,8 @@ char *eth_get_name (void)
 
 #else /* !CONFIG_NET_MULTI */
 
-#warning Ethernet driver is deprecated.  Please update to use CONFIG_NET_MULTI
+/* #warning Ethernet driver is deprecated.
+   Please update to use CONFIG_NET_MULTI */
 
 extern int at91rm9200_miiphy_initialize(bd_t *bis);
 extern int mcf52x2_miiphy_initialize(bd_t *bis);

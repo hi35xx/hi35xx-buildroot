@@ -38,6 +38,7 @@
 #define MCI_DSCADDR		0x94
 #define MCI_BUFADDR		0x98
 #define MCI_FIFO_START		0x100
+#define MMC_UHS_REG_EXT         0x108
 
 /* MCI_BMOD(0x80) details */
 #define BMOD_SWR	(1<<0)

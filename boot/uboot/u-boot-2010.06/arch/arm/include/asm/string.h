@@ -1,6 +1,8 @@
 #ifndef __ASM_ARM_STRING_H
 #define __ASM_ARM_STRING_H
 
+#include <config.h>
+
 /*
  * We don't do inline string functions, since the
  * optimised inline asm versions are not small.
@@ -12,7 +14,11 @@ extern char * strrchr(const char * s, int c);
 #undef __HAVE_ARCH_STRCHR
 extern char * strchr(const char * s, int c);
 
+#ifdef CONFIG_USE_ARCH_MEMCPY
+#define __HAVE_ARCH_MEMCPY
+#else
 #undef __HAVE_ARCH_MEMCPY
+#endif
 extern void * memcpy(void *, const void *, __kernel_size_t);
 
 #undef __HAVE_ARCH_MEMMOVE
@@ -22,7 +28,12 @@ extern void * memmove(void *, const void *, __kernel_size_t);
 extern void * memchr(const void *, int, __kernel_size_t);
 
 #undef __HAVE_ARCH_MEMZERO
+
+#ifdef CONFIG_USE_ARCH_MEMSET
+#define __HAVE_ARCH_MEMSET
+#else
 #undef __HAVE_ARCH_MEMSET
+#endif
 extern void * memset(void *, int, __kernel_size_t);
 
 #if 0

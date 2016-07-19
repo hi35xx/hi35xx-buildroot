@@ -2802,9 +2802,9 @@ static char *lookup_param(char *src)
 	if (!src)
 		return NULL;
 
-		p = getenv(src);
-		if (!p)
-			p = get_local_var(src);
+	p = getenv(src);
+	if (!p)
+		p = get_local_var(src);
 
 	return p;
 }

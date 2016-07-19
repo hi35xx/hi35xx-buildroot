@@ -18,7 +18,6 @@
 
 #define GD_SPI_CMD_SR_QE   (0x2)
 #define GD_SPI_CMD_SR_DISQE   (0x0)
-#define SPI_CMD_WRSR2      (0x31)
 #define SPI_CMD_WRSR1      (0x1)
 
 /*
@@ -30,6 +29,7 @@ static int spi_gd25qxxx_qe_enable(struct hisfc_spi *spi)
 	unsigned int regval = 0;
 	unsigned int qe_op1 = 0;
 	unsigned int qe_op2 = 0;
+
 	if (hisfc350_is_quad(spi)) {
 		qe_op1 = SPI_CMD_SR_QE;
 		qe_op2 = GD_SPI_CMD_SR_QE;
@@ -59,7 +59,7 @@ static int spi_gd25qxxx_qe_enable(struct hisfc_spi *spi)
 	spi->driver->wait_ready(spi);
 
 	/* Second, we enable QE for 8 pin gd flash. This will not affect
-	   16 gd spi, if the QE bit has been set 1.
+	   16pin gd spi, if the QE bit has been set 1.
 	 */
 	spi->driver->write_enable(spi);
 
@@ -99,3 +99,4 @@ static int spi_gd25qxxx_qe_enable(struct hisfc_spi *spi)
 	}
 	return 0;
 }
+

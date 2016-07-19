@@ -224,6 +224,9 @@ int	print_buffer (ulong addr, void* data, uint width, uint count, uint linelen);
 /* common/main.c */
 void	main_loop	(void);
 int	run_command	(const char *cmd, int flag);
+#ifdef CONFIG_HI3536
+int	run_command_slave(const char *cmd, int flag);
+#endif
 int	readline	(const char *const prompt);
 int	readline_into_buffer	(const char *const prompt, char * buffer);
 int	parse_line (char *, char *[]);
@@ -648,6 +651,8 @@ void	panic(const char *fmt, ...)
 		__attribute__ ((format (__printf__, 1, 2)));
 int	sprintf(char * buf, const char *fmt, ...)
 		__attribute__ ((format (__printf__, 2, 3)));
+int snprintf(char *str, size_t size, const char *format, ...);
+
 int	vsprintf(char *buf, const char *fmt, va_list args);
 char *ultohstr(unsigned long long size);
 
@@ -736,6 +741,7 @@ int cpu_release(int nr, int argc, char *argv[]);
 #define BOOT_MEDIA_NAND           (2)
 #define BOOT_MEDIA_SPIFLASH       (3)
 #define BOOT_MEDIA_EMMC           (4)
+
 /* get uboot start media. */
 int get_boot_media(void);
 unsigned int get_ddr_size(void);

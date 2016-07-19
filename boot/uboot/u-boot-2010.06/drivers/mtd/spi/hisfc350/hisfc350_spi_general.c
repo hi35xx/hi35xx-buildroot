@@ -1,6 +1,6 @@
 /*****************************************************************************
- *    Copyright (c) 2009-2011 by Hisilicon
- *    All rights reserved.
+*    Copyright (c) 2009-2014 by Hisilicon.
+*    All rights reserved.
  *****************************************************************************/
 
 #include <common.h>
@@ -12,52 +12,80 @@
 
 #include "../spi_ids.h"
 #include "hisfc350.h"
+
 #define DEBUG_SPI 0
-#define QE_CORRECT_VALUE  (0x02)
+#define DEBUG_GET_SR 0
+#define DEBUG_SPI_QE 0
+
+/*****************************************************************************/
+u_char spi_general_get_flash_register(struct hisfc_spi *spi, u_char cmd)
+{
+	unsigned char status;
+	unsigned int regval;
+	struct hisfc_host *host = (struct hisfc_host *)spi->host;
+
+	if (DEBUG_GET_SR)
+		printf("* Start get flash Register %#x.\n", cmd);
+
+	hisfc_write(host, HISFC350_CMD_INS, cmd);
+	if (DEBUG_GET_SR)
+		printf("  Set INS[%#x]%#x\n", HISFC350_CMD_INS, cmd);
+
+	regval = HISFC350_CMD_CONFIG_DATA_CNT(SPI_NOR_SR_LEN)
+		| HISFC350_CMD_CONFIG_RW_READ
+		| HISFC350_CMD_CONFIG_DATA_EN
+		| HISFC350_CMD_CONFIG_SEL_CS(spi->chipselect)
+		| HISFC350_CMD_CONFIG_START;
+
+	hisfc_write(host, HISFC350_CMD_CONFIG, regval);
+	if (DEBUG_GET_SR)
+		printf("  Set CONFIG[%#x]%#x\n", HISFC350_CMD_CONFIG, regval);
+
+	HISFC350_CMD_WAIT_CPU_FINISH(host);
+
+	status = hisfc_read(host, HISFC350_CMD_DATABUF0);
+	if (DEBUG_GET_SR)
+		printf("* Get flash Register %#x, val[%#x]\n", cmd, status);
+
+	return status;
+}
 
 /*****************************************************************************/
 static int spi_general_wait_ready(struct hisfc_spi *spi)
 {
-	unsigned long regval;
+	unsigned long status;
 	unsigned long deadline = 0;
-	struct hisfc_host *host = (struct hisfc_host *)spi->host;
 
 	do {
-		hisfc_write(host, HISFC350_CMD_INS, SPI_CMD_RDSR);
-		hisfc_write(host, HISFC350_CMD_CONFIG,
-			HISFC350_CMD_CONFIG_SEL_CS(spi->chipselect)
-			| HISFC350_CMD_CONFIG_DATA_CNT(1)
-			| HISFC350_CMD_CONFIG_DATA_EN
-			| HISFC350_CMD_CONFIG_RW_READ
-			| HISFC350_CMD_CONFIG_START);
-
-		HISFC350_CMD_WAIT_CPU_FINISH(host);
-		regval = hisfc_read(host, HISFC350_CMD_DATABUF0);
-		if (!(regval & SPI_CMD_SR_WIP))
+		status = spi_general_get_flash_register(spi, SPI_CMD_RDSR);
+		if (!(status & SPI_CMD_SR_WIP))
 			return 0;
+
 		udelay(1);
+
 	} while (deadline++ < (40 << 20));
 
 	printf("Wait spi flash ready timeout.\n");
 
 	return 1;
 }
+
 /*****************************************************************************/
 static int spi_general_write_enable(struct hisfc_spi *spi)
 {
-	unsigned int regval = 0;
 	struct hisfc_host *host = (struct hisfc_host *)spi->host;
 
 	hisfc_write(host, HISFC350_CMD_INS, SPI_CMD_WREN);
 
-	regval = HISFC350_CMD_CONFIG_SEL_CS(spi->chipselect)
-		| HISFC350_CMD_CONFIG_START;
-	hisfc_write(host, HISFC350_CMD_CONFIG, regval);
+	hisfc_write(host, HISFC350_CMD_CONFIG,
+			HISFC350_CMD_CONFIG_SEL_CS(spi->chipselect)
+			| HISFC350_CMD_CONFIG_START);
 
 	HISFC350_CMD_WAIT_CPU_FINISH(host);
 
 	return 0;
 }
+
 /*****************************************************************************/
 /*
   enable 4byte adress for SPI which memory more than 16M
@@ -75,8 +103,8 @@ static int spi_general_entry_4addr(struct hisfc_spi *spi, int enable)
 		hisfc_write(host, HISFC350_CMD_INS, SPI_CMD_EX4B);
 
 	hisfc_write(host, HISFC350_CMD_CONFIG,
-		HISFC350_CMD_CONFIG_SEL_CS(spi->chipselect)
-		| HISFC350_CMD_CONFIG_START);
+			HISFC350_CMD_CONFIG_SEL_CS(spi->chipselect)
+			| HISFC350_CMD_CONFIG_START);
 
 	HISFC350_CMD_WAIT_CPU_FINISH(host);
 
@@ -84,6 +112,7 @@ static int spi_general_entry_4addr(struct hisfc_spi *spi, int enable)
 
 	return 0;
 }
+
 /*****************************************************************************/
 /*
   configure prepared for dma or bus read or write mode
@@ -118,72 +147,91 @@ static int spi_general_bus_prepare(struct hisfc_spi *spi, int op)
 
 	return 0;
 }
+
 /*****************************************************************************/
 /*
   judge whether SPI support QUAD read write or not
 */
 static int hisfc350_is_quad(struct hisfc_spi *spi)
 {
+	if (DEBUG_SPI_QE)
+		printf("SPI read if[%d] write if[%d]\n",
+			spi->read->iftype, spi->write->iftype);
+
 	if (spi->write->iftype == 5 || spi->write->iftype == 6
 		|| spi->write->iftype == 7 || spi->read->iftype == 5
-		|| spi->read->iftype == 6 || spi->read->iftype == 7) {
-		if (DEBUG_SPI)
-			printf("4r4w SPI...............\n");
+		|| spi->read->iftype == 6 || spi->read->iftype == 7)
 		return 1;
-	}
-	if (DEBUG_SPI)
-		printf("2r2w or 1r1w SPI...............\n");
+
 	return 0;
 }
 
+/*****************************************************************************/
 /*
-  enable QE bit if QUAD read write is supported by SPI
+   enable QE bit if QUAD read write is supported by SPI
 */
 static int spi_general_qe_enable(struct hisfc_spi *spi)
 {
+	unsigned char status, config, op;
+	unsigned int reg;
+	const char *str[] = {"Disable", "Enable"};
 	struct hisfc_host *host = (struct hisfc_host *)spi->host;
-	unsigned int regval = 0;
-	unsigned int qe_op = 0;
-	if (hisfc350_is_quad(spi))
-		qe_op = SPI_CMD_SR_QE;
-	else
-		qe_op = SPI_CMD_SR_XQE;
+
+	op = hisfc350_is_quad(spi);
+
+	if (DEBUG_SPI_QE)
+		printf("* Start SPI Nor %s Quad.\n", str[op]);
+
+	config = spi_general_get_flash_register(spi, SPI_CMD_RDCR);
+	if (DEBUG_SPI_QE)
+		printf("  Read config %#x, val[%#x]\n", SPI_CMD_RDCR, config);
+	if (((config & SPI_NOR_CR_QE_MASK) >> SPI_NOR_CR_QE_SHIFT) == op) {
+		if (DEBUG_SPI_QE)
+			printf("* Quad was %sd!\n", str[op]);
+		return op;
+	}
+
+	status = spi_general_get_flash_register(spi, SPI_CMD_RDSR);
+	reg = (config << SPI_NOR_CR_SHIFT) | status;
+	if (DEBUG_SPI_QE)
+		printf("  Read CR/SR[%#x]\n", reg);
 
 	spi->driver->write_enable(spi);
 
-	hisfc_write(host, HISFC350_CMD_INS, SPI_CMD_WRSR);
-	hisfc_write(host, HISFC350_CMD_DATABUF0, qe_op);
+	if (op)
+		reg |= (SPI_NOR_CR_QE_MASK << SPI_NOR_CR_SHIFT);
+	else
+		reg &= ~(SPI_NOR_CR_QE_MASK << SPI_NOR_CR_SHIFT);
+	hisfc_write(host, HISFC350_CMD_DATABUF0, reg);
+	if (DEBUG_SPI_QE)
+		printf("  Set DATABUF0[%#x]%#x\n", HISFC350_CMD_DATABUF0, reg);
 
-	hisfc_write(host, HISFC350_CMD_CONFIG,
-			HISFC350_CMD_CONFIG_MEM_IF_TYPE(spi->
-				write->iftype)
-			| HISFC350_CMD_CONFIG_DATA_CNT(2)
-			| HISFC350_CMD_CONFIG_DATA_EN
-			| HISFC350_CMD_CONFIG_DUMMY_CNT(spi->
-				write->dummy)
-			| HISFC350_CMD_CONFIG_SEL_CS(spi->chipselect)
-			| HISFC350_CMD_CONFIG_START);
+	hisfc_write(host, HISFC350_CMD_INS, SPI_CMD_WRSR);
+	if (DEBUG_SPI_QE)
+		printf("  Set INS[%#x]%#x\n", HISFC350_CMD_INS, SPI_CMD_WRSR);
+
+	reg = HISFC350_CMD_CONFIG_DATA_CNT(SPI_NOR_SR_LEN + SPI_NOR_CR_LEN)
+		| HISFC350_CMD_CONFIG_DATA_EN
+		| HISFC350_CMD_CONFIG_SEL_CS(spi->chipselect)
+		| HISFC350_CMD_CONFIG_START;
+	hisfc_write(host, HISFC350_CMD_CONFIG, reg);
+	if (DEBUG_SPI_QE)
+		printf("  Set CONFIG[%#x]%#x\n", HISFC350_CMD_CONFIG, reg);
 
 	HISFC350_CMD_WAIT_CPU_FINISH(host);
 
-	spi->driver->wait_ready(spi);
+	if (DEBUG_SPI_QE) {
+		spi->driver->wait_ready(spi);
 
-	if (DEBUG_SPI) {
-		hisfc_write(host, HISFC350_CMD_INS, SPI_CMD_RDSR2);
-
-		hisfc_write(host, HISFC350_CMD_CONFIG,
-				HISFC350_CMD_CONFIG_SEL_CS(spi->chipselect)
-				| HISFC350_CMD_CONFIG_DATA_CNT(2)
-				| HISFC350_CMD_CONFIG_DATA_EN
-				| HISFC350_CMD_CONFIG_RW_READ
-				| HISFC350_CMD_CONFIG_START);
-		HISFC350_CMD_WAIT_CPU_FINISH(host);
-		regval = hisfc_read(host, HISFC350_CMD_DATABUF0);
-		printf("QEbit = 202? : 0x%x\n", regval);
-		if ((regval & QE_CORRECT_VALUE))
-			printf("QE bit enable success\n");
+		config = spi_general_get_flash_register(spi, SPI_CMD_RDCR);
+		if (((config & SPI_NOR_CR_QE_MASK) >> SPI_NOR_CR_QE_SHIFT)
+				== op)
+			printf("* SPI Quad %s succeed. [%#x]\n", str[op],
+				config);
 		else
-			printf("QE bit enable failed\n");
+			DBG_MSG("%s Quad failed! [%#x]\n", str[op], config);
 	}
-	return 0;
+
+	return op;
 }
+

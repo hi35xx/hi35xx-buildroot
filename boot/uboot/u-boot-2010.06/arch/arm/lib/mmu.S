@@ -1,4 +1,5 @@
 #include <asm/sizes.h>
+#include <config.h>
 
 #define P15_CTRL_RR	(1<<14)			/* cache replace method bit */
 #define P15_CTRL_IC	(1<<12)			/* I-cache enable bit */
@@ -111,6 +112,7 @@ mmu_startup:
 	mrc	p15, 0, r3, c1, c0, 0	/* read control reg */
 	bic	r3, r3, #P15_CTRL_RR	/* cache replace method */
 	orr	r3, r3, #P15_CTRL_MMU	/* mmu enable bit */
+	orr     r3, r3, #P15_CTRL_DC    /* Dcache enable bit */
 
 	mov	r2, #0
 	mov	r1, #-1
@@ -119,6 +121,9 @@ mmu_startup:
 	mcr	p15, 0, r1, c3, c0, 0	/* write domain access control reg */
 	mcr	p15, 0, r3, c1, c0, 0	/* enable mmu */
 	mcr	p15, 0, r2, c8, c7, 0	/* flush TLBs */
+#if !defined(CONFIG_HI3518EV200) && !defined(CONFIG_HI3518)
+	isb
+#endif
 
 	mov	pc,lr
 
@@ -132,6 +137,10 @@ mmu_turnoff:
 	bic	r3, r3, #P15_CTRL_DC	/* disable d-cache bit */
 	bic	r3, r3, #P15_CTRL_MMU	/* disable mmu bit */
 	mcr	p15, 0, r3, c1, c0, 0	/* load control register */
+
+#if !defined(CONFIG_HI3518EV200) && !defined(CONFIG_HI3518)
+	isb
+#endif
 
 	mov	pc,lr
 
@@ -160,7 +169,9 @@ dcache_stop_noflush:
 	mcr	p15, 0, r0, c1, c0, 0
 
 	mov	pc,lr
-
+#if !defined(CONFIG_HI3516A) \
+	&& !defined(CONFIG_HI3536) \
+	&& !defined(CONFIG_HI3521A)
 .global dcache_flush_all
 dcache_flush_all:
 	mov	r0, #0			/* set up for MCR */
@@ -220,4 +231,4 @@ line_lp:
     	blt     way_lp			/* if not, continue the way_loop */
 
 	mov	pc,lr
-
+#endif

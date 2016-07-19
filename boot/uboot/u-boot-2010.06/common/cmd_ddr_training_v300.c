@@ -15,6 +15,12 @@ extern char hi3535_ddr_training_data_start[];
 extern char hi3535_ddr_training_data_end[];
 #endif /* CONFIG_DDR_TRAINING_HI3535 */
 
+#ifdef CONFIG_DDR_TRAINING_HI3516A
+extern int  hi3516a_ddr_training_result(unsigned int TRAINING_ADDR);
+extern char hi3516a_ddr_training_data_start[];
+extern char hi3516a_ddr_training_data_end[];
+#endif /* CONFIG_DDR_TRAINING_HI3516A */
+
 #define DDR_TRAINING_ENV                       "ddrtr"
 
 static struct ddrtr_result_t ddrtr_result;
@@ -30,6 +36,11 @@ static int ddr_training_result(unsigned int TRAINING_ADDR)
 	if (chipid == _HI3535_V100)
 		return hi3535_ddr_training_result(TRAINING_ADDR);
 #endif
+
+#ifdef CONFIG_DDR_TRAINING_HI3516A
+	if (chipid == _HI3516A_V100)
+		return hi3516a_ddr_training_result(TRAINING_ADDR);
+#endif
 	printf("DDR training is unsupport.\n");
 
 	return -1;
@@ -42,9 +53,9 @@ static void *get_ddrtr_entry(void)
 	char *dst_ptr;
 	unsigned int length = 0;
 	long long chipid = get_chipid();
+#ifdef CONFIG_DDR_TRAINING_HI3535
 	int reg;
 
-#ifdef CONFIG_DDR_TRAINING_HI3535
 	if (chipid == _HI3535_V100) {
 
 		/* reset slave cpu, make cpu stop */
@@ -55,6 +66,15 @@ static void *get_ddrtr_entry(void)
 		src_ptr = hi3535_ddr_training_data_start;
 		dst_ptr = (char *)(STACK_TRAINING);
 		length  = hi3535_ddr_training_data_end - src_ptr;
+	}
+#endif
+
+#ifdef CONFIG_DDR_TRAINING_HI3516A
+	if (chipid == _HI3516A_V100) {
+
+		src_ptr = hi3516a_ddr_training_data_start;
+		dst_ptr = (char *)(STACK_TRAINING);
+		length  = hi3516a_ddr_training_data_end - src_ptr;
 	}
 #endif
 
@@ -121,6 +141,8 @@ int ddr_training(void)
 	struct ddrtr_result_t *result;
 	struct ddrtr_param_t param;
 
+	icache_disable();
+
 	start = get_ddr_free(&length, 0x100000);
 	param.cmd = DDRTR_PARAM_TRAINING;
 	param.train.start = start;
@@ -137,6 +159,9 @@ int ddr_training(void)
 	asm("mcr p15, 0, r0, c7, c10, 4");
 
 	result = entry(&param);
+
+	icache_enable();
+
 	if (!result) {
 		printf("## DDR training fail, reset system.\n");
 		reset_cpu(0);

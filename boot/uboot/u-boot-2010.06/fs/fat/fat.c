@@ -200,7 +200,7 @@ get_fatent(fsdata *mydata, __u32 entry)
 
 	/* Read a new block of FAT entries into the cache. */
 	if (bufnum != mydata->fatbufnum) {
-		int getsize = FATBUFSIZE/FS_BLOCK_SIZE;
+		__u32 getsize = FATBUFSIZE/FS_BLOCK_SIZE;
 		__u8 *bufptr = mydata->fatbuf;
 		__u32 fatlength = mydata->fatlength;
 		__u32 startblock = bufnum * FATBUFBLOCKS;
@@ -270,9 +270,9 @@ get_fatent(fsdata *mydata, __u32 entry)
 static int
 get_cluster(fsdata *mydata, __u32 clustnum, __u8 *buffer, unsigned long size)
 {
-	int idx = 0;
+	__u32 idx = 0;
 	__u32 startsect;
-	int blknum = 0;
+	__u32 blknum = 0;
 
 	if (clustnum > 0) {
 		startsect = mydata->data_begin + clustnum*mydata->clust_size;
@@ -722,7 +722,8 @@ do_fat_read (const char *filename, void *buffer, unsigned long maxsize,
     dir_entry *dentptr;
     __u16 prevcksum = 0xffff;
     char *subname = "";
-    int rootdir_size, cursect;
+    int rootdir_size = 0;
+    __u32 cursect;
     int idx, isdir = 0;
     int files = 0, dirs = 0;
     long ret = 0;

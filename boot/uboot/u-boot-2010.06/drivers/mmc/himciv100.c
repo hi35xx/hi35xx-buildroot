@@ -18,6 +18,10 @@
 #include "himciv100_3518.c"
 #endif
 /*************************************************************************/
+#ifdef CONFIG_HIMCI_HI3516a
+#include "himciv100_3516a.c"
+#endif
+/*************************************************************************/
 #ifdef CONFIG_HIMCI_GODNET
 #include "himciv100_godnet.c"
 #endif
@@ -27,6 +31,21 @@
 #endif
 /*************************************************************************/
 #define DRIVER_NAME "HIMCI_V100"
+
+int select_boot_part(struct mmc *mmc, int boot_part)
+{
+	return 0;
+}
+
+void emmc_bootmode_read(void *ptr, unsigned int size)
+{
+	return;
+}
+
+int print_mmc_reg(int dev_num, int show_ext_csd)
+{
+	return 0;
+}
 
 #if HI_MCI_DEBUG
 int debug_type = HIMCI_DEBUG_TYPE;
@@ -64,13 +83,6 @@ static void hi_mci_sys_reset(struct himci_host *host)
 
 	hi_mci_ctr_reset();
 
-	tmp_reg = himci_readl(host->base + MCI_BMOD);
-	tmp_reg |= BMOD_SWR | BURST_8;
-	himci_writel(tmp_reg, host->base + MCI_BMOD);
-
-	tmp_reg = himci_readl(host->base + MCI_CTRL);
-	tmp_reg |=  CTRL_RESET | FIFO_RESET | DMA_RESET;
-	himci_writel(tmp_reg, host->base + MCI_CTRL);
 }
 
 static void hi_mci_sys_undo_reset(struct himci_host *host)
@@ -184,8 +196,17 @@ static void hi_mci_init_card(struct himci_host *host)
 	HIMCI_ASSERT(host);
 
 	hi_mci_sys_reset(host);
-
+	udelay(100);
 	hi_mci_sys_undo_reset(host);
+	udelay(100);
+
+	tmp_reg = himci_readl(host->base + MCI_BMOD);
+	tmp_reg |= BMOD_SWR | BURST_8;
+	himci_writel(tmp_reg, host->base + MCI_BMOD);
+
+	tmp_reg = himci_readl(host->base + MCI_CTRL);
+	tmp_reg |=  CTRL_RESET | FIFO_RESET | DMA_RESET;
+	himci_writel(tmp_reg, host->base + MCI_CTRL);
 
 	/* card power off and power on */
 	hi_mci_ctrl_power(host, POWER_OFF);
@@ -218,6 +239,8 @@ static void hi_mci_init_card(struct himci_host *host)
 
 	/* set FIFO param */
 	himci_writel(BURST_SIZE | RX_WMARK | TX_WMARK, host->base + MCI_FIFOTH);
+
+	himci_writel(0x1000000, host->base + MMC_UHS_REG_EXT);
 }
 
 static void hi_mci_idma_start(struct himci_host *host, struct mmc_data *data)
