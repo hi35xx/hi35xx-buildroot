@@ -1,0 +1,46 @@
+#
+# hisilicon flash memory controller SPI nor device driver version 100
+# drivers/mtd/devices/hifmc100_spi_nor/Kconfig
+# add by hisilicon 2014.10.9
+#
+
+menuconfig HIFMC100_SPI_NOR
+	tristate "Hisilicon Flash Memory Controller v100 SPI Nor flash Support"
+	depends on HIFMC
+	depends on HIFMC_SPI_NOR
+	default y if ARCH_HI3518EV200
+	help
+	  Hisilicon Flash Memory Controller device version 100 driver Support
+	  Hisilicon Flash Memory Controller version 100 is called hifmc100 for
+	  short. The controller driver support registers and DMA transfers
+	  while reading or writing the SPI nor flash.
+
+if HIFMC100_SPI_NOR
+
+config SPI_NOR_MAX_CHIP_NUM
+	int "Support max number of SPI Nor flash chip (1, 2)"
+	default 1 if ARCH_HI3518EV200
+	help
+	  flash memory controller v100 device only support 1 or 2 SPI nor flash
+	  chip, your should not config other value.
+
+config SPI_BLOCK_PROTECT
+	bool "Spi Nor Device BP(Block Protect) Support"
+	default y if ARCH_HI3518EV200
+	help
+	  Hifmcv100 supports BP(Block Protect) feature to preestablish a series
+	  area to avoid writing and erasing, except to reading. With this macro
+	  definition we can get the BP info which was setted before. The
+	  BOTTOM/TOP bit is setted to BOTTOM, it means the lock area starts
+	  from 0 address.
+
+config CLOSE_SPI_8PIN_4IO
+	bool "Close SPI device Quad SPI mode for some 8PIN chip"
+	default y if ARCH_HI3518EV200
+	help
+	  Hifmcv100 support Quad SPI mode and Quad&addr SPI mode.
+	  But some 8PIN chip does not support this mode when HOLD/IO3 PIN was used
+	  by reset operation. Usually, your should not config this option.
+
+endif # End of HIFMC100_SPI_NOR
+

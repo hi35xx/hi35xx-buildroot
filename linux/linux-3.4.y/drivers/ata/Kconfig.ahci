@@ -1,0 +1,101 @@
+#
+# hisilicon sata ahci device configuration
+#
+
+menuconfig HI_SATA
+	bool "hisilicon sata device support"
+	depends on ARCH_HI3535
+	default y if ARCH_HI3535
+	select ATA
+	select ATA_VERBOSE_ERROR
+	select SATA_PMP
+	help
+	  This selects the hisilicon sata device.
+	  We have two logic IP for our chip.
+	  First is SATA 2.0 supporting 1.5G/3G.
+	  Second is SATA 3.0 supporting 1.5G/3G/6G.
+
+if HI_SATA
+
+config HI_SATA_V100
+	bool "hisilicon sata device V100"
+	default n
+	help
+	  Use hisilicon sata v100 logic set y here.
+	  set n for HI_SATA_V200.
+	  hisilicon sata v100 logic is sata 2.0.
+	  support 1.5G/3G mode.
+
+config HI_SATA_V200
+	bool "hisilicon sata device V200"
+	depends on ARCH_HI3535
+	default y if ARCH_HI3535
+	help
+	  Use hisilicon sata v200 logic set y here.
+	  set n for HI_SATA_V100.
+	  hisilicon sata v200 logic is sata 3.0.
+	  support 1.5G/3G/6G mode.
+
+config HI_SATA_IOBASE
+	hex "hi sata IO address"
+	default "0x12010000" if ARCH_HI3535
+
+config HI_SATA_IOSIZE
+	hex "hi sata IO size"
+	default "0x00010000"
+	help
+	  default is 0x10000.
+
+config HI_SATA_IRQNUM
+	int "hi sata irq number"
+	default "63" if ARCH_HI3535
+
+config HI_SATA_PORTS
+	int "hi sata port number"
+	range 1 2
+	default "2" if ARCH_HI3535
+	help
+	  Hi3535 have two SATA ports and one eSATA port.
+
+config HI_SATA_MODE
+	int "hi sata interworking speed mode(1.5G:0/3G:1/6G:2)"
+	range 0 2
+	default "1" if ARCH_HI3535
+
+config PX_TX_AMPLITUDE
+	hex "hi sata px_tx_amplitude"
+	default 0x00376eb8
+	help
+	  This value is about the signal quality.
+	  If there are some HDs can not be recognized,
+	  try to change this value.
+
+config PX_TX_PREEMPH
+	hex "hi sata px_tx_preemph"
+	default 0x0000a280
+	help
+	  This value is about the signal quality.
+	  If there are some HDs can not be recognized,
+	  try to change this value.
+
+config HI_SATA_FBS
+	int "hi sata FIS-Based switching"
+	default 1
+	range 0 1
+	help
+	  Hisatav200 supports FBS.
+	  FBS is FIS-Based switching.
+	  Choose y if you want to use it.
+
+config HI_SATA_NCQ
+	int "hi sata Native Command Queuing"
+	default 1
+	range 0 1
+	help
+	  Hisatav200 supports NCQ.
+	  NCQ is Native Command Queuing.
+	  Choose y if you want to use it.
+
+endif # HI_SATA
+
+#vim: set ts=8 sw=8 tw=78:

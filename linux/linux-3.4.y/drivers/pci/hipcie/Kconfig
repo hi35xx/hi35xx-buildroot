@@ -1,0 +1,95 @@
+menuconfig HIPCIE
+	bool "Hisilicon PCI Express support"
+	depends on PCI && ARCH_HI3535
+	default y if PCI
+	default n if ! PCI
+	help
+	Hisilicon PCI Express support
+	Choose this selection to support PCI Express uses.
+
+if HIPCIE
+
+menu "PCI Express configs"
+
+config PCIE0_SEL
+        int "PCI Express controller0 sel"
+        range 0 1
+        default "0" if ! PCI
+        default "1" if PCI
+        depends on PCI
+        help
+        PCI Express controller0 sel.
+        Set 0 to disable controller 0,
+        set 1 to enable controller 0 to work at x1 mode.
+        PCIe controller0 is available for all hi35xx chips
+
+config PCIE0_DEVICES_MEM_SIZE
+        hex "Total memory size of PCI Express system devices"
+        range 0x0 0x7800000 if ARCH_HI3535
+        default "0x7800000" if ARCH_HI3535
+        depends on PCI
+        help
+        All memory size required by all devices in pci subsystem.
+        Hisilicon PCI Express controller provide up to 128M memory
+        and io size for device.
+        Here we set memory size up to 120M, means that io size has at least 8M
+        You can change this depend on you device connected
+        to Hisilicon PCI Express controller.
+
+config PCIE0_DEVICES_CONFIG_SIZE
+        hex "Total configuration header size of PCI Express system devices"
+        range 0x0 0x10000000   if ARCH_HI3535
+        default 0x800000       if ARCH_HI3535
+        depends on PCI
+        help
+        All configuration size required by devices connnect to
+        Hisilicon PCI Express controller.
+        NOTE: This will alloc memory from kernel,
+        enlarge this will require the same memory.
+        The default value is enough for most applications.
+
+if GODNET
+
+config PCIE1_SEL
+	int "PCI Express controller1 sel"
+	range 0 1
+	default "0"
+	depends on PCI
+	help
+	PCI Express controller1 sel.
+	Set 0 to disable controller 1,
+	set 1 to enable controller 1 to work at x1 mode.
+	Currently, this setting is only available for those chips that support 2 PCIE controllers,
+	Other chips will not support PCIe controller 1.
+
+config PCIE1_DEVICES_MEM_SIZE
+	hex "Total memory size of PCI Express system devices"
+	range 0x0 0x7800000 if PCIE1_SEL
+	default "0x7800000" if PCIE1_SEL
+	depends on PCI && PCIE1_SEL
+	help
+	All memory size required by all devices in pci subsystem.
+	Hisilicon PCI Express controller provide up to 128M memory
+	and io size for device.
+	Here we set memory size up to 120M, means that io size has at least 8M
+	You can change this depend on you device connected
+	to Hisilicon PCI Express controller.
+
+config PCIE1_DEVICES_CONFIG_SIZE
+	hex "Total configuration header size of PCI Express system devices"
+	range 0x0 0x10000000   if PCIE1_SEL
+	default 0x800000       if PCIE1_SEL
+	depends on PCI && PCIE1_SEL
+	help
+	All configuration size required by devices connnect to
+	Hisilicon PCI Express controller.
+	NOTE: This will alloc memory from kernel,
+	enlarge this will require the same memory.
+	The default value is enough for most applications.
+
+endif
+
+endmenu
+
+endif
+

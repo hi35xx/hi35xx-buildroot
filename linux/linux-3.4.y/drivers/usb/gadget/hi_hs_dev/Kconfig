@@ -1,0 +1,49 @@
+#
+# hisilicon usb2 device controller version 3.00a
+#
+
+menuconfig HI_HS_DEVICE
+	tristate "hisilicon highspeed device controller version 3.00a driver"
+	default n
+	select USB_GADGET_DUALSPEED
+	select USB_GADGET_SELECTED
+	help
+	  hisilicon highspeed device controller version 3.00a.
+	  The USB 2.0 device controller supports high-speed (480 Mbit/s)
+	  and full-speed (12 Mbit/s) data transfer modes. It also supports
+	  host/device intelligent switching. 
+
+if HI_HS_DEVICE
+
+config HIUSBUDC_REG_BASE_ADDRESS
+	hex "hisilicon highspeed device control register base address"
+	default "0xf98c0000" if ARCH_S40
+	default "0x60180000" if ARCH_GODBOX
+	default "0x10080000" if ARCH_HI3516A
+	default "0x10080000" if ARCH_HI3501
+
+config HIUSBUDC_REG_BASE_ADDRESS_LEN
+	hex "hisilicon highspeed device control register size length"
+	default "0x40000" if ARCH_S40
+	default "0x40000" if ARCH_GODBOX
+	default "0x40000" if ARCH_HI3516A
+	default "0x40000" if ARCH_HI3501
+
+config HIUSBUDC_IRQ_NUMBER
+	int "hisilicon highspeed device interrupt number"
+	default "100" if ARCH_S40
+	default "103" if ARCH_GODBOX
+	default "55" if ARCH_HI3516A
+	default "12" if ARCH_HI3501
+
+config HIUSBUDC_DMA_BUF_LENGTH
+	int "hisilicon highspeed device dma buffer length"
+	default "512" if ARCH_S40
+	default "16384" if ARCH_GODBOX
+	default "16384" if ARCH_HI3516A
+	default "16384" if ARCH_HI3501
+config HIUSBUDC_PHY_UTMI_BITWIDTH
+	int "hisilicon highspeed device phy interface utmi bitwidth"
+	default "16"
+endif # HI_HS_DEVICE
+

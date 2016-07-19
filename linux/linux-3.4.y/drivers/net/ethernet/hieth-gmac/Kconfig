@@ -1,0 +1,148 @@
+#
+# higmac family network device configuration
+#
+
+menuconfig HIETH_GMAC
+	tristate "hieth gmac family network device support"
+	depends on ARCH_HI3516A
+	default y
+	help
+	  This selects the hieth gmac family network device. The gigabit
+	  switch fabric (GSF) receives and transmits data over two Ethernet
+	  ports at 10/100/1000 Mbit/s in full-duplex or half-duplex mode.
+	  The Ethernet port exchanges data with the CPU port, and supports
+	  the energy efficient Ethernet (EEE) and wake on LAN (WoL) functions.
+
+if HIETH_GMAC
+
+config HIETH_TAG
+	hex "hieth-gmac misc tag"
+	default "0x544100ff"
+	help
+	  This is graceful set phy interface/mdio/phyaddr in kernel.
+
+config ETHADDR_TAG
+	hex "hieth-gmac mac address tag"
+	default "0x726d6d73"
+	help
+	  This is graceful set mac address in kernel.
+
+config HIGMAC_IOBASE
+	hex "hieth-gmac IO address"
+	default "0x10090000" if ARCH_HI3516A
+
+config HIGMAC_IRQNUM
+	int "hieth-gmac irq number"
+	default "57" if ARCH_HI3516A
+
+config HIGMAC_PHY0_ADDR
+	int "hieth-gmac phy0 addr"
+	range 1 31
+	default "1"
+	help
+	  mac0's phy addr.
+
+
+config HIGMAC_PHY0_INTERFACE_MODE
+	int "hieth-gmac phy0 interface mode"
+	range 1 6
+	default "6"
+	 help
+	  hieth-gmac phy0 interface mode.
+	  1---MII,
+	  5---RMII,
+	  6---RGMII.
+config HIGMAC_RESET_HELPER_EN
+	bool "higmac reset helper"
+	default y
+	default n if ARCH_HI3516A
+	help
+	  hieth phy reset gpio helper.
+	  some external phy need to be reset before use, so we
+	  use gpio to reset it.
+
+config HIGMAC_RESET_HELPER_GPIO_BASE
+	hex "higmac reset helper on which gpio group"
+	depends on HIGMAC_RESET_HELPER_EN
+	default "0x20140000" if ARCH_HI3516A
+	help
+	  higmac gpio group for reset.
+
+config HIGMAC_RESET_HELPER_GPIO_BIT
+	int "higmac reset helper on gpio bit"
+	depends on HIGMAC_RESET_HELPER_EN
+	range 0 7
+	default "1" if ARCH_HI3516A
+	help
+	  higmac gpio group bit for reset.
+
+config HIGMAC_RESET_HELPER_GPIO_VALUE
+	int "higmac reset helper on gpio value"
+	depends on HIGMAC_RESET_HELPER_EN
+	range 0 1
+	default "0" if ARCH_HI3516A
+	help
+	  higmac gpio reset value.
+
+config RX_FLOW_CTRL_SUPPORT
+        bool "rx flow ctrl supported"
+        default y
+        help
+          Rx flow ctrl supported, default is enabled.
+	  When we received pause frame,
+          we will stop transmiting data frame for some time.
+	  The stopping time is the time filled in pause frame.
+
+config TX_FLOW_CTRL_SUPPORT
+        bool "tx flow ctrl supported"
+        default y
+        help
+          Tx flow ctrl supported, default is enabled.
+          When we has no buffer to receive packet,
+          we will send pause frame.
+	  When buffer is avaliable, we will send zero-quanta pause frame.
+
+config TX_FLOW_CTRL_PAUSE_TIME
+        hex "tx flow ctrl pause time"
+        default "0xFFFF"
+        help
+          The pause time filled in the sending pause frame.
+	  The unit is the time for transmiting 512 bit data.
+	  This value is 16 bit, so its value is 0x0000~0xFFFF.
+	  The default value is 0xFFFF.
+
+config TX_FLOW_CTRL_PAUSE_INTERVAL
+        hex "tx flow ctrl pause interval"
+        default "0xFFFF"
+        help
+          The interval time for sending pause frame.
+	  When the remainint amount of receive queue is below tx flow ctrl active threshold,
+	  we will wait this time to transmiting pause frame.
+	  The unit is the time for transmiting 512 bit data.
+	  This value is 16 bit, so its value is 0x0000~0xFFFF.
+	  The default value is 0xFFFF.
+
+
+config TX_FLOW_CTRL_ACTIVE_THRESHOLD
+        int "tx flow ctrl active threshold"
+        default "16"
+        range 1 127
+        help
+          The threshold for activing tx flow ctrl.
+          When the left amount of receive queue descriptors is below this threshold,
+          hardware will send pause frame immediately.
+          We advise this value is set smaller than 64. Too bigger is not a good choice.
+          This value must be smaller than tx flow ctrl deactive threshold.
+
+config TX_FLOW_CTRL_DEACTIVE_THRESHOLD
+        int "tx flow ctrl deactive threshold"
+        default "32"
+        range 1 127
+        help
+          The threshold for deactiving tx flow ctrl.
+          When the left amount of receive queue descriptors is above or equal with this threshold,
+          hardware will exit flow control state.
+          We advise this value is set smaller than 64. Too bigger is not a good choice.
+          This value must be larger than tx flow ctrl active threshold.
+
+endif # HIETH_GMAC

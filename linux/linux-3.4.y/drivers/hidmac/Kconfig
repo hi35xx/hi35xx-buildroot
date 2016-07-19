@@ -1,0 +1,24 @@
+#
+# Sensor device configuration
+#
+
+config HI_DMAC
+	tristate "Hisilicon DMAC Controller support"
+	depends on (ARCH_HI3516A || ARCH_HI3518EV200)
+	help
+	  Hisilicon I2C controller has 3 buses.
+	  We can access some sensors though it.
+	  This IP is only used in HI3516A and
+	  HI3518EV200 chip.
+
+if HI_DMAC
+config HI_DMAC_IO_BASE
+	hex "hi dmac register base address"
+	default "0x10060000" if ARCH_HI3516A
+	default "0x10060000" if ARCH_HI3518EV200
+
+config HI_DMAC_CHANNEL_NUM
+	int "hi dmac channel num"
+	default "4" if ARCH_HI3516A
+	default "4" if ARCH_HI3518EV200
+endif

@@ -1,0 +1,62 @@
+#
+# hisilicon flash memory controller SPI nand device driver version 100
+# drivers/mtd/nand/hifmc100/Kconfig
+# add by hisilicon 2014.10.9
+#
+
+menuconfig HIFMC100_SPI_NAND
+	tristate "Hisilicon Flash Memory Controller v100 SPI Nand device Support"
+	depends on HIFMC
+	depends on MTD_NAND
+	depends on HIFMC_SPI_NAND
+	default y if ARCH_HI3518EV200
+	select YAFFS_FS
+	select MISC_FILESYSTEMS
+	select MTD_BLOCK
+	select YAFFS_YAFFS2
+	help
+	  Hisilicon Flash Memory Controller device version 100 driver Support
+	  Hisilicon Flash Memory Controller version 100 is called hifmc100 for
+	  short. The controller driver support registers and DMA transfers
+	  while reading or writing the SPI nand flash.
+
+if HIFMC100_SPI_NAND
+
+config SPI_NAND_MAX_CHIP_NUM
+	int "Support max number of SPI Nand flash chip (1, 2)"
+	default 1 if ARCH_HI3518EV200
+	help
+	  flash memory controller v100 device only support 1 or 2 SPI nand flash
+	  chip, your should not config other value.
+
+choice
+	prompt "Page Size and Ecc Type Select"
+	default HIFMC100_AUTO_PAGESIZE_ECC if ARCH_HI3518EV200
+
+config HIFMC100_HARDWARE_PAGESIZE_ECC
+	bool "Hardware"
+	help
+	  the configure of page size and ecc type
+	  lie on switch on the board.
+	  so the page size and ecc type is controlled by
+	  Hardware see demo board of SOC.
+
+config HIFMC100_AUTO_PAGESIZE_ECC
+	bool "Auto"
+	help
+	  auto-sensed the page size and ecc type value. driver will try each of
+	  page size and ecc type one by one till flash can be read and wrote
+	  accurately. so the page size and ecc type is match adaptively without
+	  switch on the board
+
+config HIFMC100_PAGESIZE_AUTO_ECC_NONE
+	bool "Pagesize Auto, Ecc None"
+	help
+	  auto-sensed the page size and select ecc none. driver will try each
+	  of page size one by one till flash can be read and wrote accurately.
+	  so the page size is match adaptively without switch on the board
+
+endchoice
+
+endif # End of HIFMC100_SPI_NAND
+

@@ -1,0 +1,94 @@
+#
+#  himci family SD/MMC device configuration
+#
+menuconfig HIMCI
+	tristate "himciv100 driver support"
+	depends on ARCH_HI3516A
+	default y if ARCH_HI3516A
+	select MMC_UNSAFE_RESUME
+	select MMC_EMBEDDED_SDIO
+	select MMC_BLOCK
+	select MMC_BLOCK_BOUNCE
+	help
+	  This selects the Hisilicon Synopsys MultiMedia Card Driver
+	  support. If you want use SD/MMC/SDIO driver,
+	  Say Y or M here.
+
+	  default is Y.
+
+config SEND_AUTO_STOP
+	bool "Send Auto Stop to terminate data transfer between host and SD card"
+	depends on ARCH_HI3516A && HIMCI
+	default y
+
+menuconfig HIMCI0
+	bool "himci0 sd/mmc controller support"
+	depends on ARCH_HI3516A && HIMCI
+	default y if ARCH_HI3516A
+	help
+	  This selects the Hisilicon Synopsys MultiMedia Card Interface
+	  support. If you have a mmc platform with a MultiMedia Card slot,
+	  Say Y here or cancel the choice.
+
+	  default is Y.
+
+if HIMCI0
+
+config HIMCI0_IOBASE
+	hex "himci0 reg base"
+	default "0x206e0000" if ARCH_HI3516A
+
+config HIMCI0_INTR
+	int "himci0 intr number"
+	default "51" if ARCH_HI3516A
+
+config MMC0_CLK
+	int "himci0 mmc clock"
+	default "50000000" if ARCH_HI3516A
+
+config MMC0_CCLK_MAX
+	int "himci0 mmc c-clock max"
+	default "50000000" if ARCH_HI3516A
+
+config MMC0_CCLK_MIN
+	int "himci0 mmc c-clock min"
+	default "60000"
+
+endif
+
+menuconfig HIMCI1
+	bool "himci1 sd/mmc controller support"
+	depends on ARCH_HI3516A && HIMCI
+	default y if ARCH_HI3516A
+	help
+	  This selects the Hisilicon Synopsys MultiMedia Card Interface
+	  support. If you have a mmc platform with a MultiMedia Card slot,
+	  Say Y or cancel the choice.
+
+	  default is Y.
+
+if HIMCI1
+
+config HIMCI1_IOBASE
+	hex "himci1 reg base"
+	default "0x206f0000" if ARCH_HI3516A
+
+config HIMCI1_INTR
+	int "himci1 intr number"
+	default "52" if ARCH_HI3516A
+
+config MMC1_CLK
+	int "himci1 mmc clock"
+	default "100000000" if ARCH_HI3516A
+
+config MMC1_CCLK_MAX
+	int "himci1 mmc c-clock max"
+	default "100000000" if ARCH_HI3516A
+
+config MMC1_CCLK_MIN
+	int "himci1 mmc c-clock min"
+	default "60000"
+
+endif
+
+

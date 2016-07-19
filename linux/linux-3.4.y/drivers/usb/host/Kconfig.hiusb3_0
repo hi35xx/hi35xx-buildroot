@@ -1,0 +1,50 @@
+#
+# hiusb3.0(xhci/ehci/ohci) Host Controller Drivers
+#
+comment "hiusb3.0(xhci/ehci/ohci) Host Controller Drivers"
+	depends on USB
+
+menuconfig HIUSB_HOST3_0
+	bool "hiusb3.0(xhci/ehci/ohci) family usb host device support"
+	default y
+	select USB
+	select USB_ARCH_HAS_EHCI
+	select USB_ARCH_HAS_OHCI
+	select USB_ARCH_HAS_XHCI
+	select USB_XHCI_PLATFORM
+	help
+	  This selects the usb(xhci/ehci/ohci) family usb host device.
+	  Say Y to enable hisi usb3.0 controller driver.
+	  IF you do not use usb3.0 device in your board, say N to get a
+	  smaller uImage. Mostly you need it.
+
+if HIUSB_HOST3_0
+
+config HIUSB_XHCI_HCD
+	bool "hiusb-xhci usb host device support"
+	depends on ARCH_HI3535
+	default y if ARCH_HI3535
+	help
+	  Enable hisi3.0 xhci controller driver.
+	  Say Y to enable hisi usb3.0 controller driver.
+	  IF you do not use usb3.0 device in your board, say N to get a
+	  smaller uImage. Mostly you need it.
+
+config HIUSB_XHCI_IOBASE
+	hex "hiusb-xhci IO address"
+	depends on ARCH_HI3535
+	default "0x12000000" if ARCH_HI3535
+
+config HIUSB_XHCI_IOSIZE
+	hex "hiusb-xhci IO size"
+	depends on ARCH_HI3535
+	default "0x00010000"
+	help
+	  default is 0x10000.
+
+config HIUSB_XHCI_IRQNUM
+	int "hiusb-xhci irq number"
+	depends on ARCH_HI3535
+	default "64" if ARCH_HI3535
+
+endif

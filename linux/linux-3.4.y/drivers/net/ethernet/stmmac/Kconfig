@@ -1,0 +1,147 @@
+menuconfig STMMAC_ETH_TNK
+	tristate "STMicroelectronics 10/100/1000 Ethernet driver, TNK added"
+	select MII
+	select PHYLIB
+	select CRC32
+	depends on NETDEVICES && HAS_IOMEM && (ARCH_HI3535)
+	help
+	  This is the driver for the Ethernet IPs are built around a
+	  Synopsys IP Core and only tested on the STMicroelectronics
+	  platforms.
+
+if STMMAC_ETH_TNK
+
+config STMMAC_DA
+	bool "STMMAC DMA arbitration scheme"
+	default n
+	help
+	  Selecting this option, rx has priority over Tx (only for Giga
+	  Ethernet device).
+	  By default, the DMA arbitration scheme is based on Round-robin
+	  (rx:tx priority is 1:1).
+
+config STMMAC_DUAL_MAC
+	bool "STMMAC: dual mac support"
+	default y if ARCH_HI3535
+        depends on STMMAC_ETH_TNK
+	help
+	  The Huawei Hi3521 soCs has only one Ethernet Controllers.
+	  The Huawei Hi35XX SoCs may have two Ethernet Controllers.
+	  This option turns on the second Ethernet device
+	  if required.
+
+config STMMAC_TIMER
+	bool "STMMAC Timer optimisation"
+	default n
+	depends on RTC_HCTOSYS_DEVICE
+	help
+	  Use an external timer for mitigating the number of network
+	  interrupts. Currently, for SH architectures, it is possible
+	  to use the TMU channel 2 and the SH-RTC device.
+
+choice
+        prompt "Select Timer device"
+        depends on STMMAC_TIMER
+
+config STMMAC_TMU_TIMER_TNK
+        bool "TMU channel 2"
+        depends on CPU_SH4
+	help
+	  Use an external timer for mitigating the number
+	  of network interrupts. Currently, for SH
+	  architectures, it is possible to use the TMU
+	  channel 2 device.
+
+config STMMAC_RTC_TIMER_TNK
+        bool "Real time clock"
+        depends on RTC_CLASS
+	help
+	  Use an external timer for mitigating the number
+	  of network interrupts. Currently, for SH
+	  architectures, it is possible to use the SH-RTC
+	  device.
+
+endchoice
+
+config STMMAC_IOADDR
+	hex "STMMAC IO address"
+	default "0x12020000" if (ARCH_HI3535)
+
+config STMMAC_IOSIZE
+	hex "STMMAC IO size"
+	default "0x00020000"
+
+config STMMAC_IRQNUM
+	int "STMMAC irq number"
+	default "59" if ARCH_HI3535
+
+config STMMAC_SYS_IOADDR
+	hex "STMMAC System Config IO address"
+	default "0x20030000" if (ARCH_HI3535)
+
+config STMMAC_SYS_IOSIZE
+	hex "STMMAC System Config IO size"
+	default "0x00000100"
+
+config STMMAC_PHY0_ID
+	hex "STMMAC MAC #0 PHY ID"
+	default 1 if (ARCH_HI3535)
+
+config STMMAC_PHY1_ID
+	hex "STMMAC MAC #1 PHY ID"
+	default 2 if (ARCH_HI3535)
+	depends on STMMAC_DUAL_MAC
+
+config STMMAC_PHY0_INTERFACE_MODE
+       hex "STMMAC PHY0 MDIO INTERFACE"
+       default 6 if (ARCH_HI3535)
+       depends on STMMAC_ETH_TNK
+       help
+       Hi35XX support rgmii, rmii, mii interface mode,
+       if you use mii mode, please set 1 as default value.
+       if you use rmii mode, please set 5 as default value.
+       hi35XX use rgmii(6) as default mido interface mode.
+
+       /* Interface Mode definitions */
+       typedef enum {
+               PHY_INTERFACE_MODE_NA,          /* 0x0 */
+               PHY_INTERFACE_MODE_MII,         /* 0x1 */
+               PHY_INTERFACE_MODE_GMII,        /* 0x2 */
+               PHY_INTERFACE_MODE_SGMII,       /* 0x3 */
+               PHY_INTERFACE_MODE_TBI,         /* 0x4 */
+               PHY_INTERFACE_MODE_RMII,        /* 0x5 */
+               PHY_INTERFACE_MODE_RGMII,       /* 0x6 */
+               PHY_INTERFACE_MODE_RGMII_ID,    /* 0x7 */
+               PHY_INTERFACE_MODE_RGMII_RXID,  /* 0x8 */
+               PHY_INTERFACE_MODE_RGMII_TXID,  /* 0x9 */
+               PHY_INTERFACE_MODE_RTBI,        /* 0xa */
+               PHY_INTERFACE_MODE_SMII,        /* 0xb */
+       } phy_interface_t;
+
+config STMMAC_PHY1_INTERFACE_MODE
+       hex "STMMAC PHY1 MDIO INTERFACE"
+       default 6 if (ARCH_HI3535)
+       depends on STMMAC_ETH_TNK
+       help
+       Hi35XX support rgmii, rmii, mii interface mode,
+       if you use mii mode, please set 1 as default value.
+       if you use rmii mode, please set 5 as default value.
+       hi35XX use rgmii(6) as default mido interface mode.
+
+       /* Interface Mode definitions */
+       typedef enum {
+               PHY_INTERFACE_MODE_NA,          /* 0x0 */
+               PHY_INTERFACE_MODE_MII,         /* 0x1 */
+               PHY_INTERFACE_MODE_GMII,        /* 0x2 */
+               PHY_INTERFACE_MODE_SGMII,       /* 0x3 */
+               PHY_INTERFACE_MODE_TBI,         /* 0x4 */
+               PHY_INTERFACE_MODE_RMII,        /* 0x5 */
+               PHY_INTERFACE_MODE_RGMII,       /* 0x6 */
+               PHY_INTERFACE_MODE_RGMII_ID,    /* 0x7 */
+               PHY_INTERFACE_MODE_RGMII_RXID,  /* 0x8 */
+               PHY_INTERFACE_MODE_RGMII_TXID,  /* 0x9 */
+               PHY_INTERFACE_MODE_RTBI,        /* 0xa */
+               PHY_INTERFACE_MODE_SMII,        /* 0xb */
+       } phy_interface_t;
+
+endif

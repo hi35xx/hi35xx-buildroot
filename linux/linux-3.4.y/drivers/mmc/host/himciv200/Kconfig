@@ -1,0 +1,121 @@
+#
+# himci v200 device configuration
+#
+menuconfig HIMCIV200
+	tristate "himci v200 eMMC/SDXC/SDIO device support"
+	depends on (ARCH_HI3518EV200)
+	default y if (ARCH_HI3518EV200)
+	select MMC_UNSAFE_RESUME
+	select MMC_EMBEDDED_SDIO
+	select MMC_BLOCK
+	select MMC_BLOCK_BOUNCE
+	help
+	  This selects the Hisilicon Synopsys MultiMedia Card Driver
+	  support. If you want use SD/MMC/SDIO driver,
+	  Say Y or M here.
+
+	  default is Y.
+
+config SEND_AUTO_STOP
+	bool "Send Auto Stop to terminate data transfer between host and SD card"
+	depends on ((ARCH_HI3536 || ARCH_HI3518EV200) && HIMCIV200)
+	default y
+
+menuconfig HIMCIV200_SDIO0
+	bool "himci0 emmc/sdxc/mmc controller support"
+	depends on (ARCH_HI3518EV200 && HIMCIV200)
+	default y if (ARCH_HI3518EV200)
+	help
+	  This selects the Hisilicon Synopsys MultiMedia Card Interface
+	  support. If you have a mmc platform with a MultiMedia Card slot,
+	  Say Y here or cancel the choice.
+
+	  default is Y.
+
+if HIMCIV200_SDIO0
+
+config HIMCIV200_SDIO0_IOBASE
+	hex "himci v200 sdio0 reg base"
+	default "0x10020000" if (ARCH_HI3518EV200)
+
+config HIMCIV200_SDIO0_INTR
+	int "himci v200 sdio0 intr number"
+	default "18" if (ARCH_HI3518EV200)
+
+config HIMCIV200_SDIO0_BUS_WIDTH_8
+	bool "himci v200 sdio0 bus_width_8_bit support"
+	default n if (ARCH_HI3518EV200)
+	help
+	  This config is used to enable or disable the
+	  8 bit width sdio0 bus, if set this value to n,
+	  disable the support of 8 bit width sdio0 bus;
+	  otherwise, enable the support of 8 bit width
+	  sdio0 bus.
+
+config HIMCIV200_SDIO0_CLK
+	int "himci v200 mmc clock"
+	default "99000000" if (ARCH_HI3518EV200)
+
+config HIMCIV200_SDIO0_CLK_MAX
+	int "himci v200 mmc c-clock max"
+	default "99000000" if (ARCH_HI3518EV200)
+
+config HIMCIV200_SDIO0_CLK_MIN
+	int "himci v200 mmc c-clock min"
+	default "60000"
+
+config HIMCIV200_READ_ONLY
+	bool "himci v200 partition read only"
+	default n
+
+endif
+menuconfig HIMCIV200_SDIO1
+	bool "himci1 sd/mmc controller support"
+	depends on (ARCH_HI3518EV200 && HIMCIV200)
+	default y if (ARCH_HI3518EV200)
+	help
+	  This selects the Hisilicon Synopsys MultiMedia Card Interface
+	  support. If you have a mmc platform with a MultiMedia Card slot,
+	  Say Y or cancel the choice.
+
+	  default is Y.
+
+if HIMCIV200_SDIO1
+
+
+config HIMCIV200_SDIO1_IOBASE
+	hex "himci v200 sdio1 reg base"
+	default "0x10030000" if (ARCH_HI3518EV200)
+
+config HIMCIV200_SDIO1_INTR
+	int "himci v200 sdio1 intr number"
+	default "8" if (ARCH_HI3518EV200)
+
+config HIMCIV200_SDIO1_BUS_WIDTH_8
+	bool "himci v200 sdio1 bus_width_8_bit support"
+	default n if (ARCH_HI3518EV200)
+	help
+	  This config is used to enable or disable the
+	  8 bit width sdio1 bus, if set this value to n,
+	  disable the support of 8 bit width sdio1 bus;
+	  otherwise, enable the support of 8 bit width
+	  sdio1 bus.
+
+config HIMCIV200_SDIO1_CLK
+	int "himci v200 mmc clock"
+	default "49500000" if (ARCH_HI3518EV200)
+
+config HIMCIV200_SDIO1_CLK_MAX
+	int "himci v200 mmc c-clock max"
+	default "49500000" if (ARCH_HI3518EV200)
+
+config HIMCIV200_SDIO1_CLK_MIN
+	int "himci v200 mmc c-clock min"
+	default "60000"
+
+config HIMCIV200_READ_ONLY
+	bool "himci v200 partition read only"
+	default n
+
+endif
+
