@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-RTL8188EU_VERSION = af12a3a198546c0e558464f75e0d36808f2c1851
+RTL8188EU_VERSION = 0384bb3012ae3f2efbc3d06ec41543b0622a51ad
 RTL8188EU_SITE = $(call github,hi35xx,rtl8188eu,$(RTL8188EU_VERSION))
 RTL8188EU_LICENSE = GPLv2
 RTL8188EU_LICENSE_FILES = COPYING
