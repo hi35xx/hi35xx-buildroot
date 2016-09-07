@@ -8,33 +8,43 @@ if BR2_PACKAGE_HIMPP
 
 choice
 	bool "himpp for chip"
-	default BR2_PACKAGE_HIMPP_HI3518E
+	default BR2_PACKAGE_HIMPP_HI3518V100
 	help
 	  Select chip support for mpp
 
-config BR2_PACKAGE_HIMPP_HI3518
-	bool "hi3518/hi3516"
+config BR2_PACKAGE_HIMPP_HI3518V100
+	bool "hi3518/hi3516 v100"
 	help
-	  MPP for Hi3518 / Hi3516 chips
+	  MPP for Hi3518 / Hi3516 v100 chips
 
-config BR2_PACKAGE_HIMPP_HI3520
-	bool "hi3520"
+config BR2_PACKAGE_HIMPP_HI3518V200
+	bool "hi3518/hi3516 v200"
 	help
-	  MPP for Hi3520 chips
+	  MPP for Hi3518 / Hi3518 v200 chips
+
+config BR2_PACKAGE_HIMPP_HI3520V100
+	bool "hi3520/hi3521 v100"
+	help
+	  MPP for Hi3520 / Hi3521 v100 chips
 
 endchoice
 
 config BR2_PACKAGE_HIMPP_CHIP
 	string
-	default "himpp-hi3518" if BR2_PACKAGE_HIMPP_HI3518
-	default "himpp-hi3520" if BR2_PACKAGE_HIMPP_HI3520
+	default "hi3518v100" if BR2_PACKAGE_HIMPP_HI3518V100
+	default "hi3518v200" if BR2_PACKAGE_HIMPP_HI3518V200
+	default "hi3520v100" if BR2_PACKAGE_HIMPP_HI3520V100
 
-if BR2_PACKAGE_HIMPP_HI3518
-source "package/himpp/himpp-hi3518/Config.in"
-endif # BR2_PACKAGE_HIMPP_HI3518
+if BR2_PACKAGE_HIMPP_HI3518V100
+source "package/himpp/himpp-hi3518v100/Config.in"
+endif # BR2_PACKAGE_HIMPP_HI3518V100
 
-if BR2_PACKAGE_HIMPP_HI3520
-source "package/himpp/himpp-hi3520/Config.in"
-endif # BR2_PACKAGE_HIMPP_HI3520
+if BR2_PACKAGE_HIMPP_HI3518V200
+source "package/himpp/himpp-hi3518v200/Config.in"
+endif # BR2_PACKAGE_HIMPP_HI3518V200
+
+if BR2_PACKAGE_HIMPP_HI3520V100
+source "package/himpp/himpp-hi3520v100/Config.in"
+endif # BR2_PACKAGE_HIMPP_HI3520V100
 
 endif # BR2_PACKAGE_HIMPP

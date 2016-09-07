@@ -1,0 +1,2020 @@
+diff -uNr a/component/isp/sensor/smartsens_sc1135/Makefile b/component/isp/sensor/smartsens_sc1135/Makefile
+--- a/component/isp/sensor/smartsens_sc1135/Makefile	1970-01-01 08:00:00.000000000 +0800
++++ b/component/isp/sensor/smartsens_sc1135/Makefile	2016-09-21 15:32:47.418587968 +0800
+@@ -0,0 +1,75 @@
++#
++# sensor lib Makefile
++#
++
++ifeq ($(PARAM_FILE), )
++	PARAM_FILE:=../../../../Makefile.param
++	include $(PARAM_FILE)
++endif
++
++ISP_PATH := $(SDK_PATH)/component/isp
++EXT_PATH := $(SDK_PATH)/$(EXTDRV)
++3A_PATH  := $(ISP_PATH)/3a
++LIBPATH = $(ISP_PATH)/lib
++OBJPATH = ./obj
++
++ifeq ($(CONFIG_GPIO_I2C),y)
++HI_GPIO_I2C:=HI_GPIO_I2C
++else
++HI_GPIO_I2C:=HI_GPIO_XXX
++endif
++
++ARFLAGS = rcv
++ARFLAGS_SO = $(LIBS_LD_CFLAGS)
++ARFLAGS_SO += -shared -fPIC -o
++CFLAGS  = -Wall -fPIC -D$(HI_FPGA) -D$(HI_GPIO_I2C)
++CFLAGS  += -O2
++CFLAGS  += $(LIBS_CFLAGS)
++
++ifeq ($(ISP_INI_CONFIG), y)
++CFLAGS += -D INIFILE_CONFIG_MODE
++endif
++
++ifeq ($(HIGDB),HI_GDB)
++CFLAGS += -g
++endif
++
++ifeq ($(CONFIG_JPEGEDCF), y)
++     CFLAGS += -D ENABLE_JPEGEDCF 
++endif
++BUS_DIR := $(EXT_PATH)/ssp-sony/
++
++ISP_INC := $(ISP_PATH)/include
++3A_INC := $(3A_PATH)/include
++INC := -I$(BUS_DIR) -I$(REL_INC) -I$(ISP_INC) -I$(3A_INC) -I$(ISP_PATH)/iniparser 
++
++ifeq ($(CONFIG_GPIO_I2C), y)
++    INC += -I$(EXT_PATH)/gpio-i2c-ex
++    INC += -I$(EXT_PATH)/gpio-i2c
++else
++    INC += -I$(EXT_PATH)/i2c
++    INC += -I$(EXT_PATH)/hi_i2c
++endif
++
++COMPILE = $(CC) $(CFLAGS) $(DFLAGS) -lm
++
++$(OBJPATH)/%.o: ./%.c 
++	@[ -e $(LIBPATH) ] || mkdir $(LIBPATH)
++	@[ -e $(OBJPATH) ] || mkdir $(OBJPATH)
++	@$(COMPILE) -o $@ -c $< $(INC) 
++
++SRCS = $(wildcard ./*.c)
++OBJS = $(SRCS:%.c=%.o)
++OBJS := $(OBJS:./%=obj/%)
++
++TARGETLIB := $(LIBPATH)/libsns_sc1135.a
++TARGETLIB_SO := $(LIBPATH)/libsns_sc1135.so
++
++all:$(TARGETLIB)
++$(TARGETLIB):$(OBJS)
++	@($(AR) $(ARFLAGS) $(TARGETLIB) $(OBJS))
++	@($(CC) $(ARFLAGS_SO) $(TARGETLIB_SO) $(OBJS))
++
++clean:
++	@$(RM) -rf $(TARGETLIB) $(OBJS)
++	@$(RM) -rf $(LIBPATH) $(OBJPATH)
+diff -uNr a/component/isp/sensor/smartsens_sc1135/sc1135_720p_line.ini b/component/isp/sensor/smartsens_sc1135/sc1135_720p_line.ini
+--- a/component/isp/sensor/smartsens_sc1135/sc1135_720p_line.ini	1970-01-01 08:00:00.000000000 +0800
++++ b/component/isp/sensor/smartsens_sc1135/sc1135_720p_line.ini	2016-09-21 15:32:47.418587968 +0800
+@@ -0,0 +1,260 @@
++[sensor]
++Sensor_type   =sc1135                   ;sensor name
++Mode          =0                        ;WDR_MODE_NONE = 0
++                                        ;WDR_MODE_BUILT_IN = 1
++                                        ;WDR_MODE_2To1_LINE = 2
++                                        ;WDR_MODE_2To1_FRAME = 3
++                                        ;WDR_MODE_2To1_FRAME_FULL_RATE =4 ...etc
++DllFile   =libs/libsns_sc1135.so        ;sensor lib path
++
++
++[mode]                               
++input_mode =4                           ;INPUT_MODE_MIPI = 0
++                                        ;INPUT_MODE_SUBLVDS = 1
++                                        ;INPUT_MODE_LVDS = 2 ...etc
++
++dev_attr = 2                         	;mipi_dev_attr_t = 0
++                                        ;lvds_dev_attr_t = 1
++                                        ;NULL =2
++
++[mipi]    
++;----------only for mipi_dev---------               
++data_type =-1                       	;raw data type: 8/10/12/14 bit
++                                        ;RAW_DATA_8BIT = 0
++                                        ;RAW_DATA_10BIT = 1
++                                        ;RAW_DATA_12BIT = 2 
++                                        ;RAW_DATA_14BIT = 3 
++lane_id = -1|-1|-1|-1|-1|-1|-1|-1|      ;lane_id: -1 - disable
++
++[lvds]
++;----------only for lvds_dev---------                                
++img_size_w = -1                     	;oringnal sensor input image size W
++img_size_h = -1                     	;oringnal sensor input image size H
++wdr_mode = -1                           ;HI_WDR_MODE_NONE =0
++                                        ;HI_WDR_MODE_2F = 1
++                                        ;HI_WDR_MODE_3F = 2
++                                        ;HI_WDR_MODE_4F =3
++sync_mode = -1                  	;LVDS_SYNC_MODE_SOL = 0
++                                        ;LVDS_SYNC_MODE_SAV = 1
++raw_data_type = -1                    	;RAW_DATA_8BIT = 0
++                                        ;RAW_DATA_10BIT = 1
++                                        ;RAW_DATA_12BIT = 2
++                                        ;RAW_DATA_14BIT = 3
++data_endian = -1                        ;LVDS_ENDIAN_LITTLE = 0
++                                        ;LVDS_ENDIAN_BIG = 1
++sync_code_endian =-1                    ;LVDS_ENDIAN_LITTLE = 0
++                                        ;LVDS_ENDIAN_BIG = 1
++lane_id = -1|-1|-1|-1|-1|-1|-1|-1|      ;lane_id: -1 - disable
++lvds_lane_num = -1                      ;LVDS_LANE_NUM
++wdr_vc_num = -1                         ;WDR_VC_NUM
++sync_code_num = -1                      ;SYNC_CODE_NUM
++sync_code_0 = -1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|
++sync_code_1 = -1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|
++sync_code_2 = -1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|
++sync_code_3 = -1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|
++sync_code_4 = -1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|
++sync_code_5 = -1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|
++sync_code_6 = -1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|
++sync_code_7 = -1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|-1|
++
++[isp_image]
++Isp_x      =0
++Isp_y      =0
++Isp_W      =1280
++Isp_H      =720
++Isp_FrameRate=30
++Isp_Bayer  =3   ;BAYER_RGGB=0, BAYER_GRBG=1, BAYER_GBRG=2, BAYER_BGGR=3 
++
++
++[vi_dev]
++Input_mod =2    ;VI_INPUT_MODE_BT656 = 0
++                ;VI_INPUT_MODE_BT601,
++                ;VI_INPUT_MODE_DIGITAL_CAMERA
++Work_mod =0     ;VI_WORK_MODE_1Multiplex = 0
++                ;VI_WORK_MODE_2Multiplex,
++                ;VI_WORK_MODE_4Multiplex
++Combine_mode =0 ;Y/C composite or separation mode
++                ;VI_COMBINE_COMPOSITE = 0 /*Composite mode */
++                ;VI_COMBINE_SEPARATE,     /*Separate mode */
++Comp_mode    =0 ;Component mode (single-component or dual-component)
++                ;VI_COMP_MODE_SINGLE = 0, /*single component mode */
++                ;VI_COMP_MODE_DOUBLE = 1, /*double component mode */
++Clock_edge   =1 ;Clock edge mode (sampling on the rising or falling edge)
++                ;VI_CLK_EDGE_SINGLE_UP=0, /*rising edge */
++                ;VI_CLK_EDGE_SINGLE_DOWN, /*falling edge */
++Mask_num     =2 ;Component mask
++Mask_0       =0xFFF0000
++Mask_1       =0x0
++Scan_mode    =1 ;VI_SCAN_INTERLACED = 0
++                ;VI_SCAN_PROGRESSIVE,
++Data_seq     =2 ;data sequence (ONLY for YUV format)
++                ;----2th component U/V sequence in bt1120
++                ;    VI_INPUT_DATA_VUVU = 0,
++                ;    VI_INPUT_DATA_UVUV,
++                ;----input sequence for yuv
++                ;    VI_INPUT_DATA_UYVY = 0,
++                ;    VI_INPUT_DATA_VYUY,
++                ;    VI_INPUT_DATA_YUYV,
++                ;    VI_INPUT_DATA_YVYU
++                
++Vsync   =1     ; vertical synchronization signal
++                ;VI_VSYNC_FIELD = 0, 
++                ;VI_VSYNC_PULSE,
++VsyncNeg=0      ;Polarity of the vertical synchronization signal
++                ;VI_VSYNC_NEG_HIGH = 0, 
++                ;VI_VSYNC_NEG_LOW /*if VIU_VSYNC_E 
++Hsync  =0       ;Attribute of the horizontal synchronization signal
++                ;VI_HSYNC_VALID_SINGNAL = 0,
++                ;VI_HSYNC_PULSE,
++HsyncNeg =0     ;Polarity of the horizontal synchronization signal
++                ;VI_HSYNC_NEG_HIGH = 0, 
++                ;VI_HSYNC_NEG_LOW
++VsyncValid =0   ;Attribute of the valid vertical synchronization signal
++                ;VI_VSYNC_NORM_PULSE = 0,
++                ;VI_VSYNC_VALID_SINGAL, 
++VsyncValidNeg =0;Polarity of the valid vertical synchronization signal
++                ;VI_VSYNC_VALID_NEG_HIGH = 0,
++                ;VI_VSYNC_VALID_NEG_LOW 
++Timingblank_HsyncHfb =0     ;Horizontal front blanking width
++Timingblank_HsyncAct =1280  ;Horizontal effetive width
++Timingblank_HsyncHbb =0     ;Horizontal back blanking width
++Timingblank_VsyncVfb =0     ;Vertical front blanking height
++Timingblank_VsyncVact =720 ;Vertical effetive width
++Timingblank_VsyncVbb=0      ;Vertical back blanking height
++Timingblank_VsyncVbfb =0    ;Even-field vertical front blanking height(interlace, invalid progressive)
++Timingblank_VsyncVbact=0    ;Even-field vertical effetive width(interlace, invalid progressive)
++Timingblank_VsyncVbbb =0    ;Even-field vertical back blanking height(interlace, invalid progressive)
++
++;----- only for bt656 ----------
++FixCode   =0    ;BT656_FIXCODE_1 = 0,
++                ;BT656_FIXCODE_0 
++FieldPolar=0    ;BT656_FIELD_POLAR_STD = 0
++                ;BT656_FIELD_POLAR_NSTD
++DataPath  =1    ;ISP enable or bypass
++                ;VI_PATH_BYPASS    = 0,/* ISP bypass */
++                ;VI_PATH_ISP       = 1,/* ISP enable */
++                ;VI_PATH_RAW       = 2,/* Capture raw data, for debug */
++InputDataType=1 ;VI_DATA_TYPE_YUV = 0,VI_DATA_TYPE_RGB = 1,
++DataRev      =FALSE ;Data reverse. FALSE = 0; TRUE = 1
++DevRect_x=0     ;
++DevRect_y=0    ;
++DevRect_w=1280  ;
++DevRect_h=720  ;
++
++[vi_chn]
++CapRect_X    =0 
++CapRect_Y    =0
++CapRect_Width=1280
++CapRect_Height=720
++DestSize_Width=1280
++DestSize_Height=720
++CapSel       =2 ;Frame/field select. ONLY used in interlaced mode
++                ;VI_CAPSEL_TOP = 0,                  /* top field */
++                ;VI_CAPSEL_BOTTOM,                   /* bottom field */
++                ;VI_CAPSEL_BOTH,                     /* top and bottom field */
++				
++PixFormat    =23;PIXEL_FORMAT_YUV_SEMIPLANAR_422 = 22
++                ;PIXEL_FORMAT_YUV_SEMIPLANAR_420 = 23 ...etc
++CompressMode =0 ;COMPRESS_MODE_NONE = 0
++                ;COMPRESS_MODE_SEG =1 ...etc
++
++;SrcFrameRate=-1 ;Source frame rate. -1: not controll
++;FrameRate   =-1 ;Target frame rate. -1: not controll
++
++SrcFrameRate=30 ;Source frame rate. -1: not controll
++FrameRate   =30 ;Target frame rate. -1: not controll
++[vpss_group]
++Vpss_DciEn  =FALSE
++Vpss_IeEn   =FALSE
++Vpss_NrEn   =TRUE
++Vpss_HistEn =FALSE
++Vpss_DieMode=1  ;Define de-interlace mode
++                ;VPSS_DIE_MODE_AUTO  = 0,
++                ;VPSS_DIE_MODE_NODIE = 1,
++                ;VPSS_DIE_MODE_DIE   = 2,
++				
++[vpss_corp]
++Crop_enable =FALSE   					
++Coordinate  =1  ;VPSS_CROP_RATIO_COOR = 0,   /*Ratio coordinate*/
++		        ;VPSS_CROP_ABS_COOR = 1      /*Absolute coordinate*/
++Crop_X      =128    
++Crop_Y      =128    
++Crop_W      =1158   
++Crop_H      =562    
++
++[vpss_chn]
++Vpss_W    =1280
++Vpss_H    =720
++CompressMode=0  ;COMPRESS_MODE_NONE = 0
++		        ;COMPRESS_MODE_SEG =1 ...etc
++Mirror     =FALSE;Whether to mirror
++Flip       =FALSE;Whether to flip
++				
++[vb_conf]
++VbCnt=5
++#VbCnt=2
++vbTimes=15
++
++[venc_comm]
++venc_chn =1     ;create venc chn number;(0,2]
++BufCnt = 1      ;network meida-trans bufcnt
++
++[venc_0]
++PicWidth  =1280
++PicHeight =720
++Profile   =2
++RcMode   =VENC_RC_MODE_H264CBR
++
++Gop    =50  
++StatTime =2  
++ViFrmRate  =30
++TargetFrmRate=30
++;----- only for VENC_RC_MODE_H264CBR ----------
++BitRate=2048
++FluctuateLevel=1
++;----- only for VENC_RC_MODE_H264VBR ----------
++MaxBitRate =10000
++
++MaxQp=32
++MinQp=24
++;----- only for VENC_RC_MODE_H264FIXQP ----------
++IQp=45
++
++PQp=40
++
++[venc_1]
++PicWidth  =1280
++PicHeight =720
++Profile   =2
++RcMode   =VENC_RC_MODE_H264CBR
++
++Gop    =50  
++StatTime =2  
++ViFrmRate  =30 
++TargetFrmRate=15
++;----- only for VENC_RC_MODE_H264CBR ----------
++BitRate=2048
++FluctuateLevel=1
++;----- only for VENC_RC_MODE_H264VBR ----------
++MaxBitRate =10000
++
++MaxQp=32
++
++MinQp=24
++;----- only for VENC_RC_MODE_H264FIXQP ----------
++IQp=40
++
++PQp=45
++
++[bind]
++ViDev   =0
++ViChn   =0
++VpssGrp =0
++VpssChn = 0
++VoDev   =0
++VoChn   =0
++ViSnapChn =0
++VpssSnapGrp=0
++VpssSnapChn=1
++VencSnapGrp=1
++VencSnapChn=3
+diff -uNr a/component/isp/sensor/smartsens_sc1135/sc1135_cmos.c b/component/isp/sensor/smartsens_sc1135/sc1135_cmos.c
+--- a/component/isp/sensor/smartsens_sc1135/sc1135_cmos.c	1970-01-01 08:00:00.000000000 +0800
++++ b/component/isp/sensor/smartsens_sc1135/sc1135_cmos.c	2016-09-21 15:32:47.419587964 +0800
+@@ -0,0 +1,1264 @@
++#if !defined(__SC1135_CMOS_H_)
++#define __SC1135_CMOS_H_
++
++#include <stdio.h>
++#include <string.h>
++#include <assert.h>
++#include "hi_comm_sns.h"
++#include "hi_comm_video.h"
++#include "hi_sns_ctrl.h"
++#include "mpi_isp.h"
++#include "mpi_ae.h"
++#include "mpi_awb.h"
++#include "mpi_af.h"
++
++#ifdef __cplusplus
++#if __cplusplus
++extern "C"{
++#endif
++#endif /* End of #ifdef __cplusplus */
++
++
++#define SC1135_ID 1135
++
++#define CMOS_SC1135_ISP_WRITE_SENSOR_ENABLE (1)
++#define FULL_LINES_MAX  (0xFFFF)
++
++
++/* To change the mode of config. ifndef INIFILE_CONFIG_MODE, quick config mode.*/
++/* else, cmos_cfg.ini file config mode*/
++#ifdef INIFILE_CONFIG_MODE
++
++extern AE_SENSOR_DEFAULT_S  g_AeDft[];
++extern AWB_SENSOR_DEFAULT_S g_AwbDft[];
++extern ISP_CMOS_DEFAULT_S   g_IspDft[];
++extern HI_S32 Cmos_LoadINIPara(const HI_CHAR *pcName);
++#else
++
++#endif
++
++/****************************************************************************
++ * local variables                                                            *
++ ****************************************************************************/
++
++extern const unsigned int sensor_i2c_addr;
++extern unsigned int sensor_addr_byte;
++extern unsigned int sensor_data_byte;
++
++#define VMAX_ADDR_H              (0x320e)
++#define VMAX_ADDR_L              (0x320f)
++
++#define SENSOR_720P_30FPS_MODE  (1)
++
++#define INCREASE_LINES (0) /* make real fps less than stand fps because NVR require*/
++#define VMAX_720P30_LINEAR     (1000+INCREASE_LINES)
++#define CMOS_SC1135_SLOW_FRAMERATE_MODE (0)
++
++
++HI_U8 gu8SensorImageMode = SENSOR_720P_30FPS_MODE;
++WDR_MODE_E genSensorMode = WDR_MODE_NONE;
++
++static HI_U32 gu32FullLinesStd = VMAX_720P30_LINEAR;
++static HI_U32 gu32FullLines = VMAX_720P30_LINEAR;
++
++static HI_BOOL bInit = HI_FALSE;
++HI_BOOL bSensorInit = HI_FALSE;
++ISP_SNS_REGS_INFO_S g_stSnsRegsInfo = {0};
++ISP_SNS_REGS_INFO_S g_stPreSnsRegsInfo = {0};
++static HI_U8 gu8Fps = 30;
++
++
++/* AE default parameter and function */
++static HI_S32 cmos_get_ae_default(AE_SENSOR_DEFAULT_S *pstAeSnsDft)
++{
++	if (HI_NULL == pstAeSnsDft)
++	{
++		printf("null pointer when get ae default value!\n");
++		return -1;
++	}
++
++	pstAeSnsDft->u32LinesPer500ms = gu32FullLinesStd*30/2;
++	pstAeSnsDft->u32FullLinesStd = gu32FullLinesStd;
++	pstAeSnsDft->u32FlickerFreq = 0;
++	pstAeSnsDft->u32FullLinesMax = FULL_LINES_MAX;
++
++	pstAeSnsDft->au8HistThresh[0] = 0xd;
++	pstAeSnsDft->au8HistThresh[1] = 0x28;
++	pstAeSnsDft->au8HistThresh[2] = 0x60;
++	pstAeSnsDft->au8HistThresh[3] = 0x80;
++
++	pstAeSnsDft->u8AeCompensation = 0x2b;
++
++	pstAeSnsDft->stIntTimeAccu.enAccuType = AE_ACCURACY_LINEAR;
++	pstAeSnsDft->stIntTimeAccu.f32Accuracy = 1;
++	pstAeSnsDft->stIntTimeAccu.f32Offset = 0;
++	pstAeSnsDft->u32MaxIntTime = gu32FullLinesStd - 4;
++	pstAeSnsDft->u32MinIntTime = 1;
++	pstAeSnsDft->u32MaxIntTimeTarget = pstAeSnsDft->u32MaxIntTime;
++	pstAeSnsDft->u32MinIntTimeTarget = pstAeSnsDft->u32MinIntTime;
++
++	pstAeSnsDft->stAgainAccu.enAccuType = AE_ACCURACY_TABLE;
++	pstAeSnsDft->stAgainAccu.f32Accuracy = 0.0625; 
++	pstAeSnsDft->u32MaxAgain = 15400;  //62倍 
++	pstAeSnsDft->u32MinAgain = 1024;
++	pstAeSnsDft->u32MaxAgainTarget = 15400;
++	pstAeSnsDft->u32MinAgainTarget = 1024;
++
++	pstAeSnsDft->stDgainAccu.enAccuType = AE_ACCURACY_TABLE;
++	pstAeSnsDft->stDgainAccu.f32Accuracy = 0.0625;//invalidate
++	pstAeSnsDft->u32MaxDgain = 4096;  
++	pstAeSnsDft->u32MinDgain = 1024;
++	pstAeSnsDft->u32MaxDgainTarget = 4096;
++	pstAeSnsDft->u32MinDgainTarget = 1024; 
++
++	pstAeSnsDft->u32ISPDgainShift = 8;
++	pstAeSnsDft->u32MinISPDgainTarget = 1 << pstAeSnsDft->u32ISPDgainShift;
++	pstAeSnsDft->u32MaxISPDgainTarget = 4 << pstAeSnsDft->u32ISPDgainShift; 
++
++	pstAeSnsDft->u32LinesPer500ms = gu32FullLinesStd*30/2;
++
++	return 0;
++}
++
++/* the function of sensor set fps */
++static HI_VOID cmos_fps_set(HI_FLOAT f32Fps, AE_SENSOR_DEFAULT_S *pstAeSnsDft)
++{
++
++	HI_U32 u32VblankingLines = 0xFFFF;
++	if ((f32Fps <= 30) && (f32Fps >= 0.5))
++	{
++		if(SENSOR_720P_30FPS_MODE == gu8SensorImageMode)
++		{
++			u32VblankingLines = VMAX_720P30_LINEAR * 30 / f32Fps;
++		}
++	}
++	else
++	{
++		printf("Not support Fps: %f\n", f32Fps);
++		return;
++	}
++
++	gu32FullLinesStd = gu32FullLinesStd > FULL_LINES_MAX ? FULL_LINES_MAX : gu32FullLinesStd;
++
++#if CMOS_SC1135_ISP_WRITE_SENSOR_ENABLE
++	g_stSnsRegsInfo.astI2cData[4].u32Data = (u32VblankingLines >> 8) & 0xFF ;
++	g_stSnsRegsInfo.astI2cData[5].u32Data = u32VblankingLines & 0xFF;
++#else
++	sensor_write_register(0x320e, (u32VblankingLines >> 8) & 0xff) ;
++	sensor_write_register(0x320f, u32VblankingLines & 0xff);
++#endif
++
++	pstAeSnsDft->f32Fps = f32Fps;
++	pstAeSnsDft->u32MaxIntTime = u32VblankingLines - 4;
++	gu32FullLinesStd = u32VblankingLines;
++	gu8Fps = f32Fps;
++	pstAeSnsDft->u32LinesPer500ms = gu32FullLinesStd * 30 / 2;
++	pstAeSnsDft->u32FullLinesStd = gu32FullLinesStd;
++
++	return;
++}
++
++
++static HI_VOID cmos_slow_framerate_set(HI_U32 u32FullLines,
++		AE_SENSOR_DEFAULT_S *pstAeSnsDft)
++{
++
++
++	u32FullLines = (u32FullLines > 0xFFFF) ? 0xFFFF : u32FullLines;
++	gu32FullLines = u32FullLines;
++
++	u32FullLines = (u32FullLines > FULL_LINES_MAX) ? FULL_LINES_MAX : u32FullLines;
++
++#if CMOS_SC1135_ISP_WRITE_SENSOR_ENABLE
++	g_stSnsRegsInfo.astI2cData[4].u32Data = (u32FullLines >> 8) & 0xFF;
++	g_stSnsRegsInfo.astI2cData[5].u32Data = u32FullLines & 0xFf;
++#else
++	sensor_write_register(0x320e, ((u32FullLines >> 8) & 0xFF));
++	sensor_write_register(0x320f, u32FullLines & 0xFf);
++#endif
++
++	pstAeSnsDft->u32MaxIntTime = gu32FullLines - 4;
++
++#if 1
++	HI_U16 u16Temp = u32FullLines - 0x2e8;
++	sensor_write_register(0x3336, (u16Temp>>8)&0xff);
++	sensor_write_register(0x3337, u16Temp&0xff);
++
++	sensor_write_register(0x3338, (u32FullLines>>8)&0xff);
++	sensor_write_register(0x3339, u32FullLines&0xff);
++
++	HI_U16 u16RegH = 0, u16RegL = 0;
++	u16RegH = sensor_read_register(0x320c);
++	u16RegL = sensor_read_register(0x320d);
++
++	u16Temp = (u16RegH<<8) | u16RegL;
++	u16Temp -= 0x20;
++
++	sensor_write_register(0x3320, (u16Temp>>8)&0xff);
++	sensor_write_register(0x3321, u16Temp&0xff);
++
++#endif
++
++	return;
++}
++
++
++
++static const HI_U16 sensor_gain_map[48] = {
++
++	0x10,	0x11,	0x12,	0x13,	0x14,	0x15,	0x16,	0x17,	
++	0x18,	0x19,	0x1a,	0x1b,	0x1c,	0x1d,	0x1e,	0x1f,
++	0x30,	0x31,	0x32,	0x33,	0x34,	0x35,	0x36,	0x37,	
++	0x38,	0x39,	0x3a,	0x3b,	0x3c,	0x3d,	0x3e,	0x3f,
++	0x70,	0x71,	0x72,	0x73,	0x74,	0x75,	0x76,	0x77,	
++	0x78,	0x79,	0x7a,	0x7b,	0x7c,	0x7d,	0x7e,	0x7f
++
++};
++
++static HI_U16 gainmap_gain2index(HI_U16 Gain)
++{
++	HI_U16 i = 0;
++	for(i = 0; i < sizeof(sensor_gain_map)/sizeof(sensor_gain_map[0]); i++){
++		if(sensor_gain_map[i] == Gain){
++			break;
++		}
++	}
++	return i;
++}
++
++/* while isp notify ae to update sensor regs, ae call these funcs. */
++static HI_VOID cmos_inttime_update(HI_U32 u32IntTime)
++{
++
++
++#if 0
++	if (u32OldIntTime != u32IntTime)
++	{
++		printf("u32IntTime:%#x...........%#x........%#x..\n",u32IntTime, (u32IntTime >> 4) & 0xFF,(u32IntTime<<4) & 0xF0);
++		u32OldIntTime = u32IntTime;
++	}
++#endif
++
++#if CMOS_SC1135_ISP_WRITE_SENSOR_ENABLE
++	g_stSnsRegsInfo.astI2cData[0].u32Data = (u32IntTime >> 4) & 0xFF; 
++	g_stSnsRegsInfo.astI2cData[1].u32Data = (u32IntTime<<4) & 0xF0;
++#else
++	sensor_write_register(0x3e01, ((u32IntTime >> 4) & 0xFF));
++	sensor_write_register(0x3e02, (u32IntTime<<4) & 0xF0);
++#endif		
++
++	return;
++}
++
++
++
++static  HI_U32   analog_gain_table[64] = 
++{ 
++
++	1024,	1085,	1146,	1208,	1269,	1321,	1382,	1444,	1505,	1566,	1628,	1690,	1751,	1802,	1864,	1925,                       
++	2048,	2170,	2292,	2416,	2538,	2642,	2764,	2888,	3010,	3132,	3256,	3380,	3502,	3604,	3728,	3850,                       
++	4096,	4340,	4584,	4832,	5076,	5284,	5528,	5776,	6020,	6264,	6512,	6760,	7004,	7208,	7456,	7700,                       
++	8192,	8680,	9168,	9664,	10152,	10568,	11056,	11552,	12040,	12528,	13024,	13520,	14008,	14416,	14912,	15400
++};
++
++static  HI_U32   digital_gain_table[3] = 
++{ 
++	1024,2048,4096
++};
++
++
++
++static HI_VOID cmos_again_calc_table(HI_U32 *pu32AgainLin, HI_U32 *pu32AgainDb)
++{
++	int i;
++
++	if (*pu32AgainLin >= analog_gain_table[63])
++	{
++		*pu32AgainLin = analog_gain_table[63];
++		*pu32AgainDb = 63;
++		return ;
++	}
++
++	for (i = 1; i < 64; i++)
++	{
++		if (*pu32AgainLin < analog_gain_table[i])
++		{
++			*pu32AgainLin = analog_gain_table[i - 1];
++			*pu32AgainDb = i - 1;
++			break;
++		}
++	}
++
++	return;
++}
++
++static HI_VOID cmos_dgain_calc_table(HI_U32 *pu32DgainLin, HI_U32 *pu32DgainDb)
++{
++	int i;
++
++	if (*pu32DgainLin >= digital_gain_table[2])
++	{
++		*pu32DgainLin = digital_gain_table[2];
++		*pu32DgainDb = 2;
++		return ;
++	}
++
++	for (i = 1; i < 3; i++)
++	{
++		if (*pu32DgainLin < digital_gain_table[i])
++		{
++			*pu32DgainLin = digital_gain_table[i - 1];
++			*pu32DgainDb = i - 1;
++			break;
++		}
++	}
++
++	return;
++}
++
++
++static HI_U32 sc1135_Again_limit(HI_U32 Again)
++{
++#define SENSOR_BLC_TOP_VALUE (0x58)
++#define SENSOR_BLC_BOT_VALUE (0x45)
++#define SENSOR_AGAIN_ADAPT_STEP (1)
++#define SENSOR_MAX_AGAIN (0x7f)
++
++	HI_U32 ret_Again;
++	HI_U16 BLC_top = SENSOR_BLC_TOP_VALUE, BLC_bot = SENSOR_BLC_BOT_VALUE, BLC_reg, /*Again_step = SENSOR_AGAIN_ADAPT_STEP,*/ gain_index;
++	static HI_U16 MaxAgain = SENSOR_MAX_AGAIN;
++	BLC_reg = sensor_read_register(0X3911);
++
++	gain_index = gainmap_gain2index(MaxAgain);
++
++	if(BLC_reg > BLC_top){//>0x58
++		if(gain_index>0){
++			//limit max Again by step
++			gain_index -= SENSOR_AGAIN_ADAPT_STEP;
++		}
++		MaxAgain = sensor_gain_map[gain_index];
++	}else if(BLC_reg < BLC_bot){//<0x45
++		//release Again limit by step
++		gain_index += SENSOR_AGAIN_ADAPT_STEP;
++		if(gain_index > sizeof(sensor_gain_map)/sizeof(sensor_gain_map[0])-1){
++			gain_index = sizeof(sensor_gain_map)/sizeof(sensor_gain_map[0]) - 1;
++		}
++		MaxAgain = sensor_gain_map[gain_index];
++	}else{//0x45 < BLC_reg < 0x58
++		//do nothing
++	}
++	ret_Again = Again > MaxAgain ? MaxAgain : Again;
++	//printf("limit gain:ret_Again=%d;Again=%d;MaxAgain=%d\n", ret_Again, Again, MaxAgain);
++	return ret_Again;
++}
++
++
++
++static HI_VOID cmos_gains_update(HI_U32 u32Again, HI_U32 u32Dgain)
++{
++	HI_U32 u32DGReg = 0;
++	HI_U8 u8AgainHigh, u8AgainLow;
++
++	if (u32Again >= 1 && u32Again < 0x10)
++		u8AgainHigh = 0x0;
++	else if (u32Again >= 0x10 && u32Again < 0x20)
++		u8AgainHigh = 0x1;
++	else if (u32Again >= 0x20 && u32Again < 0x30)
++		u8AgainHigh = 0x3;
++	else if (u32Again >= 0x30 && u32Again < 0x40)
++		u8AgainHigh = 0x7;
++	else 
++		u8AgainHigh = 0x0;
++
++	u8AgainLow = u32Again & 0xf;
++
++
++	if (u32Dgain == 0)
++	{
++		u32DGReg = 0;
++	}
++	else if (u32Dgain == 1) 
++	{
++		u32DGReg = 1;
++	}
++	else if (u32Dgain == 2)
++	{
++		u32DGReg = 3;
++	}
++	else
++	{
++		u32DGReg = 3;
++	}
++
++#if CMOS_SC1135_ISP_WRITE_SENSOR_ENABLE
++	g_stSnsRegsInfo.astI2cData[3].u32Data =  sc1135_Again_limit((u8AgainHigh<<4) | u8AgainLow);
++	g_stSnsRegsInfo.astI2cData[2].u32Data = u32DGReg;
++#else
++	sensor_write_register(0x3e09, sc1135_Again_limit((u8AgainHigh<<4) | u8AgainLow));
++	sensor_write_register(0x3e08, u32DGReg);
++#endif
++
++
++#if 1
++	HI_U8 u8AgainVal = 0,u8DgainVal = 0;
++	u8AgainVal = (u8AgainHigh<<4) | u8AgainLow;
++	u8DgainVal = u32DGReg;
++
++	if((u8DgainVal == 0) && (u8AgainVal<0x10))
++	{
++		sensor_write_register(0x3630,0xd0);
++		sensor_write_register(0x3631,0x80);
++	}
++	else if((u8DgainVal == 0) && (u8AgainVal >= 0x10))
++	{
++		sensor_write_register(0x3630,0x60);
++		sensor_write_register(0x3631,0x8e);
++	}
++	else // u8DgainVal  !=  0
++	{
++		sensor_write_register(0x3630,0x60);
++		sensor_write_register(0x3631,0x8c);
++	}
++#endif
++
++	return;
++}
++
++
++HI_S32 cmos_init_ae_exp_function(AE_SENSOR_EXP_FUNC_S *pstExpFuncs)
++{
++	memset(pstExpFuncs, 0, sizeof(AE_SENSOR_EXP_FUNC_S));
++
++	pstExpFuncs->pfn_cmos_get_ae_default    = cmos_get_ae_default;
++	pstExpFuncs->pfn_cmos_fps_set           = cmos_fps_set;
++	pstExpFuncs->pfn_cmos_slow_framerate_set= cmos_slow_framerate_set;    
++	pstExpFuncs->pfn_cmos_inttime_update    = cmos_inttime_update;
++	pstExpFuncs->pfn_cmos_gains_update      = cmos_gains_update;
++	pstExpFuncs->pfn_cmos_again_calc_table  = cmos_again_calc_table;
++	pstExpFuncs->pfn_cmos_dgain_calc_table  = cmos_dgain_calc_table;
++
++	return 0;
++}
++
++
++/* AWB default parameter and function */
++static AWB_CCM_S g_stAwbCcm =
++{  
++	4850,	 
++	{		
++		0x01B6,  0x80B4,  0x8002,
++		0x805D,  0x01A2,  0x8045,		
++		0x000A,  0x813F,  0x0235	
++	},	
++
++	3160,	 
++	{		
++		0x01B5,  0x8071,  0x8044,		
++		0x808A,  0x01B9,  0x802F,		
++		0x8003,  0x81B5,  0x02B8	
++	},
++
++	2470,	 
++	{			 
++		0x014F,  0x0091,  0x80E0,		 
++		0x8095,  0x01E5,  0x8050,		
++		0x803B,  0x81CF,  0x030A	
++	} 
++
++};
++
++static AWB_AGC_TABLE_S g_stAwbAgcTable =
++{
++	/* bvalid */
++	1,
++
++	/* saturation */  
++	/*1,  2,  4,  8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768*/
++	{0x90,0x90,0x80,0x80,0x70,0x70,0x50,0x50,0x50,0x50,0x50,0x50,0x50,0x50,0x50,0x50}
++};
++
++static HI_S32 cmos_get_awb_default(AWB_SENSOR_DEFAULT_S *pstAwbSnsDft)
++{
++	if (HI_NULL == pstAwbSnsDft)
++	{
++		printf("null pointer when get awb default value!\n");
++		return -1;
++	}
++
++	memset(pstAwbSnsDft, 0, sizeof(AWB_SENSOR_DEFAULT_S));
++
++	pstAwbSnsDft->u16WbRefTemp = 4850;
++	pstAwbSnsDft->au16GainOffset[0] = 0x18b;    
++	pstAwbSnsDft->au16GainOffset[1] = 0x100;    
++	pstAwbSnsDft->au16GainOffset[2] = 0x100;    
++	pstAwbSnsDft->au16GainOffset[3] = 0x171;    
++	pstAwbSnsDft->as32WbPara[0] = 104;    
++	pstAwbSnsDft->as32WbPara[1] = 9;    
++	pstAwbSnsDft->as32WbPara[2] = -143;    
++	pstAwbSnsDft->as32WbPara[3] = 188843;    
++	pstAwbSnsDft->as32WbPara[4] = 128;    
++	pstAwbSnsDft->as32WbPara[5] = -140071;
++
++	memcpy(&pstAwbSnsDft->stCcm, &g_stAwbCcm, sizeof(AWB_CCM_S));
++	memcpy(&pstAwbSnsDft->stAgcTbl, &g_stAwbAgcTable, sizeof(AWB_AGC_TABLE_S));
++
++	return 0;
++}
++
++HI_S32 cmos_init_awb_exp_function(AWB_SENSOR_EXP_FUNC_S *pstExpFuncs)
++{
++	memset(pstExpFuncs, 0, sizeof(AWB_SENSOR_EXP_FUNC_S));
++
++	pstExpFuncs->pfn_cmos_get_awb_default = cmos_get_awb_default;
++
++	return 0;
++}
++
++#define DMNR_CALIB_CARVE_NUM_SC1135 8
++
++float g_coef_calib_sc1135[DMNR_CALIB_CARVE_NUM_SC1135][4] = 
++{	  
++	{100.000000f, 2.000000f, 0.036803f, 2.165183f, }, 	 
++	{200.000000f, 2.301030f, 0.037471f, 2.296438f, },		
++	{400.000000f, 2.602060f, 0.039678f, 2.043633f, },	   
++	{800.000000f, 2.903090f, 0.042475f, 2.152369f, },	  
++	{1592.000000f, 3.201943f, 0.048132f, 1.998313f, },	  
++	{3231.000000f, 3.509337f, 0.054542f, 3.439073f, },	  
++	{6532.000000f, 3.815046f, 0.068091f, 4.175384f, },	  
++	{12477.000000f, 4.096110f, 0.084936f, 5.255723f, },  
++};  
++
++
++
++static ISP_NR_ISO_PARA_TABLE_S g_stNrIsoParaTab[HI_ISP_NR_ISO_LEVEL_MAX] = 
++{
++	//u16Threshold//u8varStrength//u8fixStrength//u8LowFreqSlope	
++	{1500,       160,             256-256,            0 },  //100    //                      //                                                
++	{1500,       120,             256-256,            0 },  //200    // ISO                  // ISO //u8LowFreqSlope
++	{1500,       100,             256-256,            0 },  //400    //{400,  1200, 96,256}, //{400 , 0  }
++{1750,       80,              256-256,            8 },  //800    //{800,  1400, 80,256}, //{600 , 2  }
++{1500,       255,             256-256,            6 },  //1600   //{1600, 1200, 72,256}, //{800 , 8  }
++{1500,       255,             256-256,            0 },  //3200   //{3200, 1200, 64,256}, //{1000, 12 }
++{1375,       255,             256-256,            0 },  //6400   //{6400, 1100, 56,256}, //{1600, 6  }
++{1375,       255,             256-256,            0 },  //12800  //{12000,1100, 48,256}, //{2400, 0  }
++{1375,       255,             256-256,            0 },  //25600  //{36000,1100, 48,256}, //
++{1375,       255,             256-256,            0 },  //51200  //{64000,1100, 96,256}, //
++{1250,       255,             256-256,            0 },  //102400 //{82000,1000,240,256}, //
++{1250,       255,             256-256,            0 },  //204800 //                           //
++{1250,       255,             256-256,            0 },  //409600 //                           //
++{1250,       255,             256-256,            0 },  //819200 //                           //
++{1250,       255,             256-256,            0 },  //1638400//                           //
++{1250,       255,             256-256,            0 },  //3276800//                           //
++	};
++
++static ISP_CMOS_DEMOSAIC_S g_stIspDemosaic =
++{
++	/*For Demosaic*/
++	1, /*bEnable*/			
++	24,/*u16VhLimit*/	
++	40-24,/*u16VhOffset*/
++	24,   /*u16VhSlope*/
++	/*False Color*/
++	1,    /*bFcrEnable*/
++	{ 8, 8, 8, 8, 8, 8, 8, 8, 3, 0, 0, 0, 0, 0, 0, 0},    /*au8FcrStrength[ISP_AUTO_ISO_STENGTH_NUM]*/
++	{24,24,24,24,24,24,24,24,24,24,24,24,24,24,24,24},    /*au8FcrThreshold[ISP_AUTO_ISO_STENGTH_NUM]*/
++	/*For Ahd*/
++	400, /*u16UuSlope*/	
++	{512,512,512,512,512,512,512,  400,  0,0,0,0,0,0,0,0}    /*au16NpOffset[ISP_AUTO_ISO_STENGTH_NUM]*/
++};
++
++static ISP_CMOS_GE_S g_stIspGe =
++{
++	/*For GE*/
++	0,    /*bEnable*/			
++	7,    /*u8Slope*/	
++	7,    /*u8Sensitivity*/
++	4096, /*u16Threshold*/
++	4096, /*u16SensiThreshold*/	
++	{1024,1024,1024,2048,2048,2048,2048,  2048,  2048,2048,2048,2048,2048,2048,2048,2048}    /*au16Strength[ISP_AUTO_ISO_STENGTH_NUM]*/	
++};
++static ISP_CMOS_RGBSHARPEN_S g_stIspRgbSharpen =
++{      
++	{0,	  0,   0,  0,   0,   0,   0,    0,    0,    1,    1,     1,     1,     1,     1,       1},/* enPixSel */
++	{0xf0, 0x70, 0x68, 0x60, 0x50, 0x40, 0x20, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},/*SharpenUD*/ //3.23 wangji
++	{0x80, 0x70, 0x68, 0x60, 0x50, 0x40, 0x20, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},/*SharpenD*/  //3.23 wangji    
++	{0x10, 0x18, 0x20, 0x30, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},/*NoiseThd*/
++	{0x18, 0x2f, 0x18, 0x09, 0x04, 0x07, 0x07, 0x07, 0x8c, 0x8c, 0x8c, 0x8c, 0x8c, 0x8c, 0x8c, 0x8c},/*EdgeThd2*/
++	{0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},/*overshootAmt*/ //3.23 wangji
++	{0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},/*undershootAmt*///3.23 wangji
++};
++
++static ISP_CMOS_UVNR_S g_stIspUVNR = 
++{
++	{1,	  2,   4,   5,    7,   10,   12,    16,    18,    20,     22,     24,     24,     24,      24,      24},  /*UVNRThreshold*/
++	{0,	  0,   0,   0,	  0, 	0,    0,     0,     0,	   1,      1,      2,      2,      2,       2,       2},  /*Coring_lutLimit*/
++	{0,	  0,   0,  16,   34,   34,   34,    34,    34,    34,     34,     34,     34,     34,      34,      34}   /*UVNR_blendRatio*/
++};
++
++static ISP_CMOS_DPC_S g_stCmosDpc = 
++{
++	//0,/*IR_channel*/
++	//0,/*IR_position*/
++	{70,150,240,248,250,252,252,252,252,252,252,252,252,252,252,252},/*au16Strength[16]*/
++	{0,0,0,0,0,0,0,0x30,0x60,0x80,0x80,0x80,0xE5,0xE5,0xE5,0xE5},/*au16BlendRatio[16]*/
++};
++
++
++static ISP_LSC_CABLI_UNI_TABLE_S g_stCmosLscUniTable = 
++{
++	/* Mesh Grid Info: Width */
++	{9, 13, 18, 26, 36, 50, 70, 98},
++	/* Mesh Grid Info: Height */
++	{7, 10, 14, 19, 27, 38, 52, 73},
++};
++
++static ISP_LSC_CABLI_TABLE_S g_stCmosLscTable[HI_ISP_LSC_LIGHT_NUM] = 
++{
++	/* Light Source 1 */
++	{
++		/* AWB RGain */
++		256,
++		/* AWB BGain */
++		256,
++		/* Channel R */
++		{			  20729753, 20475625, 19803352, 18912098, 17664130, 16293035, 14891347, 13689246, 12930767, 13677134, 15061625, 16442373, 17863714, 19143313, 20010332, 20680624, 20976999, 			 
++			20599909, 20343134, 19660232, 18755427, 17544851, 16172300, 14800093, 13574635, 12832091, 13570074, 14934293, 16332060, 17733098, 18991039, 19860580, 20511904, 20767436,				
++			20208349, 19956673, 19307705, 18420453, 17268656, 15897458, 14532107, 13278929, 12594212, 13306470, 14670926, 16044244, 17446842, 18648007, 19527067, 20176807, 20415443,			   
++			19628823, 19424839, 18817960, 17948773, 16813365, 15488425, 14116657, 12866447, 12234518, 12940049, 14243565, 15616572, 17006071, 18153487, 19054249, 19657858, 19878162,			  
++			19026899, 18831565, 18228314, 17336468, 16302621, 14983217, 13628757, 12414377, 11802526, 12487373, 13785204, 15163644, 16458944, 17589755, 18460140, 19075529, 19338956, 			 
++			18220154, 18033335, 17457950, 16652292, 15559202, 14378170, 13037690, 11812883, 11227499, 11894581, 13202904, 14581651, 15810275, 16867914, 17688120, 18348049, 18636999,				
++			17494945, 17318947, 16741179, 15909061, 14913003, 13719674, 12434556, 11237647, 10622726, 11331487, 12630059, 13978024, 15190527, 16201673, 17023466, 17632860, 17849575,			   
++			16849529, 16650217, 16113673, 15301538, 14308232, 13143444, 11900151, 10682279, 10310739, 10793227, 12118061, 13408429, 14629479, 15623785, 16483734, 17088465, 17317738,			  
++			16620310, 16443411, 15884951, 15109372, 14099769, 12931184, 11696948, 10486282, 10000000, 10626951, 11942135, 13192907, 14393226, 15444710, 16248822, 16807886, 17016404, 			 
++			17302495, 17099403, 16523679, 15739863, 14725875, 13552493, 12247115, 11084615, 10616491, 11196226, 12545140, 13806650, 15006697, 16091126, 16923314, 17543906, 17799991,				
++			18351604, 18148048, 17544201, 16700873, 15636118, 14375234, 13051867, 11848321, 11354654, 11996946, 13301544, 14645437, 15938070, 16997859, 17895624, 18523943, 18754279,			   
++			19401906, 19159507, 18504006, 17599144, 16513779, 15172742, 13831907, 12583443, 12015125, 12726510, 14048514, 15496211, 16845061, 17965734, 18941529, 19664833, 19928045,			  
++			20454641, 20235980, 19530141, 18579702, 17407315, 16050275, 14608885, 13319160, 12728874, 13462519, 14802784, 16321315, 17721154, 18923915, 19968376, 20740234, 21034170, 			 
++			21183165, 20954217, 20252501, 19264651, 18047392, 16662679, 15185125, 13844479, 13253423, 14020006, 15380597, 16944396, 18413226, 19673076, 20704707, 21510025, 21831931,				
++			21800685, 21561304, 20780028, 19794323, 18600068, 17185540, 15679698, 14292137, 13697560, 14408074, 15858163, 17468312, 18963870, 20278596, 21337257, 22139223, 22468170,			   
++			22290030, 22017768, 21185319, 20217917, 19022383, 17547570, 16016128, 14630835, 14015254, 14771556, 16207470, 17869474, 19390856, 20714833, 21824340, 22615258, 22945972,			  
++			22479028, 22232858, 21442913, 20424568, 19187098, 17730382, 16160310, 14775285, 14156783, 14964882, 16399515, 18061157, 19583516, 20947561, 22069069, 22829027, 23144250, 		 
++		}, 		
++		/* Channel Gr */
++		{			  20796680, 20612029, 19952339, 18996307, 17762892, 16342160, 14927902, 13762776, 12962272, 13683597, 14973160, 16359638, 17781995, 19017821, 19916316, 20549305, 20844928, 			 
++			20661908, 20455017, 19788584, 18853641, 17644227, 16242224, 14806627, 13644336, 12855560, 13562906, 14860790, 16229247, 17649585, 18869366, 19733444, 20377515, 20658124,				
++			20299235, 20075265, 19424216, 18534460, 17334423, 15954364, 14535953, 13351420, 12607292, 13328247, 14596406, 15946149, 17339236, 18518789, 19346833, 19993358, 20268417,			   
++			19701031, 19527421, 18935280, 18047217, 16882649, 15520048, 14170434, 12921510, 12274525, 12964674, 14228201, 15563970, 16917385, 18024960, 18877852, 19482109, 19717121,			  
++			19036890, 18851572, 18318517, 17503063, 16307351, 15042910, 13693342, 12462943, 11866624, 12520869, 13751756, 15151588, 16418681, 17487872, 18289121, 18927075, 19190927, 			 
++			18223885, 18053038, 17530431, 16710645, 15633200, 14431487, 13103160, 11870129, 11296846, 11921027, 13210691, 14559311, 15762995, 16804518, 17576918, 18177853, 18439525,				
++			17535273, 17345724, 16807882, 15996989, 14998392, 13785021, 12478791, 11277204, 10681604, 11400713, 12670352, 14020565, 15168194, 16110563, 16927655, 17562579, 17827009,			   
++			16799138, 16648313, 16148574, 15361379, 14345322, 13179768, 11921535, 10712040, 10359450, 10822581, 12159804, 13437273, 14617555, 15554967, 16446412, 17045186, 17294947,			  
++			16600000, 16431034, 15919475, 15119301, 14103415, 12959827, 11716192, 10507596, 10000000, 10633937, 11952707, 13185357, 14354097, 15420470, 16173390, 16709906, 16922803, 			 
++			17249426, 17085693, 16534328, 15744799, 14713274, 13567752, 12236481, 11074703, 10629435, 11198537, 12554257, 13796070, 14957570, 16058010, 16863848, 17453821, 17722440,				
++			18323758, 18122442, 17524211, 16654882, 15591621, 14353333, 13027033, 11843041, 11348695, 11992220, 13286766, 14581000, 15858035, 16889517, 17728594, 18379827, 18639294,			   
++			19305609, 19103740, 18466382, 17558947, 16450673, 15116156, 13775170, 12574919, 12006416, 12706999, 13991412, 15412890, 16757970, 17841657, 18793714, 19475632, 19721032,			  
++			20355722, 20148117, 19460133, 18492232, 17354010, 15964139, 14550900, 13282609, 12689352, 13439806, 14735740, 16233710, 17620323, 18780869, 19779157, 20526251, 20810140, 			 
++			21052430, 20857414, 20164246, 19195412, 17957110, 16568152, 15091551, 13808600, 13210159, 13934212, 15262588, 16844563, 18293770, 19511790, 20547740, 21325737, 21635371,				
++			21671111, 21447888, 20735275, 19736640, 18483954, 17051302, 15524257, 14196684, 13628660, 14327017, 15706672, 17355684, 18818427, 20097209, 21201222, 21986964, 22301163,			   
++			22111523, 21875510, 21137881, 20119255, 18855806, 17406338, 15840383, 14470343, 13917120, 14628988, 16023380, 17684820, 19189123, 20503193, 21619648, 22438642, 22797299,			  
++			22286035, 22047524, 21290827, 20279949, 19009305, 17565804, 15986396, 14610066, 14040078, 14808862, 16182708, 17828775, 19326693, 20689403, 21846354, 22629824, 22987323, 		 
++		}, 		
++		/* Channel Gb */
++		{			  20848664, 20601082, 19935743, 18969947, 17814577, 16356322, 14963875, 13784156, 12987988, 13653247, 15005620, 16411670, 17819383, 19098601, 19968659, 20624467, 20871295, 			 
++			20702724, 20456702, 19784054, 18841986, 17662040, 16239407, 14842661, 13643902, 12872006, 13556110, 14888633, 16279228, 17685812, 18924051, 19822729, 20461442, 20708594,				
++			20326292, 20104187, 19442848, 18551123, 17349915, 15952983, 14567089, 13347908, 12630290, 13302716, 14611565, 15992587, 17358083, 18572899, 19455100, 20093337, 20362368,			   
++			19752205, 19560875, 18996375, 18109453, 16907483, 15537144, 14190696, 12900538, 12293299, 12940278, 14203673, 15596425, 16938403, 18115025, 18994000, 19601616, 19811871,			  
++			19091832, 18927919, 18380298, 17542592, 16325979, 15061834, 13696680, 12462971, 11855602, 12519550, 13777755, 15174684, 16435785, 17542024, 18375229, 18974829, 19213251, 			 
++			18311786, 18132065, 17574498, 16750829, 15677036, 14454916, 13122315, 11883966, 11290078, 11920412, 13232928, 14605748, 15854840, 16878664, 17667710, 18257378, 18525422,				
++			17605214, 17436709, 16888497, 16032863, 15026699, 13821683, 12524195, 11287762, 10690757, 11395853, 12688210, 14027153, 15226066, 16211884, 17017153, 17654445, 17888551,			   
++			16871727, 16716431, 16233680, 15413633, 14386301, 13229286, 11945724, 10724996, 10343002, 10838747, 12205346, 13479290, 14668286, 15658678, 16534937, 17160804, 17418194,			  
++			16720147, 16521270, 15968277, 15175472, 14166477, 12989321, 11762858, 10521768, 10000000, 10656556, 11981662, 13221203, 14397400, 15488760, 16270370, 16812530, 17039985, 			 
++			17374324, 17169649, 16564689, 15775768, 14787608, 13596297, 12265881, 11070773, 10624788, 11205856, 12596961, 13822841, 15046228, 16131242, 16962008, 17542105, 17793709,				
++			18358572, 18177196, 17600400, 16705731, 15644035, 14407751, 13049490, 11868293, 11368951, 12012209, 13331741, 14655917, 15934273, 16990999, 17855957, 18534825, 18832689,			   
++			19362648, 19131074, 18498485, 17653214, 16491208, 15152342, 13802443, 12584938, 11995685, 12733094, 14035889, 15480804, 16821691, 17928709, 18865622, 19597064, 19903717,			  
++			20398573, 20194688, 19513032, 18540617, 17347220, 15979431, 14543351, 13271985, 12699858, 13436414, 14759704, 16284394, 17712126, 18881005, 19896104, 20639656, 20948030, 			 
++			21180952, 20926329, 20194635, 19228720, 18014781, 16632525, 15101966, 13804349, 13209016, 13955038, 15294503, 16920818, 18375807, 19613562, 20718819, 21450205, 21701993,				
++			21714900, 21486676, 20770722, 19771899, 18539983, 17057896, 15520031, 14209174, 13616774, 14324113, 15729048, 17401513, 18919667, 20158187, 21314818, 22120684, 22430743,			   
++			22088645, 21861221, 21163423, 20157813, 18901492, 17426107, 15823657, 14488474, 13919998, 14635808, 16071914, 17767692, 19305359, 20600412, 21756764, 22561208, 22854907,			  
++			22260337, 22057020, 21345489, 20364225, 19058870, 17603663, 15976608, 14638064, 14066616, 14802422, 16221302, 17959955, 19470362, 20851927, 21987418, 22806249, 23090950, 		 
++		}, 		
++		/* Channel B */
++		{			  20042148, 19779193, 19172969, 18270590, 17225046, 15925687, 14671152, 13596535, 12839040, 13594736, 14775057, 16027015, 17274753, 18316906, 19146706, 19755674, 19924063, 			 
++			19905624, 19638707, 19016726, 18159800, 17108956, 15817874, 14571261, 13480962, 12731174, 13474939, 14658634, 15905785, 17130716, 18169551, 19006956, 19607343, 19769610,				
++			19579325, 19315516, 18694234, 17875851, 16825870, 15581940, 14319935, 13213853, 12509106, 13208632, 14411382, 15638146, 16854233, 17899261, 18712136, 19275864, 19481788,			   
++			19086712, 18842130, 18266741, 17464437, 16381958, 15207200, 13959845, 12821686, 12190508, 12850784, 14060796, 15284058, 16433186, 17519629, 18301804, 18860445, 19117617,			  
++			18555216, 18323317, 17724094, 16948899, 15886569, 14740598, 13492336, 12386503, 11785610, 12435383, 13632274, 14876456, 15999798, 17024503, 17811247, 18364855, 18569745, 			 
++			17813019, 17586310, 16991558, 16220682, 15271818, 14203200, 12944067, 11835228, 11239478, 11855430, 13095824, 14317312, 15429867, 16459116, 17182539, 17705885, 17927016,				
++			17113335, 16885054, 16338500, 15557477, 14653602, 13574716, 12384126, 11281888, 10666091, 11336881, 12574698, 13765031, 14880205, 15885932, 16574247, 17090724, 17320530,			   
++			16433332, 16226231, 15700753, 15026916, 14096263, 12996269, 11845434, 10704070, 10335470, 10811618, 12067871, 13230487, 14407228, 15336181, 16046526, 16610164, 16854233,			  
++			16226231, 16029145, 15517931, 14803791, 13869826, 12797764, 11650731, 10498565, 10000000, 10623009, 11872704, 13056384, 14210438, 15160213, 15879796, 16348319, 16548249, 			 
++			16862581, 16664084, 16084292, 15352601, 14459522, 13360708, 12168161, 11035391, 10626202, 11206023, 12446316, 13673590, 14786750, 15755091, 16541393, 17065811, 17272602,				
++			17835462, 17598189, 16978509, 16189260, 15257332, 14148086, 12923869, 11781331, 11352118, 11957718, 13153872, 14474306, 15580103, 16570832, 17359650, 17930202, 18143947,			   
++			18649502, 18452363, 17868253, 17051024, 16069341, 14868284, 13632341, 12497049, 12000748, 12637268, 13871699, 15245846, 16424772, 17455482, 18268485, 18852564, 19066645,			  
++			19659580, 19436412, 18783645, 17892335, 16888086, 15637264, 14358469, 13162639, 12660622, 13339126, 14604124, 15999890, 17214627, 18315636, 19187222, 19828311, 20043378, 			 
++			20338020, 20092437, 19387588, 18510714, 17466691, 16221203, 14850141, 13649576, 13123946, 13825423, 15084798, 16520562, 17877406, 18979458, 19878670, 20562597, 20795384,				
++			20805910, 20543415, 19870556, 18961429, 17874124, 16626438, 15225851, 14015623, 13489614, 14186063, 15496438, 16976951, 18307781, 19472764, 20407503, 21054650, 21302293,			   
++			21229762, 20933528, 20235085, 19334494, 18158671, 16955010, 15514504, 14249226, 13746925, 14477667, 15794643, 17284923, 18658845, 19828665, 20807236, 21461627, 21765079,			  
++			21468020, 21134999, 20381794, 19542574, 18318901, 17116080, 15671887, 14373568, 13873502, 14638411, 15961509, 17461249, 18838804, 20014246, 21036931, 21681233, 22034720, 		 
++
++		}, 	
++	},
++
++	/* Light Source 2 */
++	{
++		/* AWB RGain */
++		256,
++		/* AWB BGain */
++		256,
++		/* Channel R */
++		{			  20729753, 20475625, 19803352, 18912098, 17664130, 16293035, 14891347, 13689246, 12930767, 13677134, 15061625, 16442373, 17863714, 19143313, 20010332, 20680624, 20976999, 			 
++			20599909, 20343134, 19660232, 18755427, 17544851, 16172300, 14800093, 13574635, 12832091, 13570074, 14934293, 16332060, 17733098, 18991039, 19860580, 20511904, 20767436,				
++			20208349, 19956673, 19307705, 18420453, 17268656, 15897458, 14532107, 13278929, 12594212, 13306470, 14670926, 16044244, 17446842, 18648007, 19527067, 20176807, 20415443,			   
++			19628823, 19424839, 18817960, 17948773, 16813365, 15488425, 14116657, 12866447, 12234518, 12940049, 14243565, 15616572, 17006071, 18153487, 19054249, 19657858, 19878162,			  
++			19026899, 18831565, 18228314, 17336468, 16302621, 14983217, 13628757, 12414377, 11802526, 12487373, 13785204, 15163644, 16458944, 17589755, 18460140, 19075529, 19338956, 			 
++			18220154, 18033335, 17457950, 16652292, 15559202, 14378170, 13037690, 11812883, 11227499, 11894581, 13202904, 14581651, 15810275, 16867914, 17688120, 18348049, 18636999,				
++			17494945, 17318947, 16741179, 15909061, 14913003, 13719674, 12434556, 11237647, 10622726, 11331487, 12630059, 13978024, 15190527, 16201673, 17023466, 17632860, 17849575,			   
++			16849529, 16650217, 16113673, 15301538, 14308232, 13143444, 11900151, 10682279, 10310739, 10793227, 12118061, 13408429, 14629479, 15623785, 16483734, 17088465, 17317738,			  
++			16620310, 16443411, 15884951, 15109372, 14099769, 12931184, 11696948, 10486282, 10000000, 10626951, 11942135, 13192907, 14393226, 15444710, 16248822, 16807886, 17016404, 			 
++			17302495, 17099403, 16523679, 15739863, 14725875, 13552493, 12247115, 11084615, 10616491, 11196226, 12545140, 13806650, 15006697, 16091126, 16923314, 17543906, 17799991,				
++			18351604, 18148048, 17544201, 16700873, 15636118, 14375234, 13051867, 11848321, 11354654, 11996946, 13301544, 14645437, 15938070, 16997859, 17895624, 18523943, 18754279,			   
++			19401906, 19159507, 18504006, 17599144, 16513779, 15172742, 13831907, 12583443, 12015125, 12726510, 14048514, 15496211, 16845061, 17965734, 18941529, 19664833, 19928045,			  
++			20454641, 20235980, 19530141, 18579702, 17407315, 16050275, 14608885, 13319160, 12728874, 13462519, 14802784, 16321315, 17721154, 18923915, 19968376, 20740234, 21034170, 			 
++			21183165, 20954217, 20252501, 19264651, 18047392, 16662679, 15185125, 13844479, 13253423, 14020006, 15380597, 16944396, 18413226, 19673076, 20704707, 21510025, 21831931,				
++			21800685, 21561304, 20780028, 19794323, 18600068, 17185540, 15679698, 14292137, 13697560, 14408074, 15858163, 17468312, 18963870, 20278596, 21337257, 22139223, 22468170,			   
++			22290030, 22017768, 21185319, 20217917, 19022383, 17547570, 16016128, 14630835, 14015254, 14771556, 16207470, 17869474, 19390856, 20714833, 21824340, 22615258, 22945972,			  
++			22479028, 22232858, 21442913, 20424568, 19187098, 17730382, 16160310, 14775285, 14156783, 14964882, 16399515, 18061157, 19583516, 20947561, 22069069, 22829027, 23144250, 		 
++		}, 		
++		/* Channel Gr */
++		{			  20796680, 20612029, 19952339, 18996307, 17762892, 16342160, 14927902, 13762776, 12962272, 13683597, 14973160, 16359638, 17781995, 19017821, 19916316, 20549305, 20844928, 			 
++			20661908, 20455017, 19788584, 18853641, 17644227, 16242224, 14806627, 13644336, 12855560, 13562906, 14860790, 16229247, 17649585, 18869366, 19733444, 20377515, 20658124,				
++			20299235, 20075265, 19424216, 18534460, 17334423, 15954364, 14535953, 13351420, 12607292, 13328247, 14596406, 15946149, 17339236, 18518789, 19346833, 19993358, 20268417,			   
++			19701031, 19527421, 18935280, 18047217, 16882649, 15520048, 14170434, 12921510, 12274525, 12964674, 14228201, 15563970, 16917385, 18024960, 18877852, 19482109, 19717121,			  
++			19036890, 18851572, 18318517, 17503063, 16307351, 15042910, 13693342, 12462943, 11866624, 12520869, 13751756, 15151588, 16418681, 17487872, 18289121, 18927075, 19190927, 			 
++			18223885, 18053038, 17530431, 16710645, 15633200, 14431487, 13103160, 11870129, 11296846, 11921027, 13210691, 14559311, 15762995, 16804518, 17576918, 18177853, 18439525,				
++			17535273, 17345724, 16807882, 15996989, 14998392, 13785021, 12478791, 11277204, 10681604, 11400713, 12670352, 14020565, 15168194, 16110563, 16927655, 17562579, 17827009,			   
++			16799138, 16648313, 16148574, 15361379, 14345322, 13179768, 11921535, 10712040, 10359450, 10822581, 12159804, 13437273, 14617555, 15554967, 16446412, 17045186, 17294947,			  
++			16600000, 16431034, 15919475, 15119301, 14103415, 12959827, 11716192, 10507596, 10000000, 10633937, 11952707, 13185357, 14354097, 15420470, 16173390, 16709906, 16922803, 			 
++			17249426, 17085693, 16534328, 15744799, 14713274, 13567752, 12236481, 11074703, 10629435, 11198537, 12554257, 13796070, 14957570, 16058010, 16863848, 17453821, 17722440,				
++			18323758, 18122442, 17524211, 16654882, 15591621, 14353333, 13027033, 11843041, 11348695, 11992220, 13286766, 14581000, 15858035, 16889517, 17728594, 18379827, 18639294,			   
++			19305609, 19103740, 18466382, 17558947, 16450673, 15116156, 13775170, 12574919, 12006416, 12706999, 13991412, 15412890, 16757970, 17841657, 18793714, 19475632, 19721032,			  
++			20355722, 20148117, 19460133, 18492232, 17354010, 15964139, 14550900, 13282609, 12689352, 13439806, 14735740, 16233710, 17620323, 18780869, 19779157, 20526251, 20810140, 			 
++			21052430, 20857414, 20164246, 19195412, 17957110, 16568152, 15091551, 13808600, 13210159, 13934212, 15262588, 16844563, 18293770, 19511790, 20547740, 21325737, 21635371,				
++			21671111, 21447888, 20735275, 19736640, 18483954, 17051302, 15524257, 14196684, 13628660, 14327017, 15706672, 17355684, 18818427, 20097209, 21201222, 21986964, 22301163,			   
++			22111523, 21875510, 21137881, 20119255, 18855806, 17406338, 15840383, 14470343, 13917120, 14628988, 16023380, 17684820, 19189123, 20503193, 21619648, 22438642, 22797299,			  
++			22286035, 22047524, 21290827, 20279949, 19009305, 17565804, 15986396, 14610066, 14040078, 14808862, 16182708, 17828775, 19326693, 20689403, 21846354, 22629824, 22987323, 		 
++		}, 		
++		/* Channel Gb */
++		{			  20848664, 20601082, 19935743, 18969947, 17814577, 16356322, 14963875, 13784156, 12987988, 13653247, 15005620, 16411670, 17819383, 19098601, 19968659, 20624467, 20871295, 			 
++			20702724, 20456702, 19784054, 18841986, 17662040, 16239407, 14842661, 13643902, 12872006, 13556110, 14888633, 16279228, 17685812, 18924051, 19822729, 20461442, 20708594,				
++			20326292, 20104187, 19442848, 18551123, 17349915, 15952983, 14567089, 13347908, 12630290, 13302716, 14611565, 15992587, 17358083, 18572899, 19455100, 20093337, 20362368,			   
++			19752205, 19560875, 18996375, 18109453, 16907483, 15537144, 14190696, 12900538, 12293299, 12940278, 14203673, 15596425, 16938403, 18115025, 18994000, 19601616, 19811871,			  
++			19091832, 18927919, 18380298, 17542592, 16325979, 15061834, 13696680, 12462971, 11855602, 12519550, 13777755, 15174684, 16435785, 17542024, 18375229, 18974829, 19213251, 			 
++			18311786, 18132065, 17574498, 16750829, 15677036, 14454916, 13122315, 11883966, 11290078, 11920412, 13232928, 14605748, 15854840, 16878664, 17667710, 18257378, 18525422,				
++			17605214, 17436709, 16888497, 16032863, 15026699, 13821683, 12524195, 11287762, 10690757, 11395853, 12688210, 14027153, 15226066, 16211884, 17017153, 17654445, 17888551,			   
++			16871727, 16716431, 16233680, 15413633, 14386301, 13229286, 11945724, 10724996, 10343002, 10838747, 12205346, 13479290, 14668286, 15658678, 16534937, 17160804, 17418194,			  
++			16720147, 16521270, 15968277, 15175472, 14166477, 12989321, 11762858, 10521768, 10000000, 10656556, 11981662, 13221203, 14397400, 15488760, 16270370, 16812530, 17039985, 			 
++			17374324, 17169649, 16564689, 15775768, 14787608, 13596297, 12265881, 11070773, 10624788, 11205856, 12596961, 13822841, 15046228, 16131242, 16962008, 17542105, 17793709,				
++			18358572, 18177196, 17600400, 16705731, 15644035, 14407751, 13049490, 11868293, 11368951, 12012209, 13331741, 14655917, 15934273, 16990999, 17855957, 18534825, 18832689,			   
++			19362648, 19131074, 18498485, 17653214, 16491208, 15152342, 13802443, 12584938, 11995685, 12733094, 14035889, 15480804, 16821691, 17928709, 18865622, 19597064, 19903717,			  
++			20398573, 20194688, 19513032, 18540617, 17347220, 15979431, 14543351, 13271985, 12699858, 13436414, 14759704, 16284394, 17712126, 18881005, 19896104, 20639656, 20948030, 			 
++			21180952, 20926329, 20194635, 19228720, 18014781, 16632525, 15101966, 13804349, 13209016, 13955038, 15294503, 16920818, 18375807, 19613562, 20718819, 21450205, 21701993,				
++			21714900, 21486676, 20770722, 19771899, 18539983, 17057896, 15520031, 14209174, 13616774, 14324113, 15729048, 17401513, 18919667, 20158187, 21314818, 22120684, 22430743,			   
++			22088645, 21861221, 21163423, 20157813, 18901492, 17426107, 15823657, 14488474, 13919998, 14635808, 16071914, 17767692, 19305359, 20600412, 21756764, 22561208, 22854907,			  
++			22260337, 22057020, 21345489, 20364225, 19058870, 17603663, 15976608, 14638064, 14066616, 14802422, 16221302, 17959955, 19470362, 20851927, 21987418, 22806249, 23090950, 		 
++		}, 		
++		/* Channel B */
++		{			  20042148, 19779193, 19172969, 18270590, 17225046, 15925687, 14671152, 13596535, 12839040, 13594736, 14775057, 16027015, 17274753, 18316906, 19146706, 19755674, 19924063, 			 
++			19905624, 19638707, 19016726, 18159800, 17108956, 15817874, 14571261, 13480962, 12731174, 13474939, 14658634, 15905785, 17130716, 18169551, 19006956, 19607343, 19769610,				
++			19579325, 19315516, 18694234, 17875851, 16825870, 15581940, 14319935, 13213853, 12509106, 13208632, 14411382, 15638146, 16854233, 17899261, 18712136, 19275864, 19481788,			   
++			19086712, 18842130, 18266741, 17464437, 16381958, 15207200, 13959845, 12821686, 12190508, 12850784, 14060796, 15284058, 16433186, 17519629, 18301804, 18860445, 19117617,			  
++			18555216, 18323317, 17724094, 16948899, 15886569, 14740598, 13492336, 12386503, 11785610, 12435383, 13632274, 14876456, 15999798, 17024503, 17811247, 18364855, 18569745, 			 
++			17813019, 17586310, 16991558, 16220682, 15271818, 14203200, 12944067, 11835228, 11239478, 11855430, 13095824, 14317312, 15429867, 16459116, 17182539, 17705885, 17927016,				
++			17113335, 16885054, 16338500, 15557477, 14653602, 13574716, 12384126, 11281888, 10666091, 11336881, 12574698, 13765031, 14880205, 15885932, 16574247, 17090724, 17320530,			   
++			16433332, 16226231, 15700753, 15026916, 14096263, 12996269, 11845434, 10704070, 10335470, 10811618, 12067871, 13230487, 14407228, 15336181, 16046526, 16610164, 16854233,			  
++			16226231, 16029145, 15517931, 14803791, 13869826, 12797764, 11650731, 10498565, 10000000, 10623009, 11872704, 13056384, 14210438, 15160213, 15879796, 16348319, 16548249, 			 
++			16862581, 16664084, 16084292, 15352601, 14459522, 13360708, 12168161, 11035391, 10626202, 11206023, 12446316, 13673590, 14786750, 15755091, 16541393, 17065811, 17272602,				
++			17835462, 17598189, 16978509, 16189260, 15257332, 14148086, 12923869, 11781331, 11352118, 11957718, 13153872, 14474306, 15580103, 16570832, 17359650, 17930202, 18143947,			   
++			18649502, 18452363, 17868253, 17051024, 16069341, 14868284, 13632341, 12497049, 12000748, 12637268, 13871699, 15245846, 16424772, 17455482, 18268485, 18852564, 19066645,			  
++			19659580, 19436412, 18783645, 17892335, 16888086, 15637264, 14358469, 13162639, 12660622, 13339126, 14604124, 15999890, 17214627, 18315636, 19187222, 19828311, 20043378, 			 
++			20338020, 20092437, 19387588, 18510714, 17466691, 16221203, 14850141, 13649576, 13123946, 13825423, 15084798, 16520562, 17877406, 18979458, 19878670, 20562597, 20795384,				
++			20805910, 20543415, 19870556, 18961429, 17874124, 16626438, 15225851, 14015623, 13489614, 14186063, 15496438, 16976951, 18307781, 19472764, 20407503, 21054650, 21302293,			   
++			21229762, 20933528, 20235085, 19334494, 18158671, 16955010, 15514504, 14249226, 13746925, 14477667, 15794643, 17284923, 18658845, 19828665, 20807236, 21461627, 21765079,			  
++			21468020, 21134999, 20381794, 19542574, 18318901, 17116080, 15671887, 14373568, 13873502, 14638411, 15961509, 17461249, 18838804, 20014246, 21036931, 21681233, 22034720, 		 
++
++		}, 	
++	},
++
++
++	/* Light Source 3 */
++	{
++		/* AWB RGain */
++		256,
++		/* AWB BGain */
++		256,
++		/* Channel R */
++		{			  20729753, 20475625, 19803352, 18912098, 17664130, 16293035, 14891347, 13689246, 12930767, 13677134, 15061625, 16442373, 17863714, 19143313, 20010332, 20680624, 20976999, 			 
++			20599909, 20343134, 19660232, 18755427, 17544851, 16172300, 14800093, 13574635, 12832091, 13570074, 14934293, 16332060, 17733098, 18991039, 19860580, 20511904, 20767436,				
++			20208349, 19956673, 19307705, 18420453, 17268656, 15897458, 14532107, 13278929, 12594212, 13306470, 14670926, 16044244, 17446842, 18648007, 19527067, 20176807, 20415443,			   
++			19628823, 19424839, 18817960, 17948773, 16813365, 15488425, 14116657, 12866447, 12234518, 12940049, 14243565, 15616572, 17006071, 18153487, 19054249, 19657858, 19878162,			  
++			19026899, 18831565, 18228314, 17336468, 16302621, 14983217, 13628757, 12414377, 11802526, 12487373, 13785204, 15163644, 16458944, 17589755, 18460140, 19075529, 19338956, 			 
++			18220154, 18033335, 17457950, 16652292, 15559202, 14378170, 13037690, 11812883, 11227499, 11894581, 13202904, 14581651, 15810275, 16867914, 17688120, 18348049, 18636999,				
++			17494945, 17318947, 16741179, 15909061, 14913003, 13719674, 12434556, 11237647, 10622726, 11331487, 12630059, 13978024, 15190527, 16201673, 17023466, 17632860, 17849575,			   
++			16849529, 16650217, 16113673, 15301538, 14308232, 13143444, 11900151, 10682279, 10310739, 10793227, 12118061, 13408429, 14629479, 15623785, 16483734, 17088465, 17317738,			  
++			16620310, 16443411, 15884951, 15109372, 14099769, 12931184, 11696948, 10486282, 10000000, 10626951, 11942135, 13192907, 14393226, 15444710, 16248822, 16807886, 17016404, 			 
++			17302495, 17099403, 16523679, 15739863, 14725875, 13552493, 12247115, 11084615, 10616491, 11196226, 12545140, 13806650, 15006697, 16091126, 16923314, 17543906, 17799991,				
++			18351604, 18148048, 17544201, 16700873, 15636118, 14375234, 13051867, 11848321, 11354654, 11996946, 13301544, 14645437, 15938070, 16997859, 17895624, 18523943, 18754279,			   
++			19401906, 19159507, 18504006, 17599144, 16513779, 15172742, 13831907, 12583443, 12015125, 12726510, 14048514, 15496211, 16845061, 17965734, 18941529, 19664833, 19928045,			  
++			20454641, 20235980, 19530141, 18579702, 17407315, 16050275, 14608885, 13319160, 12728874, 13462519, 14802784, 16321315, 17721154, 18923915, 19968376, 20740234, 21034170, 			 
++			21183165, 20954217, 20252501, 19264651, 18047392, 16662679, 15185125, 13844479, 13253423, 14020006, 15380597, 16944396, 18413226, 19673076, 20704707, 21510025, 21831931,				
++			21800685, 21561304, 20780028, 19794323, 18600068, 17185540, 15679698, 14292137, 13697560, 14408074, 15858163, 17468312, 18963870, 20278596, 21337257, 22139223, 22468170,			   
++			22290030, 22017768, 21185319, 20217917, 19022383, 17547570, 16016128, 14630835, 14015254, 14771556, 16207470, 17869474, 19390856, 20714833, 21824340, 22615258, 22945972,			  
++			22479028, 22232858, 21442913, 20424568, 19187098, 17730382, 16160310, 14775285, 14156783, 14964882, 16399515, 18061157, 19583516, 20947561, 22069069, 22829027, 23144250, 		 
++		}, 		
++		/* Channel Gr */
++		{			  20796680, 20612029, 19952339, 18996307, 17762892, 16342160, 14927902, 13762776, 12962272, 13683597, 14973160, 16359638, 17781995, 19017821, 19916316, 20549305, 20844928, 			 
++			20661908, 20455017, 19788584, 18853641, 17644227, 16242224, 14806627, 13644336, 12855560, 13562906, 14860790, 16229247, 17649585, 18869366, 19733444, 20377515, 20658124,				
++			20299235, 20075265, 19424216, 18534460, 17334423, 15954364, 14535953, 13351420, 12607292, 13328247, 14596406, 15946149, 17339236, 18518789, 19346833, 19993358, 20268417,			   
++			19701031, 19527421, 18935280, 18047217, 16882649, 15520048, 14170434, 12921510, 12274525, 12964674, 14228201, 15563970, 16917385, 18024960, 18877852, 19482109, 19717121,			  
++			19036890, 18851572, 18318517, 17503063, 16307351, 15042910, 13693342, 12462943, 11866624, 12520869, 13751756, 15151588, 16418681, 17487872, 18289121, 18927075, 19190927, 			 
++			18223885, 18053038, 17530431, 16710645, 15633200, 14431487, 13103160, 11870129, 11296846, 11921027, 13210691, 14559311, 15762995, 16804518, 17576918, 18177853, 18439525,				
++			17535273, 17345724, 16807882, 15996989, 14998392, 13785021, 12478791, 11277204, 10681604, 11400713, 12670352, 14020565, 15168194, 16110563, 16927655, 17562579, 17827009,			   
++			16799138, 16648313, 16148574, 15361379, 14345322, 13179768, 11921535, 10712040, 10359450, 10822581, 12159804, 13437273, 14617555, 15554967, 16446412, 17045186, 17294947,			  
++			16600000, 16431034, 15919475, 15119301, 14103415, 12959827, 11716192, 10507596, 10000000, 10633937, 11952707, 13185357, 14354097, 15420470, 16173390, 16709906, 16922803, 			 
++			17249426, 17085693, 16534328, 15744799, 14713274, 13567752, 12236481, 11074703, 10629435, 11198537, 12554257, 13796070, 14957570, 16058010, 16863848, 17453821, 17722440,				
++			18323758, 18122442, 17524211, 16654882, 15591621, 14353333, 13027033, 11843041, 11348695, 11992220, 13286766, 14581000, 15858035, 16889517, 17728594, 18379827, 18639294,			   
++			19305609, 19103740, 18466382, 17558947, 16450673, 15116156, 13775170, 12574919, 12006416, 12706999, 13991412, 15412890, 16757970, 17841657, 18793714, 19475632, 19721032,			  
++			20355722, 20148117, 19460133, 18492232, 17354010, 15964139, 14550900, 13282609, 12689352, 13439806, 14735740, 16233710, 17620323, 18780869, 19779157, 20526251, 20810140, 			 
++			21052430, 20857414, 20164246, 19195412, 17957110, 16568152, 15091551, 13808600, 13210159, 13934212, 15262588, 16844563, 18293770, 19511790, 20547740, 21325737, 21635371,				
++			21671111, 21447888, 20735275, 19736640, 18483954, 17051302, 15524257, 14196684, 13628660, 14327017, 15706672, 17355684, 18818427, 20097209, 21201222, 21986964, 22301163,			   
++			22111523, 21875510, 21137881, 20119255, 18855806, 17406338, 15840383, 14470343, 13917120, 14628988, 16023380, 17684820, 19189123, 20503193, 21619648, 22438642, 22797299,			  
++			22286035, 22047524, 21290827, 20279949, 19009305, 17565804, 15986396, 14610066, 14040078, 14808862, 16182708, 17828775, 19326693, 20689403, 21846354, 22629824, 22987323, 		 
++		}, 		
++		/* Channel Gb */
++		{			  20848664, 20601082, 19935743, 18969947, 17814577, 16356322, 14963875, 13784156, 12987988, 13653247, 15005620, 16411670, 17819383, 19098601, 19968659, 20624467, 20871295, 			 
++			20702724, 20456702, 19784054, 18841986, 17662040, 16239407, 14842661, 13643902, 12872006, 13556110, 14888633, 16279228, 17685812, 18924051, 19822729, 20461442, 20708594,				
++			20326292, 20104187, 19442848, 18551123, 17349915, 15952983, 14567089, 13347908, 12630290, 13302716, 14611565, 15992587, 17358083, 18572899, 19455100, 20093337, 20362368,			   
++			19752205, 19560875, 18996375, 18109453, 16907483, 15537144, 14190696, 12900538, 12293299, 12940278, 14203673, 15596425, 16938403, 18115025, 18994000, 19601616, 19811871,			  
++			19091832, 18927919, 18380298, 17542592, 16325979, 15061834, 13696680, 12462971, 11855602, 12519550, 13777755, 15174684, 16435785, 17542024, 18375229, 18974829, 19213251, 			 
++			18311786, 18132065, 17574498, 16750829, 15677036, 14454916, 13122315, 11883966, 11290078, 11920412, 13232928, 14605748, 15854840, 16878664, 17667710, 18257378, 18525422,				
++			17605214, 17436709, 16888497, 16032863, 15026699, 13821683, 12524195, 11287762, 10690757, 11395853, 12688210, 14027153, 15226066, 16211884, 17017153, 17654445, 17888551,			   
++			16871727, 16716431, 16233680, 15413633, 14386301, 13229286, 11945724, 10724996, 10343002, 10838747, 12205346, 13479290, 14668286, 15658678, 16534937, 17160804, 17418194,			  
++			16720147, 16521270, 15968277, 15175472, 14166477, 12989321, 11762858, 10521768, 10000000, 10656556, 11981662, 13221203, 14397400, 15488760, 16270370, 16812530, 17039985, 			 
++			17374324, 17169649, 16564689, 15775768, 14787608, 13596297, 12265881, 11070773, 10624788, 11205856, 12596961, 13822841, 15046228, 16131242, 16962008, 17542105, 17793709,				
++			18358572, 18177196, 17600400, 16705731, 15644035, 14407751, 13049490, 11868293, 11368951, 12012209, 13331741, 14655917, 15934273, 16990999, 17855957, 18534825, 18832689,			   
++			19362648, 19131074, 18498485, 17653214, 16491208, 15152342, 13802443, 12584938, 11995685, 12733094, 14035889, 15480804, 16821691, 17928709, 18865622, 19597064, 19903717,			  
++			20398573, 20194688, 19513032, 18540617, 17347220, 15979431, 14543351, 13271985, 12699858, 13436414, 14759704, 16284394, 17712126, 18881005, 19896104, 20639656, 20948030, 			 
++			21180952, 20926329, 20194635, 19228720, 18014781, 16632525, 15101966, 13804349, 13209016, 13955038, 15294503, 16920818, 18375807, 19613562, 20718819, 21450205, 21701993,				
++			21714900, 21486676, 20770722, 19771899, 18539983, 17057896, 15520031, 14209174, 13616774, 14324113, 15729048, 17401513, 18919667, 20158187, 21314818, 22120684, 22430743,			   
++			22088645, 21861221, 21163423, 20157813, 18901492, 17426107, 15823657, 14488474, 13919998, 14635808, 16071914, 17767692, 19305359, 20600412, 21756764, 22561208, 22854907,			  
++			22260337, 22057020, 21345489, 20364225, 19058870, 17603663, 15976608, 14638064, 14066616, 14802422, 16221302, 17959955, 19470362, 20851927, 21987418, 22806249, 23090950, 		 
++		}, 		
++		/* Channel B */
++		{			  20042148, 19779193, 19172969, 18270590, 17225046, 15925687, 14671152, 13596535, 12839040, 13594736, 14775057, 16027015, 17274753, 18316906, 19146706, 19755674, 19924063, 			 
++			19905624, 19638707, 19016726, 18159800, 17108956, 15817874, 14571261, 13480962, 12731174, 13474939, 14658634, 15905785, 17130716, 18169551, 19006956, 19607343, 19769610,				
++			19579325, 19315516, 18694234, 17875851, 16825870, 15581940, 14319935, 13213853, 12509106, 13208632, 14411382, 15638146, 16854233, 17899261, 18712136, 19275864, 19481788,			   
++			19086712, 18842130, 18266741, 17464437, 16381958, 15207200, 13959845, 12821686, 12190508, 12850784, 14060796, 15284058, 16433186, 17519629, 18301804, 18860445, 19117617,			  
++			18555216, 18323317, 17724094, 16948899, 15886569, 14740598, 13492336, 12386503, 11785610, 12435383, 13632274, 14876456, 15999798, 17024503, 17811247, 18364855, 18569745, 			 
++			17813019, 17586310, 16991558, 16220682, 15271818, 14203200, 12944067, 11835228, 11239478, 11855430, 13095824, 14317312, 15429867, 16459116, 17182539, 17705885, 17927016,				
++			17113335, 16885054, 16338500, 15557477, 14653602, 13574716, 12384126, 11281888, 10666091, 11336881, 12574698, 13765031, 14880205, 15885932, 16574247, 17090724, 17320530,			   
++			16433332, 16226231, 15700753, 15026916, 14096263, 12996269, 11845434, 10704070, 10335470, 10811618, 12067871, 13230487, 14407228, 15336181, 16046526, 16610164, 16854233,			  
++			16226231, 16029145, 15517931, 14803791, 13869826, 12797764, 11650731, 10498565, 10000000, 10623009, 11872704, 13056384, 14210438, 15160213, 15879796, 16348319, 16548249, 			 
++			16862581, 16664084, 16084292, 15352601, 14459522, 13360708, 12168161, 11035391, 10626202, 11206023, 12446316, 13673590, 14786750, 15755091, 16541393, 17065811, 17272602,				
++			17835462, 17598189, 16978509, 16189260, 15257332, 14148086, 12923869, 11781331, 11352118, 11957718, 13153872, 14474306, 15580103, 16570832, 17359650, 17930202, 18143947,			   
++			18649502, 18452363, 17868253, 17051024, 16069341, 14868284, 13632341, 12497049, 12000748, 12637268, 13871699, 15245846, 16424772, 17455482, 18268485, 18852564, 19066645,			  
++			19659580, 19436412, 18783645, 17892335, 16888086, 15637264, 14358469, 13162639, 12660622, 13339126, 14604124, 15999890, 17214627, 18315636, 19187222, 19828311, 20043378, 			 
++			20338020, 20092437, 19387588, 18510714, 17466691, 16221203, 14850141, 13649576, 13123946, 13825423, 15084798, 16520562, 17877406, 18979458, 19878670, 20562597, 20795384,				
++			20805910, 20543415, 19870556, 18961429, 17874124, 16626438, 15225851, 14015623, 13489614, 14186063, 15496438, 16976951, 18307781, 19472764, 20407503, 21054650, 21302293,			   
++			21229762, 20933528, 20235085, 19334494, 18158671, 16955010, 15514504, 14249226, 13746925, 14477667, 15794643, 17284923, 18658845, 19828665, 20807236, 21461627, 21765079,			  
++			21468020, 21134999, 20381794, 19542574, 18318901, 17116080, 15671887, 14373568, 13873502, 14638411, 15961509, 17461249, 18838804, 20014246, 21036931, 21681233, 22034720, 		 
++
++		}, 	
++	},
++
++};
++
++
++
++static ISP_CMOS_DRC_S g_stIspDrc =
++{
++	0,
++	10,
++	0,
++	2,
++	192,
++	60,
++	0,
++	0,
++	0,
++	{1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024,1024}
++};
++
++HI_U32 cmos_get_isp_default(ISP_CMOS_DEFAULT_S *pstDef)
++{   
++	if (HI_NULL == pstDef)
++	{
++		printf("null pointer when get isp default value!\n");
++		return -1;
++	}
++
++	memset(pstDef, 0, sizeof(ISP_CMOS_DEFAULT_S));
++
++
++	memcpy(&pstDef->stLsc.stLscUniParaTable, &g_stCmosLscUniTable, sizeof(ISP_LSC_CABLI_UNI_TABLE_S));
++	memcpy(&pstDef->stLsc.stLscParaTable[0], &g_stCmosLscTable[0], sizeof(ISP_LSC_CABLI_TABLE_S)*HI_ISP_LSC_LIGHT_NUM);  
++	memcpy(&pstDef->stDrc, &g_stIspDrc, sizeof(ISP_CMOS_DRC_S));
++	memcpy(&pstDef->stDemosaic, &g_stIspDemosaic, sizeof(ISP_CMOS_DEMOSAIC_S));
++	memcpy(&pstDef->stGe, &g_stIspGe, sizeof(ISP_CMOS_GE_S));	
++
++	pstDef->stNoiseTbl.stNrCaliPara.u8CalicoefRow = DMNR_CALIB_CARVE_NUM_SC1135;
++	pstDef->stNoiseTbl.stNrCaliPara.pCalibcoef    = (HI_FLOAT (*)[4])g_coef_calib_sc1135;
++	memcpy(&pstDef->stNoiseTbl.stIsoParaTable[0], &g_stNrIsoParaTab[0],sizeof(ISP_NR_ISO_PARA_TABLE_S)*HI_ISP_NR_ISO_LEVEL_MAX);
++
++	memcpy(&pstDef->stRgbSharpen, &g_stIspRgbSharpen, sizeof(ISP_CMOS_RGBSHARPEN_S));
++	memcpy(&pstDef->stUvnr,       &g_stIspUVNR,       sizeof(ISP_CMOS_UVNR_S));
++	memcpy(&pstDef->stDpc,       &g_stCmosDpc,       sizeof(ISP_CMOS_DPC_S));
++
++	pstDef->stSensorMaxResolution.u32MaxWidth  = 1280;
++	pstDef->stSensorMaxResolution.u32MaxHeight = 720;
++
++	return 0;
++}
++
++
++HI_U32 cmos_get_isp_black_level(ISP_CMOS_BLACK_LEVEL_S *pstBlackLevel)
++{
++	// HI_S32  i;
++
++	if (HI_NULL == pstBlackLevel)
++	{
++		printf("null pointer when get isp black level value!\n");
++		return -1;
++	}
++
++	/* Don't need to update black level when iso change */
++	pstBlackLevel->bUpdate = HI_FALSE;
++
++	pstBlackLevel->au16BlackLevel[0] = 193;
++	pstBlackLevel->au16BlackLevel[1] = 193;
++	pstBlackLevel->au16BlackLevel[2] = 193;
++	pstBlackLevel->au16BlackLevel[3] = 193;
++
++	return 0;  
++
++}
++
++HI_VOID cmos_set_pixel_detect(HI_BOOL bEnable)
++{
++	HI_U32 u32Lines = VMAX_720P30_LINEAR * 30 /5;
++
++#if CMOS_SC1135_ISP_WRITE_SENSOR_ENABLE
++	if (bEnable) /* setup for ISP pixel calibration mode */
++	{
++		/* 5 fps */
++		sensor_write_register(0x320e, (u32Lines >> 4) && 0xFF);
++		sensor_write_register(0x320f, ((u32Lines<<4)&&0xF0));
++
++	}
++	else /* setup for ISP 'normal mode' */
++	{ 
++		sensor_write_register(0x320e, (gu32FullLinesStd >> 8) && 0XFF);
++		sensor_write_register(0x320f, gu32FullLinesStd && 0xFF);
++
++		bInit = HI_FALSE;
++	}
++#else
++	if (bEnable) /* setup for ISP pixel calibration mode */
++	{
++
++		sensor_write_register(0x3e01, (u32Lines >> 8) && 0xFF);
++		sensor_write_register(0x3e02, (u32Lines - 4) && 0xFF);
++
++		/* min gain */
++		sensor_write_register(0x3e0e, 0x00);
++		sensor_write_register(0x3e0f, 0x00);
++
++		/* 5 fps */
++		sensor_write_register(0x320e, (u32Lines >> 8) && 0xFF);
++		sensor_write_register(0x320f, u32Lines && 0xFF);
++	}
++	else /* setup for ISP 'normal mode' */
++	{ 
++		sensor_write_register(0x320e, (gu32FullLinesStd >> 8) && 0XFF);
++		sensor_write_register(0x320f, gu32FullLinesStd && 0xFF);
++
++		bInit = HI_FALSE;
++	}
++#endif
++
++	return;
++}
++
++HI_VOID cmos_set_wdr_mode(HI_U8 u8Mode)
++{
++	bInit = HI_FALSE;
++
++	switch(u8Mode)
++	{
++		case WDR_MODE_NONE:
++			if (SENSOR_720P_30FPS_MODE == gu8SensorImageMode)
++			{
++				gu32FullLinesStd = VMAX_720P30_LINEAR;
++			}
++			genSensorMode = WDR_MODE_NONE;
++			printf("linear mode\n");
++			break;
++		default:
++			printf("NOT support this mode!\n");
++			return;
++			break;
++	}
++	return;
++}
++
++HI_U32 cmos_get_sns_regs_info(ISP_SNS_REGS_INFO_S *pstSnsRegsInfo)
++{
++
++#if CMOS_SC1135_ISP_WRITE_SENSOR_ENABLE
++
++	HI_S32 i;
++
++	if (HI_FALSE == bInit)
++	{
++		g_stSnsRegsInfo.enSnsType = ISP_SNS_I2C_TYPE;
++		g_stSnsRegsInfo.u8Cfg2ValidDelayMax = 2;		
++		g_stSnsRegsInfo.u32RegNum = 6;
++
++		for (i=0; i<g_stSnsRegsInfo.u32RegNum; i++)
++		{	
++			g_stSnsRegsInfo.astI2cData[i].bUpdate = HI_TRUE;
++			g_stSnsRegsInfo.astI2cData[i].u8DevAddr = sensor_i2c_addr;
++			g_stSnsRegsInfo.astI2cData[i].u32AddrByteNum = sensor_addr_byte;
++			g_stSnsRegsInfo.astI2cData[i].u32DataByteNum = sensor_data_byte;
++		}		
++		g_stSnsRegsInfo.astI2cData[0].u8DelayFrmNum = 2;
++		g_stSnsRegsInfo.astI2cData[0].u32RegAddr = 0x3e01;     //exp high  bit[7:0] 
++		g_stSnsRegsInfo.astI2cData[1].u8DelayFrmNum = 2;
++		g_stSnsRegsInfo.astI2cData[1].u32RegAddr = 0x3e02;     //exp low  bit[7:4] 
++		g_stSnsRegsInfo.astI2cData[2].u8DelayFrmNum = 2;
++		g_stSnsRegsInfo.astI2cData[2].u32RegAddr = 0x3e08;     //digita agin[6:5];    coarse analog again[4:2]
++		g_stSnsRegsInfo.astI2cData[3].u8DelayFrmNum = 2;
++		g_stSnsRegsInfo.astI2cData[3].u32RegAddr = 0x3e09;     //fine analog again[4:0]
++
++		g_stSnsRegsInfo.astI2cData[4].u8DelayFrmNum = 0;
++		g_stSnsRegsInfo.astI2cData[4].u32RegAddr = 0x320e;     //TIMING_VTS  high bit[7:0] 
++		g_stSnsRegsInfo.astI2cData[5].u8DelayFrmNum = 0;
++		g_stSnsRegsInfo.astI2cData[5].u32RegAddr = 0x320f;     //TIMING_VTS  low bit[7:0] 
++
++
++		bInit = HI_TRUE;
++	}
++	else    
++	{        
++		for (i=0; i<g_stSnsRegsInfo.u32RegNum; i++)        
++		{            
++			if (g_stSnsRegsInfo.astI2cData[i].u32Data == g_stPreSnsRegsInfo.astI2cData[i].u32Data)            
++			{                
++				g_stSnsRegsInfo.astI2cData[i].bUpdate = HI_TRUE;
++			}            
++			else            
++			{
++				g_stSnsRegsInfo.astI2cData[i].bUpdate = HI_TRUE;
++			}        
++		}    
++	}
++
++	if (HI_NULL == pstSnsRegsInfo)
++	{
++		printf("null pointer when get sns reg info!\n");
++		return -1;
++	}
++
++	memcpy(pstSnsRegsInfo, &g_stSnsRegsInfo, sizeof(ISP_SNS_REGS_INFO_S)); 
++	memcpy(&g_stPreSnsRegsInfo, &g_stSnsRegsInfo, sizeof(ISP_SNS_REGS_INFO_S)); 
++#endif
++	return 0;
++}
++
++static HI_S32 cmos_set_image_mode(ISP_CMOS_SENSOR_IMAGE_MODE_S *pstSensorImageMode)
++{
++	HI_U8 u8SensorImageMode = gu8SensorImageMode;
++
++	bInit = HI_FALSE;
++
++	if (HI_NULL == pstSensorImageMode )
++	{
++		printf("null pointer when set image mode\n");
++		return -1;
++	}
++
++	if ((pstSensorImageMode->u16Width <= 1280) && (pstSensorImageMode->u16Height <= 960))
++	{
++		if (WDR_MODE_NONE == genSensorMode)
++		{
++			if (pstSensorImageMode->f32Fps <= 30)
++			{
++				u8SensorImageMode = SENSOR_720P_30FPS_MODE;
++			}
++			else
++			{
++				printf("Not support! Width:%d, Height:%d, Fps:%f, WDRMode:%d\n", 
++						pstSensorImageMode->u16Width, 
++						pstSensorImageMode->u16Height,
++						pstSensorImageMode->f32Fps,
++						genSensorMode);
++
++				return -1;
++			}
++		}
++		else
++		{
++			printf("Not support! Width:%d, Height:%d, Fps:%f, WDRMode:%d\n", 
++					pstSensorImageMode->u16Width, 
++					pstSensorImageMode->u16Height,
++					pstSensorImageMode->f32Fps,
++					genSensorMode);
++
++			return -1;
++		}
++	}
++	else
++	{
++		printf("Not support! Width:%d, Height:%d, Fps:%f, WDRMode:%d\n", 
++				pstSensorImageMode->u16Width, 
++				pstSensorImageMode->u16Height,
++				pstSensorImageMode->f32Fps,
++				genSensorMode);
++
++		return -1;
++	}
++
++	/* Sensor first init */
++	if (HI_FALSE == bSensorInit)
++	{
++		gu8SensorImageMode = u8SensorImageMode;
++		return 0;
++	}
++
++	/* Switch SensorImageMode */
++	if (u8SensorImageMode == gu8SensorImageMode)
++	{
++		/* Don't need to switch SensorImageMode */
++		return -1;
++	}
++
++	gu8SensorImageMode = u8SensorImageMode;
++
++	return 0;
++}
++
++HI_VOID sensor_global_init()
++{   
++	gu8SensorImageMode = SENSOR_720P_30FPS_MODE;
++	genSensorMode = WDR_MODE_NONE;
++	gu32FullLinesStd = VMAX_720P30_LINEAR; 
++	gu32FullLines = VMAX_720P30_LINEAR;
++	bInit = HI_FALSE;
++	bSensorInit = HI_FALSE; 
++
++	memset(&g_stSnsRegsInfo, 0, sizeof(ISP_SNS_REGS_INFO_S));
++	memset(&g_stPreSnsRegsInfo, 0, sizeof(ISP_SNS_REGS_INFO_S));
++}
++
++HI_S32 cmos_init_sensor_exp_function(ISP_SENSOR_EXP_FUNC_S *pstSensorExpFunc)
++{
++	memset(pstSensorExpFunc, 0, sizeof(ISP_SENSOR_EXP_FUNC_S));
++
++	pstSensorExpFunc->pfn_cmos_sensor_init = sensor_init;
++	pstSensorExpFunc->pfn_cmos_sensor_exit = sensor_exit;
++	pstSensorExpFunc->pfn_cmos_sensor_global_init = sensor_global_init;
++	pstSensorExpFunc->pfn_cmos_set_image_mode = cmos_set_image_mode;
++	pstSensorExpFunc->pfn_cmos_set_wdr_mode = cmos_set_wdr_mode;
++
++	pstSensorExpFunc->pfn_cmos_get_isp_default = cmos_get_isp_default;
++	pstSensorExpFunc->pfn_cmos_get_isp_black_level = cmos_get_isp_black_level;
++	pstSensorExpFunc->pfn_cmos_set_pixel_detect = cmos_set_pixel_detect;
++	pstSensorExpFunc->pfn_cmos_get_sns_reg_info = cmos_get_sns_regs_info;
++
++	return 0;
++}
++
++/****************************************************************************
++ * callback structure                                                       *
++ ****************************************************************************/
++
++int sensor_register_callback(void)
++{
++	ISP_DEV IspDev = 0;
++	HI_S32 s32Ret;
++	ALG_LIB_S stLib;
++	ISP_SENSOR_REGISTER_S stIspRegister;
++	AE_SENSOR_REGISTER_S  stAeRegister;
++	AWB_SENSOR_REGISTER_S stAwbRegister;
++
++	cmos_init_sensor_exp_function(&stIspRegister.stSnsExp);
++	s32Ret = HI_MPI_ISP_SensorRegCallBack(IspDev, SC1135_ID, &stIspRegister);
++	if (s32Ret)
++	{
++		printf("sensor register callback function failed!\n");
++		return s32Ret;
++	}
++
++	stLib.s32Id = 0;
++	strncpy(stLib.acLibName, HI_AE_LIB_NAME, sizeof(HI_AE_LIB_NAME));
++	cmos_init_ae_exp_function(&stAeRegister.stSnsExp);
++	s32Ret = HI_MPI_AE_SensorRegCallBack(IspDev, &stLib, SC1135_ID, &stAeRegister);
++	if (s32Ret)
++	{
++		printf("sensor register callback function to ae lib failed!\n");
++		return s32Ret;
++	}
++
++	stLib.s32Id = 0;
++	strncpy(stLib.acLibName, HI_AWB_LIB_NAME, sizeof(HI_AWB_LIB_NAME));
++	cmos_init_awb_exp_function(&stAwbRegister.stSnsExp);
++	s32Ret = HI_MPI_AWB_SensorRegCallBack(IspDev, &stLib, SC1135_ID, &stAwbRegister);
++	if (s32Ret)
++	{
++		printf("sensor register callback function to ae lib failed!\n");
++		return s32Ret;
++	}
++
++	return 0;
++}
++
++int sensor_unregister_callback(void)
++{
++	ISP_DEV IspDev = 0;
++	HI_S32 s32Ret;
++	ALG_LIB_S stLib;
++
++	s32Ret = HI_MPI_ISP_SensorUnRegCallBack(IspDev, SC1135_ID);
++	if (s32Ret)
++	{
++		printf("sensor unregister callback function failed!\n");
++		return s32Ret;
++	}
++
++	stLib.s32Id = 0;
++	strncpy(stLib.acLibName, HI_AE_LIB_NAME, sizeof(HI_AE_LIB_NAME));
++	s32Ret = HI_MPI_AE_SensorUnRegCallBack(IspDev, &stLib, SC1135_ID);
++	if (s32Ret)
++	{
++		printf("sensor unregister callback function to ae lib failed!\n");
++		return s32Ret;
++	}
++
++	stLib.s32Id = 0;
++	strncpy(stLib.acLibName, HI_AWB_LIB_NAME, sizeof(HI_AWB_LIB_NAME));
++	s32Ret = HI_MPI_AWB_SensorUnRegCallBack(IspDev, &stLib, SC1135_ID);
++	if (s32Ret)
++	{
++		printf("sensor unregister callback function to ae lib failed!\n");
++		return s32Ret;
++	}
++
++	return 0;
++}
++
++#ifdef __cplusplus
++#if __cplusplus
++}
++#endif
++#endif /* End of #ifdef __cplusplus */
++
++#endif /* __SC1135_CMOS_H_ */
+diff -uNr a/component/isp/sensor/smartsens_sc1135/sc1135_sensor_ctl.c b/component/isp/sensor/smartsens_sc1135/sc1135_sensor_ctl.c
+--- a/component/isp/sensor/smartsens_sc1135/sc1135_sensor_ctl.c	1970-01-01 08:00:00.000000000 +0800
++++ b/component/isp/sensor/smartsens_sc1135/sc1135_sensor_ctl.c	2016-09-21 15:34:09.265305211 +0800
+@@ -0,0 +1,405 @@
++#include <stdio.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <sys/ioctl.h>
++#include <fcntl.h>
++#include <unistd.h>
++
++#include "hi_comm_video.h"
++
++#ifdef HI_GPIO_I2C
++#include "gpioi2c_ex.h"
++#else
++#include "hi_i2c.h"
++#endif
++
++const unsigned char sensor_i2c_addr	    =	0x60;		/* I2C Address of SC1135 */
++const unsigned int  sensor_addr_byte	=	2;
++const unsigned int  sensor_data_byte	=	1;
++static int g_fd = -1;
++static int flag_init = 0;
++
++extern WDR_MODE_E genSensorMode;
++extern HI_U8 gu8SensorImageMode;
++extern HI_BOOL bSensorInit;
++
++int sensor_i2c_init(void)
++{
++	if(g_fd >= 0)
++	{
++		return 0;
++	}    
++#ifdef HI_GPIO_I2C
++	int ret;
++
++	g_fd = open("/dev/gpioi2c_ex", 0);
++	if(g_fd < 0)
++	{
++		printf("Open gpioi2c_ex error!\n");
++		return -1;
++	}
++#else
++	int ret;
++
++	g_fd = open("/dev/i2c-0", O_RDWR);
++	if(g_fd < 0)
++	{
++		printf("Open /dev/i2c-0 error!\n");
++		return -1;
++	}
++
++	ret = ioctl(g_fd, I2C_SLAVE_FORCE, sensor_i2c_addr);
++	if (ret < 0)
++	{
++		printf("CMD_SET_DEV error!\n");
++		return ret;
++	}
++#endif
++
++	return 0;
++}
++
++int sensor_i2c_exit(void)
++{
++	if (g_fd >= 0)
++	{
++		close(g_fd);
++		g_fd = -1;
++		return 0;
++	}
++	return -1;
++}
++
++
++int sensor_read_register(int addr)
++{	 
++	int idx = 0;
++	int ret = 0, data = 0;
++	char buf[8] = {0};
++	buf[idx++] = addr & 0xFF;
++
++	if (sensor_addr_byte == 2)
++	{
++		ret = ioctl(g_fd, I2C_16BIT_REG, 1);
++		buf[idx++] = (addr >> 8);
++	}
++	else
++	{
++		ret = ioctl(g_fd, I2C_16BIT_REG, 0);
++	}
++	if (ret < 0)
++	{
++		printf("CMD_SET_REG_WIDTH error!\n");
++		return -1;
++	}
++
++	buf[idx++] = data;
++	if (sensor_data_byte == 2)
++	{
++		ret = ioctl(g_fd, I2C_16BIT_DATA, 1);
++		buf[idx++] = data >> 8;
++	}
++	else
++	{
++		ret = ioctl(g_fd, I2C_16BIT_DATA, 0);
++	}
++	if (ret)
++	{
++		printf("hi_i2c write faild!\n");
++		return -1;
++	}
++	ret = read(g_fd, buf, idx);
++
++	return buf[0];
++}
++
++
++
++
++int sensor_write_register(int addr, int data)
++{
++#ifdef HI_GPIO_I2C
++	i2c_data.dev_addr = sensor_i2c_addr;
++	i2c_data.reg_addr = addr;
++	i2c_data.addr_byte_num = sensor_addr_byte;
++	i2c_data.data = data;
++	i2c_data.data_byte_num = sensor_data_byte;
++
++	ret = ioctl(g_fd, GPIO_I2C_WRITE, &i2c_data);
++
++	if (ret)
++	{
++		printf("GPIO-I2C write faild!\n");
++		return ret;
++	}
++#else
++	if(flag_init == 0)
++	{
++
++		sensor_i2c_init();
++		flag_init = 1;
++	}
++
++	int idx = 0;
++	int ret;
++	char buf[8];
++
++	buf[idx++] = addr & 0xFF;
++	if (sensor_addr_byte == 2)
++	{
++		ret = ioctl(g_fd, I2C_16BIT_REG, 1);
++		buf[idx++] = addr >> 8;
++	}
++	else
++	{
++		ret = ioctl(g_fd, I2C_16BIT_REG, 0);
++	}
++
++	if (ret < 0)
++	{
++		printf("CMD_SET_REG_WIDTH error!\n");
++		return -1;
++	}
++
++	buf[idx++] = data;
++	if (sensor_data_byte == 2)
++	{
++		ret = ioctl(g_fd, I2C_16BIT_DATA, 1);
++		buf[idx++] = data >> 8;
++	}
++	else
++	{
++		ret = ioctl(g_fd, I2C_16BIT_DATA, 0);
++	}
++
++	if (ret)
++	{
++		printf("hi_i2c write faild!\n");
++		return -1;
++	}
++
++	ret = write(g_fd, buf, idx);
++	if(ret < 0)
++	{
++		printf("I2C_WRITE error!\n");
++		return -1;
++	}
++#endif
++
++	return 0;
++}
++
++static void delay_ms(int ms) { 
++	usleep(ms*1000);
++}
++
++void sensor_prog(int* rom) 
++{
++	int i = 0;
++	while (1) {
++		int lookup = rom[i++];
++		int addr = (lookup >> 16) & 0xFFFF;
++		int data = lookup & 0xFFFF;
++		if (addr == 0xFFFE) {
++			delay_ms(data);
++		} else if (addr == 0xFFFF) {
++			return;
++		} else {
++			sensor_write_register(addr, data);
++		}
++	}
++}
++
++void sensor_linear_720p30_init();
++
++#define SENSOR_1080P_30FPS_MODE  (1)
++
++void sensor_init()
++{
++	sensor_i2c_init();
++#if 0
++	/* When sensor first init, config all registers */
++	if (HI_FALSE == bSensorInit) 
++	{
++		if(SENSOR_720P_25FPS_MODE == gu8SensorImageMode)
++		{
++			sensor_linear_720p25_init();
++		}
++	}
++	/* When sensor switch mode(linear<->WDR or resolution), config different registers(if possible) */
++	else 
++	{
++		if(SENSOR_720P_25FPS_MODE == gu8SensorImageMode)
++		{
++			sensor_linear_720p25_init();
++		}
++	}
++#endif
++	sensor_linear_720p30_init();
++
++	return ;
++}
++
++void sensor_exit()
++{
++	sensor_i2c_exit();
++	flag_init = 0;
++	return;
++}
++
++void sensor_linear_720p30_init()
++{
++	sensor_write_register(0x3000,0x01);//manualstreamenbale
++	sensor_write_register(0x3003,0x01);//softreset
++	sensor_write_register(0x3400,0x53);
++	sensor_write_register(0x3416,0xc0);
++	sensor_write_register(0x3d08,0x00);
++	sensor_write_register(0x3e03,0x03);
++	sensor_write_register(0x3928,0x00);
++	sensor_write_register(0x3630,0x58);
++	sensor_write_register(0x3612,0x00);
++	sensor_write_register(0x3632,0x41);
++	sensor_write_register(0x3635,0x00); //20160328
++	sensor_write_register(0x3620,0x44);
++	sensor_write_register(0x3633,0x7f); //20160422
++	sensor_write_register(0x3780,0x0b);
++	sensor_write_register(0x3300,0x33);
++	sensor_write_register(0x3301,0x38);
++	sensor_write_register(0x3302,0x30);
++	sensor_write_register(0x3303,0x80); //20160307B  20160412
++	sensor_write_register(0x3304,0x18);
++	sensor_write_register(0x3305,0x72);
++	sensor_write_register(0x331e,0x50); //20160512 
++	sensor_write_register(0x321e,0x00);
++	sensor_write_register(0x321f,0x0a);
++	sensor_write_register(0x3216,0x0a);
++	sensor_write_register(0x3332,0x38);
++	sensor_write_register(0x5054,0x82);
++	sensor_write_register(0x3622,0x26);
++	sensor_write_register(0x3907,0x02);
++	sensor_write_register(0x3908,0x00);
++	sensor_write_register(0x3601,0x1a); //20160422
++	sensor_write_register(0x3315,0x44);
++	sensor_write_register(0x3308,0x40);
++	sensor_write_register(0x3223,0x22);//vysncmode[5]
++	sensor_write_register(0x3e0e,0x50);
++	/*DPC*/
++	sensor_write_register(0x3211,0x60);
++	sensor_write_register(0x5780,0xff);
++	sensor_write_register(0x5781,0x04); //20160328
++	sensor_write_register(0x5785,0x0c); //20160328
++	sensor_write_register(0x5000,0x66);
++
++	sensor_write_register(0x3e0f,0x90); 
++	sensor_write_register(0x3631,0x80);
++	sensor_write_register(0x3310,0x83);
++	sensor_write_register(0x3336,0x01);
++	sensor_write_register(0x3337,0x00);
++	sensor_write_register(0x3338,0x03);
++	sensor_write_register(0x3339,0xe8);
++	sensor_write_register(0x3335,0x06); //20160418
++	sensor_write_register(0x3880,0x00); 
++
++	//power reduction 20160606
++	sensor_write_register(0x3620,0x42);
++	sensor_write_register(0x3610,0x03);
++	sensor_write_register(0x3600,0x64);
++	sensor_write_register(0x3636,0x0d);
++	sensor_write_register(0x3323,0x80);
++	//io strength
++	sensor_write_register(0x3640,0x01);
++
++#if 0
++	//960 p
++	/*27Minput54Moutputpixelclockfrequency*/
++	sensor_write_register(0x3010,0x07);
++	sensor_write_register(0x3011,0x46);
++	sensor_write_register(0x3004,0x04);
++	//  sensor_write_register(0x3610,0x2b);  //20160606
++
++	/*configFramelengthandwidth*/
++	sensor_write_register(0x320c,0x07); //1800
++	sensor_write_register(0x320d,0x08); //1000
++	sensor_write_register(0x320e,0x03);
++	sensor_write_register(0x320f,0xe8);
++
++	/*configOutputwindowposition*/
++	sensor_write_register(0x3210,0x00);
++	sensor_write_register(0x3211,0x60);
++	sensor_write_register(0x3212,0x00);
++	sensor_write_register(0x3213,0x04); //for BGGR out format 20160412
++
++	/*configOutputimagesize*/
++	sensor_write_register(0x3208,0x05);
++	sensor_write_register(0x3209,0x00);
++	sensor_write_register(0x320a,0x03);
++	sensor_write_register(0x320b,0xc0);
++
++	/*configFramestartphysicalposition*/
++	sensor_write_register(0x3202,0x00);
++	sensor_write_register(0x3203,0x08);
++	sensor_write_register(0x3206,0x03);
++	sensor_write_register(0x3207,0xcf);
++
++	/*powerconsumptionreduction*/
++	sensor_write_register(0x3330,0x0d);
++	sensor_write_register(0x3320,0x06);
++	sensor_write_register(0x3321,0xd8);
++	sensor_write_register(0x3322,0x01);
++	//  sensor_write_register(0x3323,0x80); //20160606
++	//  sensor_write_register(0x3600,0x54); //20160606
++
++	printf("SC1135 960p 30fps sensor init OK!\n");
++
++#else
++
++	//720p
++	/*27Minput54Moutputpixelclockfrequency*/
++	sensor_write_register(0x3010,0x07);
++	sensor_write_register(0x3011,0x46);
++	sensor_write_register(0x3004,0x04);
++	//  sensor_write_register(0x3610,0x2b); //201600606
++
++	/*configFramelengthandwidth*/
++	sensor_write_register(0x320c,0x07); //1800
++	sensor_write_register(0x320d,0x08); //1000
++	sensor_write_register(0x320e,0x03);
++	sensor_write_register(0x320f,0xe8);
++
++	/*configOutputwindowposition*/
++	sensor_write_register(0x3210,0x00);
++	sensor_write_register(0x3211,0x60);
++	sensor_write_register(0x3212,0x00);
++	sensor_write_register(0x3213,0x80);  //for BGGR out format 20160412
++
++	/*configOutputimagesize*/
++	sensor_write_register(0x3208,0x05);
++	sensor_write_register(0x3209,0x00);
++	sensor_write_register(0x320a,0x02);
++	sensor_write_register(0x320b,0xd0);
++
++	/*configFramestartphysicalposition*/
++	sensor_write_register(0x3202,0x00);
++	sensor_write_register(0x3203,0x08);
++	sensor_write_register(0x3206,0x03);
++	sensor_write_register(0x3207,0xcf);
++
++	/*powerconsumptionreduction*/
++	sensor_write_register(0x3330,0x0d);
++	sensor_write_register(0x3320,0x06);
++	sensor_write_register(0x3321,0xd8);
++	sensor_write_register(0x3322,0x01);
++	// sensor_write_register(0x3323,0x80); //20160606
++	// sensor_write_register(0x3600,0x54); //20160606
++
++	printf("SC1135 720p 30fps sensor init OK!~~~~~~~~~~~~~~~~\n");
++#endif
++
++	bSensorInit = HI_TRUE;
++	printf("=========================================================\n");
++	printf("============== SC1135 sensor init success! ==============\n");
++	printf("=========================================================\n");
++
++	return;
++}
++

@@ -1,0 +1,292 @@
+comment "Options for hi3518 mpp2"
+
+config BR2_PACKAGE_HIMPP_PREFIX
+	string "Install prefix"
+	default "/usr"
+	help
+	  Prefix to install himpp2 on the target file system.
+
+menu "Sensor driver libraries"
+
+config BR2_PACKAGE_HIMPP_SNSDRV_APTINA_9M034
+	bool "Aptina 9M034"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_APTINA_AR0130
+	bool "Aptina AR0130"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_APTINA_AR0330
+	bool "Aptina AR0330"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_APTINA_AR0331
+	bool "Aptina AR0331"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_APTINA_MT9P006
+	bool "Aptina MT9P006"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_GALAXYCORE_GC1004
+	bool "GalaxyCore GC1004"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_GALAXYCORE_GC1014
+	bool "GalaxyCore GC1014"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_HIMAX_1375
+	bool "Himax 1375"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_ONMI_OV9712
+	bool "Onmi OV9712"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_ONMI_OV9712_PLUS
+	bool "Onmi OV9712+"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_PANASONIC_MN34031
+	bool "Panasonic MN34031"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_PANASONIC_MN34041
+	bool "Panasonic MN34041"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_PIXELPLUS_3100K
+	bool "PixelPlus 3100K"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_SOI_H22
+	bool "SOI H22"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_SONY_ICX692
+	bool "Sony ICX692"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_SONY_IMX104
+	bool "Sony IMX104"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_SONY_IMX122
+	bool "Sony IMX122"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_SONY_IMX138
+	bool "Sony IMX138"
+	default y
+
+config BR2_PACKAGE_HIMPP_SNSDRV_SONY_IMX236
+	bool "Sony IMX236"
+	default y
+
+endmenu
+
+
+menu "External kernel module & utils"
+
+config BR2_PACKAGE_HIMPP_EXTDRV_GPIO_I2C
+	bool "gpio-i2c"
+	default n
+	help
+	  gpio-i2c bit-bang i2c driver
+
+config BR2_PACKAGE_HIMPP_EXTDRV_GPIO_I2C_EX
+	bool "gpio-i2c-ex"
+	default n
+	help
+	  gpio-i2c-ex bit-bang i2c driver
+
+config BR2_PACKAGE_HIMPP_EXTDRV_HI_I2C
+	bool "hi-i2c"
+	default n
+	help
+	  hi-i2c hardware i2c driver
+
+config BR2_PACKAGE_HIMPP_EXTDRV_PWM
+	bool "pwm"
+	default n
+
+config BR2_PACKAGE_HIMPP_EXTDRV_SSP_AD9020
+	bool "ssp-ad9020"
+	default n
+
+config BR2_PACKAGE_HIMPP_EXTDRV_SSP_PANA
+	bool "ssp-pana"
+	default n
+
+config BR2_PACKAGE_HIMPP_EXTDRV_SSP_SONY
+	bool "ssp-sony"
+	default n
+
+config BR2_PACKAGE_HIMPP_EXTDRV_TW2865
+	bool "tw2865"
+	default n
+	depends on BR2_PACKAGE_HIMPP_EXTDRV_HI_I2C
+
+endmenu
+
+menuconfig BR2_PACKAGE_HIMPP_SAMPLES
+	bool "Build MPP2 samples"
+	default n
+	depends on BR2_PACKAGE_HIMPP_HI3518
+	help
+	  Build samples for HiMPP2 for HI3518
+
+if BR2_PACKAGE_HIMPP_SAMPLES
+
+choice
+	bool "Sensor Type"
+	default BR2_PACKAGE_HIMPP_SNS_OMNI_OV9712
+	help
+	  Sensor type for Hi3518
+
+config BR2_PACKAGE_HIMPP_SNS_APTINA_9M034
+	bool "Aptina 9M034"
+	help
+	  Aptina 9m034
+
+config BR2_PACKAGE_HIMPP_SNS_APTINA_AR0130
+	bool "Aptina AR0130"
+	help
+	  Aptina AR0130
+
+config BR2_PACKAGE_HIMPP_SNS_APTINA_AR0330
+	bool "Aptina AR0330"
+	help
+	  Aptina AR0330
+
+config BR2_PACKAGE_HIMPP_SNS_HIMAX_1375
+	bool "Himax 1375"
+	help
+	  Himax 1375
+
+config BR2_PACKAGE_HIMPP_SNS_OMNI_OV2710
+	bool "Omni OV2710"
+	help
+	  Omni OV2710
+
+config BR2_PACKAGE_HIMPP_SNS_OMNI_OV9712
+	bool "Omni OV9712"
+	help
+	  Omni OV9712
+
+config BR2_PACKAGE_HIMPP_SNS_PANASONIC_MN34031
+	bool "Panasonic MN34031"
+	help
+	  Panasonic MN34031
+
+config BR2_PACKAGE_HIMPP_SNS_PIXELPLUS_3100K
+	bool "PixelPlus 3100K"
+	help
+	  PixelPlus 3100K
+
+config BR2_PACKAGE_HIMPP_SNS_SOI_H22
+	bool "SOI H22"
+	help
+	  SOI H22
+
+config BR2_PACKAGE_HIMPP_SNS_SONY_ICX692
+	bool "Sony ICX692"
+	help
+	  Sony ICX692
+
+config BR2_PACKAGE_HIMPP_SNS_SONY_IMX104
+	bool "Sony IMX104"
+	help
+	  Sony IMX104
+
+config BR2_PACKAGE_HIMPP_SNS_SONY_IMX122
+	bool "Sony IMX122"
+	help
+	  Sony IMX122
+
+config BR2_PACKAGE_HIMPP_SNS_SONY_IMX138
+	bool "Sony IMX138"
+	help
+	  Sony IMX138
+
+config BR2_PACKAGE_HIMPP_SNS_SONY_IMX236
+	bool "Sony IMX236"
+	help
+	  Sony IMX236
+
+endchoice
+
+config BR2_PACKAGE_HIMPP_SNS_TYPE
+	string
+	default APTINA_AR0130_DC_720P_30FPS if BR2_PACKAGE_HIMPP_SNS_APTINA_AR0130
+	default APTINA_AR0330_DC_1080P_30FPS if BR2_PACKAGE_HIMPP_SNS_APTINA_AR0330
+	default APTINA_9M034_DC_720P_30FPS if BR2_PACKAGE_HIMPP_SNS_APTINA_9M034
+	default HIMAX_1375_DC_720P_30FPS if BR2_PACKAGE_HIMPP_SNS_HIMAX_1375
+	default OMNI_OV9712_DC_720P_30FPS if BR2_PACKAGE_HIMPP_SNS_OMNI_OV9712
+	default OMNI_OV2710_DC_1080P_30FPS if BR2_PACKAGE_HIMPP_SNS_OMNI_OV2710
+	default PANASONIC_MN34031_DC_720P_30FPS if BR2_PACKAGE_HIMPP_SNS_PANASONIC_MN34031
+	default PIXELPLUS_3100K_DC_720P_30FPS if BR2_PACKAGE_HIMPP_SNS_PIXELPLUS_3100K
+	default SOI_H22_DC_720P_30FPS if BR2_PACKAGE_HIMPP_SNS_SOI_H22
+	default SONY_ICX692_DC_720P_30FPS if BR2_PACKAGE_HIMPP_SNS_SONY_ICX692
+	default SONY_IMX104_DC_720P_30FPS if BR2_PACKAGE_HIMPP_SNS_SONY_IMX104
+	default SONY_IMX122_DC_1080P_30FPS if BR2_PACKAGE_HIMPP_SNS_SONY_IMX122
+	default SONY_IMX138_DC_720P_30FPS if BR2_PACKAGE_HIMPP_SNS_SONY_IMX138
+	default SONY_IMX236_DC_1080P_30FPS if BR2_PACKAGE_HIMPP_SNS_SONY_IMX236
+
+config BR2_PACKAGE_HIMPP_SAMPLES_AUDIO
+	bool "audio"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build audio samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_HIFB
+	bool "hifb"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build hifb samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_IQ
+	bool "iq"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build iq samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_IVE
+	bool "ive"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build ive samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_REGION
+	bool "region"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build region samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_TDE
+	bool "tde"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build tde samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_VDA
+	bool "vda"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build vda samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_VENC
+	bool "venc"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build venc samples for hi3518
+
+config BR2_PACKAGE_HIMPP_SAMPLES_VIO
+	bool "vio"
+	depends on BR2_PACKAGE_HIMPP_SAMPLES
+	help
+	  Build vio samples for hi3518
+
+endif #BR2_PACKAGE_HIMPP_SAMPLES
+

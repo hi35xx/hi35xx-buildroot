@@ -1,0 +1,377 @@
+diff -uNr a/component/isp/3a/sample_ae/Makefile b/component/isp/3a/sample_ae/Makefile
+--- a/component/isp/3a/sample_ae/Makefile	2015-12-27 16:29:07.000000000 +0800
++++ b/component/isp/3a/sample_ae/Makefile	2016-09-18 21:21:12.615528356 +0800
+@@ -7,7 +7,7 @@
+ 	include $(PARAM_FILE)
+ endif
+ 
+-ISP_PATH := $(SDK_PATH)/mpp/component/isp
++ISP_PATH := $(SDK_PATH)/component/isp
+ LIBPATH = ./lib
+ OBJPATH = ./obj
+ 
+@@ -20,9 +20,9 @@
+ ISP_INC := $(ISP_PATH)/include
+ 
+ ifeq ($(MPP_BUILD), y)
+-EXT_PATH := $(SDK_PATH)/mpp/$(EXTDRV)
++EXT_PATH := $(SDK_PATH)/$(EXTDRV)
+ else
+-EXT_PATH := $(SDK_PATH)/mpp/extdrv
++EXT_PATH := $(SDK_PATH)/extdrv
+ endif
+ 
+ BUS_DIR := $(EXT_PATH)/pwm
+diff -uNr a/component/isp/3a/sample_awb/Makefile b/component/isp/3a/sample_awb/Makefile
+--- a/component/isp/3a/sample_awb/Makefile	2015-12-27 16:29:07.000000000 +0800
++++ b/component/isp/3a/sample_awb/Makefile	2016-09-18 21:21:20.105489310 +0800
+@@ -7,7 +7,7 @@
+ 	include $(PARAM_FILE)
+ endif
+ 
+-ISP_PATH := $(SDK_PATH)/mpp/component/isp
++ISP_PATH := $(SDK_PATH)/component/isp
+ LIBPATH = ./lib
+ OBJPATH = ./obj
+ 
+@@ -20,9 +20,9 @@
+ ISP_INC := $(ISP_PATH)/include
+ 
+ ifeq ($(MPP_BUILD), y)
+-EXT_PATH := $(SDK_PATH)/mpp/$(EXTDRV)
++EXT_PATH := $(SDK_PATH)/$(EXTDRV)
+ else
+-EXT_PATH := $(SDK_PATH)/mpp/extdrv
++EXT_PATH := $(SDK_PATH)/extdrv
+ endif
+ 
+ BUS_DIR := $(EXT_PATH)/pwm
+diff -uNr a/component/isp/firmware/drv/Makefile b/component/isp/firmware/drv/Makefile
+--- a/component/isp/firmware/drv/Makefile	2015-12-27 16:29:07.000000000 +0800
++++ b/component/isp/firmware/drv/Makefile	2016-09-18 21:21:30.804433535 +0800
+@@ -8,21 +8,21 @@
+ endif
+ 
+ ifeq ($(MPP_BUILD), y)
+-EXT_PATH := $(SDK_PATH)/mpp/$(EXTDRV)
++EXT_PATH := $(SDK_PATH)/$(EXTDRV)
+ else
+-EXT_PATH := $(SDK_PATH)/mpp/extdrv
++EXT_PATH := $(SDK_PATH)/extdrv
+ endif
+ 
+ CONFIG_JPEGEDCF=y
+ 
+ ISP_KO := ../../ko
+ EXTRA_CFLAGS += $(MPP_CFLAGS)
+-EXTRA_CFLAGS += -I$(REL_INC) -I$(SDK_PATH)/mpp/code/mkp/include
+-EXTRA_CFLAGS += -I$(REL_INC) -I$(SDK_PATH)/mpp/code/arch/$(HIARCH)/include
+-EXTRA_CFLAGS += -I$(SDK_PATH)/mpp/code/mkp_inc
+-EXTRA_CFLAGS += -I$(SDK_PATH)/mpp/component/isp/firmware/vreg
+-EXTRA_CFLAGS += -I$(SDK_PATH)/mpp/component/isp/firmware/vreg/arch/$(HIARCH)
+-EXTRA_CFLAGS += -I$(SDK_PATH)/mpp/component/isp/include
++EXTRA_CFLAGS += -I$(REL_INC) -I$(SDK_PATH)/code/mkp/include
++EXTRA_CFLAGS += -I$(REL_INC) -I$(SDK_PATH)/code/arch/$(HIARCH)/include
++EXTRA_CFLAGS += -I$(SDK_PATH)/code/mkp_inc
++EXTRA_CFLAGS += -I$(SDK_PATH)/component/isp/firmware/vreg
++EXTRA_CFLAGS += -I$(SDK_PATH)/component/isp/firmware/vreg/arch/$(HIARCH)
++EXTRA_CFLAGS += -I$(SDK_PATH)/component/isp/include
+ EXTRA_CFLAGS += -I$(EXT_PATH)/i2c
+ EXTRA_CFLAGS += -I$(EXT_PATH)/hi_i2c
+ EXTRA_CFLAGS += -I$(EXT_PATH)/ssp-sony
+diff -uNr a/component/isp/firmware/src/Makefile b/component/isp/firmware/src/Makefile
+--- a/component/isp/firmware/src/Makefile	2015-12-27 16:29:07.000000000 +0800
++++ b/component/isp/firmware/src/Makefile	2016-09-18 21:21:44.476362261 +0800
+@@ -7,14 +7,14 @@
+ 	include $(PARAM_FILE)
+ endif
+ 
+-ISP_PATH := $(SDK_PATH)/mpp/component/isp
++ISP_PATH := $(SDK_PATH)/component/isp
+ LIB_PATH = $(ISP_PATH)/lib/
+ OBJ_PATH = $(ISP_PATH)/firmware/src/obj
+ 
+ ifeq ($(MPP_BUILD), y)
+-EXT_PATH := $(SDK_PATH)/mpp/$(EXTDRV)
++EXT_PATH := $(SDK_PATH)/$(EXTDRV)
+ else
+-EXT_PATH := $(SDK_PATH)/mpp/extdrv
++EXT_PATH := $(SDK_PATH)/extdrv
+ endif
+ 
+ BUS_DIR := $(EXT_PATH)/pwm
+@@ -29,9 +29,9 @@
+            -I$(ISP_PATH)/firmware/src/main\
+            -I$(REL_INC) \
+            -I$(EXT_PATH)\
+-           -I$(SDK_PATH)/mpp/code/arch/$(HIARCH)/include \
+-           -I$(SDK_PATH)/mpp/code/mkp/include \
+-           -I$(SDK_PATH)/mpp/code/mkp_inc
++           -I$(SDK_PATH)/code/arch/$(HIARCH)/include \
++           -I$(SDK_PATH)/code/mkp/include \
++           -I$(SDK_PATH)/code/mkp_inc
+ 
+ SRC_DIR := $(ISP_PATH)/firmware/src/algorithms\
+            $(ISP_PATH)/firmware/src/arch/$(HIARCH)\
+diff -uNr a/component/isp/iniparser/Makefile b/component/isp/iniparser/Makefile
+--- a/component/isp/iniparser/Makefile	2015-12-27 16:29:07.000000000 +0800
++++ b/component/isp/iniparser/Makefile	2016-09-18 21:24:35.639468965 +0800
+@@ -7,7 +7,7 @@
+ 	include $(PARAM_FILE)
+ endif
+ 
+-ISP_PATH := $(SDK_PATH)/mpp/component/isp
++ISP_PATH := $(SDK_PATH)/component/isp
+ LIBPATH = $(ISP_PATH)/lib
+ OBJPATH = ./obj
+ 
+@@ -18,9 +18,9 @@
+ REL_FILE := $(shell find $(ISP_PATH)/iniparser -name "*.h")
+ 
+ ifeq ($(MPP_BUILD), y)
+-EXT_PATH := $(SDK_PATH)/mpp/$(EXTDRV)
++EXT_PATH := $(SDK_PATH)/$(EXTDRV)
+ else
+-EXT_PATH := $(SDK_PATH)/mpp/extdrv
++EXT_PATH := $(SDK_PATH)/extdrv
+ endif
+ 
+ BUS_DIR := $(EXT_PATH)/pwm
+diff -uNr a/component/isp/Makefile b/component/isp/Makefile
+--- a/component/isp/Makefile	2015-12-27 16:29:07.000000000 +0800
++++ b/component/isp/Makefile	2016-09-18 21:22:49.587022828 +0800
+@@ -1,4 +1,4 @@
+-# $(ROOT)/mpp/Mafile
++# $(ROOT)/Mafile
+ 
+ ifeq ($(PARAM_FILE), ) 
+     PARAM_FILE:=../../Makefile.param
+diff -uNr a/component/isp/sensor/aptina_9m034/Makefile b/component/isp/sensor/aptina_9m034/Makefile
+--- a/component/isp/sensor/aptina_9m034/Makefile	2015-12-27 16:29:07.000000000 +0800
++++ b/component/isp/sensor/aptina_9m034/Makefile	2016-09-18 21:21:57.169296091 +0800
+@@ -7,8 +7,8 @@
+ 	include $(PARAM_FILE)
+ endif
+ 
+-ISP_PATH := $(SDK_PATH)/mpp/component/isp
+-EXT_PATH := $(SDK_PATH)/mpp/$(EXTDRV)
++ISP_PATH := $(SDK_PATH)/component/isp
++EXT_PATH := $(SDK_PATH)/$(EXTDRV)
+ 3A_PATH  := $(ISP_PATH)/3a
+ LIBPATH = $(ISP_PATH)/lib
+ OBJPATH = ./obj
+diff -uNr a/component/isp/sensor/aptina_ar0230/Makefile b/component/isp/sensor/aptina_ar0230/Makefile
+--- a/component/isp/sensor/aptina_ar0230/Makefile	2015-12-27 16:29:07.000000000 +0800
++++ b/component/isp/sensor/aptina_ar0230/Makefile	2016-09-18 21:22:02.221269754 +0800
+@@ -7,8 +7,8 @@
+ 	include $(PARAM_FILE)
+ endif
+ 
+-ISP_PATH := $(SDK_PATH)/mpp/component/isp
+-EXT_PATH := $(SDK_PATH)/mpp/$(EXTDRV)
++ISP_PATH := $(SDK_PATH)/component/isp
++EXT_PATH := $(SDK_PATH)/$(EXTDRV)
+ 3A_PATH  := $(ISP_PATH)/3a
+ LIBPATH = $(ISP_PATH)/lib
+ OBJPATH = ./obj
+diff -uNr a/component/isp/sensor/ar0130/Makefile b/component/isp/sensor/ar0130/Makefile
+--- a/component/isp/sensor/ar0130/Makefile	2015-12-27 16:29:07.000000000 +0800
++++ b/component/isp/sensor/ar0130/Makefile	2016-09-18 21:22:11.741220125 +0800
+@@ -7,8 +7,8 @@
+ 	include $(PARAM_FILE)
+ endif
+ 
+-ISP_PATH := $(SDK_PATH)/mpp/component/isp
+-EXT_PATH := $(SDK_PATH)/mpp/$(EXTDRV)
++ISP_PATH := $(SDK_PATH)/component/isp
++EXT_PATH := $(SDK_PATH)/$(EXTDRV)
+ 3A_PATH  := $(ISP_PATH)/3a
+ LIBPATH = $(ISP_PATH)/lib
+ OBJPATH = ./obj
+diff -uNr a/component/isp/sensor/hi_cmoscfg/Makefile b/component/isp/sensor/hi_cmoscfg/Makefile
+--- a/component/isp/sensor/hi_cmoscfg/Makefile	2016-09-18 21:33:16.581582938 +0800
++++ b/component/isp/sensor/hi_cmoscfg/Makefile	2016-09-18 21:33:24.893536354 +0800
+@@ -7,7 +7,7 @@
+ 	include $(PARAM_FILE)
+ endif
+ 
+-ISP_PATH := $(SDK_PATH)/mpp/component/isp
++ISP_PATH := $(SDK_PATH)/component/isp
+ LIBPATH = $(ISP_PATH)/lib
+ OBJPATH = ./obj
+ 
+@@ -15,9 +15,9 @@
+ 3A_PATH := $(ISP_PATH)/include
+ 
+ ifeq ($(MPP_BUILD), y)
+-EXT_PATH := $(SDK_PATH)/mpp/$(EXTDRV)
++EXT_PATH := $(SDK_PATH)/$(EXTDRV)
+ else
+-EXT_PATH := $(SDK_PATH)/mpp/extdrv
++EXT_PATH := $(SDK_PATH)/extdrv
+ endif
+ 
+ BUS_DIR := $(EXT_PATH)/pwm
+diff -uNr a/component/isp/sensor/panasonic_mn34222/Makefile b/component/isp/sensor/panasonic_mn34222/Makefile
+--- a/component/isp/sensor/panasonic_mn34222/Makefile	2015-12-27 16:29:07.000000000 +0800
++++ b/component/isp/sensor/panasonic_mn34222/Makefile	2016-09-18 21:22:30.404122832 +0800
+@@ -7,8 +7,8 @@
+ 	include $(PARAM_FILE)
+ endif
+ 
+-ISP_PATH := $(SDK_PATH)/mpp/component/isp
+-EXT_PATH := $(SDK_PATH)/mpp/$(EXTDRV)
++ISP_PATH := $(SDK_PATH)/component/isp
++EXT_PATH := $(SDK_PATH)/$(EXTDRV)
+ 3A_PATH  := $(ISP_PATH)/3a
+ LIBPATH = $(ISP_PATH)/lib
+ OBJPATH = ./obj
+diff -uNr a/component/isp/sensor/sc2035/Makefile b/component/isp/sensor/sc2035/Makefile
+--- a/component/isp/sensor/sc2035/Makefile	2016-03-23 21:15:38.000000000 +0800
++++ b/component/isp/sensor/sc2035/Makefile	2016-09-18 21:22:36.304092074 +0800
+@@ -7,8 +7,8 @@
+ 	include $(PARAM_FILE)
+ endif
+ 
+-ISP_PATH := $(SDK_PATH)/mpp/component/isp
+-EXT_PATH := $(SDK_PATH)/mpp/$(EXTDRV)
++ISP_PATH := $(SDK_PATH)/component/isp
++EXT_PATH := $(SDK_PATH)/$(EXTDRV)
+ 3A_PATH  := $(ISP_PATH)/3a
+ LIBPATH = $(ISP_PATH)/lib
+ OBJPATH = ./obj
+diff -uNr a/component/isp/sensor/sony_imx122/Makefile b/component/isp/sensor/sony_imx122/Makefile
+--- a/component/isp/sensor/sony_imx122/Makefile	2015-12-27 16:29:07.000000000 +0800
++++ b/component/isp/sensor/sony_imx122/Makefile	2016-09-18 21:22:42.111061802 +0800
+@@ -7,8 +7,8 @@
+ 	include $(PARAM_FILE)
+ endif
+ 
+-ISP_PATH := $(SDK_PATH)/mpp/component/isp
+-EXT_PATH := $(SDK_PATH)/mpp/$(EXTDRV)
++ISP_PATH := $(SDK_PATH)/component/isp
++EXT_PATH := $(SDK_PATH)/$(EXTDRV)
+ 3A_PATH  := $(ISP_PATH)/3a
+ LIBPATH = $(ISP_PATH)/lib
+ OBJPATH = ./obj
+diff -uNr a/extdrv/Makefile b/extdrv/Makefile
+--- a/extdrv/Makefile	2015-12-27 16:29:06.000000000 +0800
++++ b/extdrv/Makefile	2016-09-18 21:22:58.807974716 +0800
+@@ -1,4 +1,4 @@
+-# $(ROOT)/mpp/Mafile
++# $(ROOT)/Mafile
+ 
+ ifeq ($(PARAM_FILE), ) 
+     PARAM_FILE:=../Makefile.param
+diff -uNr a/Makefile.param b/Makefile.param
+--- a/Makefile.param	2015-12-27 16:29:04.000000000 +0800
++++ b/Makefile.param	2016-09-18 21:24:25.463522114 +0800
+@@ -164,20 +164,20 @@
+ ifeq ($(MPP_BUILD), y)
+ 
+ ifeq ($(HIARCH),hi3519)
+-	export REL_DIR=$(SDK_PATH)/mpp/release/$(HIARCH)/$(CPU_TYPE)
++	export REL_DIR=$(SDK_PATH)/release/$(HIARCH)/$(CPU_TYPE)
+ else
+-	export REL_DIR=$(SDK_PATH)/mpp/release/$(HIARCH)
++	export REL_DIR=$(SDK_PATH)/release/$(HIARCH)
+ endif
+-	export SAMPLE_DIR=$(SDK_PATH)/mpp/sample/$(HIARCH)
++	export SAMPLE_DIR=$(SDK_PATH)/sample/$(HIARCH)
+ 
+ else
+ #### MPP_BUILD=n ######
+ 
+ ifeq ($(HIARCH),hi3519)
+ 	# hi3519 config
+-	export REL_DIR=$(SDK_PATH)/mpp_$(CPU_TYPE)
++	export REL_DIR=$(SDK_PATH)
+ else
+-	export REL_DIR=$(SDK_PATH)/mpp
++	export REL_DIR=$(SDK_PATH)
+ endif
+ 	
+ 	EXTDRV=extdrv
+@@ -189,7 +189,7 @@
+ export REL_KO  := $(REL_DIR)/ko
+ 
+ # Define the param of audio 
+-export AUDIO_PATH?=$(SDK_PATH)/mpp/component/audio/lib/$(CROSS)
++export AUDIO_PATH?=$(SDK_PATH)/component/audio/lib/$(CROSS)
+ 
+ export AUDIO_LIBA ?= $(REL_LIB)/libVoiceEngine.a\
+ 	             $(REL_LIB)/libupvqe.a\
+@@ -203,7 +203,7 @@
+ 
+ 
+ # Define the lib of jpeg codec
+-export JPEGD_PATH?=$(SDK_PATH)/mpp/component/jpegd
++export JPEGD_PATH?=$(SDK_PATH)/component/jpegd
+ export JPEGD_LIBA:=$(REL_LIB)/libjpeg.a
+ 
+ export HIMEM_LIBA := $(REL_LIB)/libmem.a
+@@ -249,7 +249,7 @@
+ #******************************************************************************* 
+ 
+ # include the config file of platform
+--include $(SDK_PATH)/mpp/configs/config.mk
++-include $(SDK_PATH)/configs/config.mk
+ 
+ ifeq ($(CONFIG_JPEGEDCF), y)
+ 	MPP_CFLAGS += -D ENABLE_JPEGEDCF 
+diff -uNr a/sample/common/loadbmp.c b/sample/common/loadbmp.c
+--- a/sample/common/loadbmp.c	2015-12-27 16:29:06.000000000 +0800
++++ b/sample/common/loadbmp.c	2016-09-18 21:23:23.576845349 +0800
+@@ -13,7 +13,7 @@
+                                                     {0, 8, 8, 8},   /*RGB888*/
+                                                     {8, 8, 8, 8}    /*ARGB8888*/
+                                                     };
+-inline HI_U16 OSD_MAKECOLOR_U16(HI_U8 r, HI_U8 g, HI_U8 b, OSD_COMP_INFO compinfo)
++static inline HI_U16 OSD_MAKECOLOR_U16(HI_U8 r, HI_U8 g, HI_U8 b, OSD_COMP_INFO compinfo)
+ {
+     HI_U8 r1, g1, b1;
+     HI_U16 pixel = 0;
+diff -uNr a/sample/Makefile.param b/sample/Makefile.param
+--- a/sample/Makefile.param	2015-12-27 16:29:06.000000000 +0800
++++ b/sample/Makefile.param	2016-09-18 21:24:11.660594207 +0800
+@@ -1,7 +1,7 @@
+ # Hisilicon Hi3518e sample Makefile.param
+ 
+ ifeq ($(PARAM_FILE), )
+-     PARAM_FILE:=../../../mpp/Makefile.param
++     PARAM_FILE:=../../Makefile.param
+      include $(PARAM_FILE)
+ endif
+ 
+@@ -93,14 +93,14 @@
+ 
+ INC_FLAGS := -I$(COMMON_DIR)
+ INC_FLAGS += -I$(REL_INC)
+-INC_FLAGS += -I$(SDK_PATH)/mpp/component/acodec
++INC_FLAGS += -I$(SDK_PATH)/component/acodec
+ 
+ ifeq ($(MPP_BUILD), y)
+-	INC_FLAGS += -I$(SDK_PATH)/mpp/$(EXTDRV)/tw2865
+-	INC_FLAGS += -I$(SDK_PATH)/mpp/$(EXTDRV)/tlv320aic31
++	INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/tw2865
++	INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/tlv320aic31
+ else
+-	INC_FLAGS += -I$(SDK_PATH)/mpp/extdrv/tw2865
+-	INC_FLAGS += -I$(SDK_PATH)/mpp/$(EXTDRV)/tlv320aic31
++	INC_FLAGS += -I$(SDK_PATH)/extdrv/tw2865
++	INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/tlv320aic31
+ endif
+ 
+ ISP_VERSION := ISP_V2
+diff -uNr a/tools/Makefile b/tools/Makefile
+--- a/tools/Makefile	2015-12-27 16:29:06.000000000 +0800
++++ b/tools/Makefile	2016-09-18 21:23:41.305752750 +0800
+@@ -7,7 +7,7 @@
+ OBJ  := $(SRC:%.c=%.o)
+ 
+ INC_FLAGS := -I$(REL_INC)
+-INC_FLAGS += -I$(SDK_PATH)/mpp/code/include/inner_inc
++INC_FLAGS += -I$(SDK_PATH)/code/include/inner_inc
+ CFLAGS += -Wall -g -ldl -lpthread $(INC_FLAGS)
+ 
+ LIBS += $(REL_LIB)/lib_hiae.a
