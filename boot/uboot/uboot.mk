@@ -77,7 +77,7 @@ UBOOT_BIN = $(call qstrip,$(BR2_TARGET_UBOOT_FORMAT_CUSTOM_NAME))
 else
 UBOOT_BIN = u-boot.bin
 UBOOT_BIN_IFT = $(UBOOT_BIN).ift
-UBOOT_HI35XX_BIN = u-boot-$(patsubst reg_info_%,%,$(patsubst %.bin,%,$(notdir $(call qstrip,$(BR2_TARGET_UBOOT_HI35XX_IMAGE_CONFIG))))).bin
+UBOOT_HI35XX_BIN = u-boot-$(call qstrip,$(BR2_TARGET_UBOOT_BOARDNAME)).bin
 endif
 
 # The kernel calls AArch64 'arm64', but U-Boot calls it just 'arm', so
@@ -161,8 +161,9 @@ endef
 define UBOOT_BUILD_HI35XX_IMAGE
 	$(TOPDIR)/board/hisilicon/common/mkboot.sh			\
 		-o $(@D)/$(UBOOT_HI35XX_BIN)				\
-		$(call qstrip,$(BR2_TARGET_UBOOT_HI35XX_IMAGE_CONFIG))	\
-		$(@D)/u-boot.bin
+		-s $(BR2_TARGET_UBOOT_HI35XX_IMAGE_CH_SIZE)		\
+		$(@D)/u-boot.bin					\
+		$(call qstrip,$(BR2_TARGET_UBOOT_HI35XX_IMAGE_CH_FILE))
 endef
 
 define UBOOT_BUILD_OMAP_IFT

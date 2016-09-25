@@ -288,7 +288,13 @@ config BR2_TARGET_UBOOT_HI35XX_IMAGE
 
 if BR2_TARGET_UBOOT_HI35XX_IMAGE
 
-config BR2_TARGET_UBOOT_HI35XX_IMAGE_CONFIG
+config BR2_TARGET_UBOOT_HI35XX_IMAGE_CH_SIZE
+	int "hi35xx Configuration Header size"
+	default 4096
+	help
+	  For hi3515a/hi3520d, this should be 2400, otherwise 4096.
+
+config BR2_TARGET_UBOOT_HI35XX_IMAGE_CH_FILE
 	string "hi35xx Configuration Header file"
 	help
 	  The Configuration Header (CH) contains initialization data
