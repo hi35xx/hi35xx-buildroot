@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# Start himpp....
+#
+
+HIMPP_PREFIX=/usr
+VIDEOIF=$(fw_printenv videoif 2>/dev/null)
+VIDEOIF=${VIDEOIF:12}
+VIDEOIF=${VIDEOIF:-8d1}
+
+start() {
+    (
+      echo -n "Starting himpp: "
+      cd ${HIMPP_PREFIX}/lib/himpp-ko
+      ./load3520D.sh -i ${VIDEOIF}
+      [ $? = 0 ] && echo "OK" || echo "FAIL"
+    )
+}
+
+stop() {
+    (
+      echo -n "Stopping himpp: "
+      cd ${HIMPP_PREFIX}/lib/himpp-ko
+      ./load3520D.sh -r
+      [ $? = 0 ] && echo "OK" || echo "FAIL"
+    )
+}
+
+case "$1" in
+    start)
+	start
+	;;
+    stop)
+	stop
+	;;
+    restart|reload)
+	stop
+	start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

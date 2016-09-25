@@ -1,0 +1,1714 @@
+diff -uNr a/extdrv/cx26828/CxApiDefines.h b/extdrv/cx26828/CxApiDefines.h
+--- a/extdrv/cx26828/CxApiDefines.h	2015-02-06 20:34:26.000000000 +0800
++++ b/extdrv/cx26828/CxApiDefines.h	2016-09-09 12:53:07.172084238 +0800
+@@ -210,17 +210,17 @@
+ 
+ #define SetBit(Bit)  (1 << Bit)
+ 
+-inline unsigned char getBit(unsigned long sample, unsigned char index)
++static inline unsigned char getBit(unsigned long sample, unsigned char index)
+ {
+     return (unsigned char) ((sample >> index) & 1);
+ }
+ 
+-inline unsigned long clearBitAtPos(unsigned long value, unsigned char bit)
++static inline unsigned long clearBitAtPos(unsigned long value, unsigned char bit)
+ {
+     return value & ~(1 << bit);
+ }
+ 
+-inline unsigned long setBitAtPos(unsigned long sample, unsigned char bit)
++static inline unsigned long setBitAtPos(unsigned long sample, unsigned char bit)
+ {
+     sample |= (1 << bit);
+     return sample;
+diff -uNr a/extdrv/cx26828/Makefiler b/extdrv/cx26828/Makefiler
+--- a/extdrv/cx26828/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/cx26828/Makefiler	2016-09-09 12:51:07.385741391 +0800
+@@ -0,0 +1,23 @@
++ifeq ($(PARAM_FILE), )
++		PARAM_FILE:=../Makefile.param
++		include $(PARAM_FILE)
++endif
++
++
++obj-m := cx26828.o 
++cx_26828-y += cx26828.o
++
++
++EXTRA_CFLAGS += -Wall -O2 -I$(PWD)/ -DHI_GPIO_I2C
++
++default:
++	@make -C $(LINUX_ROOT) M=$(PWD) modules
++clean: 
++	@make -C $(LINUX_ROOT) M=$(PWD) clean
++
++
++
++
++
++
++
+diff -uNr a/extdrv/cx26828/Makefilerr b/extdrv/cx26828/Makefilerr
+--- a/extdrv/cx26828/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/cx26828/Makefilerr	2016-09-09 12:51:07.384741396 +0800
+@@ -0,0 +1,23 @@
++ifeq ($(PARAM_FILE), )
++		PARAM_FILE:=../Makefile.param
++		include $(PARAM_FILE)
++endif
++
++
++obj-m := cx26828.o 
++cx_26828-y += cx26828.o
++
++
++EXTRA_CFLAGS += -Wall -O2 -I$(PWD)/ -DHI_GPIO_I2C
++
++default:
++	@make -C $(LINUX_ROOT) M=$(PWD) modules
++clean: 
++	@make -C $(LINUX_ROOT) M=$(PWD) clean
++
++
++
++
++
++
++
+diff -uNr a/extdrv/gpio_i2c/Makefiler b/extdrv/gpio_i2c/Makefiler
+--- a/extdrv/gpio_i2c/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/gpio_i2c/Makefiler	2016-09-09 12:51:07.382741407 +0800
+@@ -0,0 +1,18 @@
++
++ifeq ($(PARAM_FILE), )
++                PARAM_FILE:=../Makefile.param
++                include $(PARAM_FILE)
++endif
++			
++obj-m := gpioi2c.o
++gpioi2c-y += gpio_i2c.o
++
++EXTRA_CFLAGS += -D$(HI_FPGA) 
++ 
++default:	
++	@$(CC) -g -Wall -o i2c_read i2c_read.c strfunc.c	
++	@$(CC) -g -Wall -o i2c_write i2c_write.c strfunc.c
++	@make -C $(LINUX_ROOT) M=$(PWD) modules
++clean:
++	@rm *.o i2c_read i2c_write -rf
++	@make -C $(LINUX_ROOT) M=$(PWD) clean
+diff -uNr a/extdrv/gpio_i2c/Makefilerr b/extdrv/gpio_i2c/Makefilerr
+--- a/extdrv/gpio_i2c/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/gpio_i2c/Makefilerr	2016-09-09 12:51:07.381741413 +0800
+@@ -0,0 +1,18 @@
++
++ifeq ($(PARAM_FILE), )
++                PARAM_FILE:=../Makefile.param
++                include $(PARAM_FILE)
++endif
++			
++obj-m := gpioi2c.o
++gpioi2c-y += gpio_i2c.o
++
++EXTRA_CFLAGS += -D$(HI_FPGA) 
++ 
++default:	
++	@$(CC) -g -Wall -o i2c_read i2c_read.c strfunc.c	
++	@$(CC) -g -Wall -o i2c_write i2c_write.c strfunc.c
++	@make -C $(LINUX_ROOT) M=$(PWD) modules
++clean:
++	@rm *.o i2c_read i2c_write -rf
++	@make -C $(LINUX_ROOT) M=$(PWD) clean
+diff -uNr a/extdrv/Makefiler b/extdrv/Makefiler
+--- a/extdrv/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/Makefiler	2016-09-09 12:51:07.391741358 +0800
+@@ -0,0 +1,29 @@
++# $(ROOT)/mpp/Mafile
++
++ifeq ($(PARAM_FILE), ) 
++    PARAM_FILE:=../Makefile.param
++    include $(PARAM_FILE)
++endif
++
++export EXTDRV_KO=$(REL_KO)/extdrv
++
++
++.PHONY:clean all rel
++all:
++	@echo -e "\e[0;32;1m--Compiling 'extdrv'... Configs as follow:\e[0;36;1m"
++	@echo ---- CROSS=$(CROSS)
++	@echo ---- HIARCH=$(HIARCH), HICHIP=$(HICHIP), CVER=$(CVER), HIDBG=$(HIDBG)
++	@echo ---- SDK_PATH=$(SDK_PATH) , PARAM_FILE=$(PARAM_FILE)
++	@echo ---- LINUX_ROOT=$(LINUX_ROOT)
++	@echo -e "\e[0m"
++	@mkdir -p $(EXTDRV_KO)
++	@for x in `find ./ -maxdepth 2 -mindepth 2 -name "Makefile" `; do\
++	   { cd `dirname $$x`; if [ $$? ]; then make || exit 1;  cp *.ko $(EXTDRV_KO); cd ../; fi;}& done; wait
++	cp gpio_i2c/i2c_write $(EXTDRV_KO)   
++
++clean:
++	@for x in `find ./ -maxdepth 2 -mindepth 2 -name "Makefile" `; do\
++	   { cd `dirname $$x`; if [ $$? ]; then make clean; cd ../; fi;}& done; wait
++	@if [ -e $(EXTDRV_KO) ];then rm $(EXTDRV_KO) -fr; fi
++	@if [ -e $(REL_KO) ];then rmdir --ignore-fail-on-non-empty "$(REL_KO)"; fi
++
+diff -uNr a/extdrv/Makefilerr b/extdrv/Makefilerr
+--- a/extdrv/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/Makefilerr	2016-09-09 12:51:07.383741402 +0800
+@@ -0,0 +1,29 @@
++# $(ROOT)/mpp/Mafile
++
++ifeq ($(PARAM_FILE), ) 
++    PARAM_FILE:=../Makefile.param
++    include $(PARAM_FILE)
++endif
++
++export EXTDRV_KO=$(REL_KO)/extdrv
++
++
++.PHONY:clean all rel
++all:
++	@echo -e "\e[0;32;1m--Compiling 'extdrv'... Configs as follow:\e[0;36;1m"
++	@echo ---- CROSS=$(CROSS)
++	@echo ---- HIARCH=$(HIARCH), HICHIP=$(HICHIP), CVER=$(CVER), HIDBG=$(HIDBG)
++	@echo ---- SDK_PATH=$(SDK_PATH) , PARAM_FILE=$(PARAM_FILE)
++	@echo ---- LINUX_ROOT=$(LINUX_ROOT)
++	@echo -e "\e[0m"
++	@mkdir -p $(EXTDRV_KO)
++	@for x in `find ./ -maxdepth 2 -mindepth 2 -name "Makefile" `; do\
++	   { cd `dirname $$x`; if [ $$? ]; then make || exit 1;  cp *.ko $(EXTDRV_KO); cd ../; fi;}& done; wait
++	cp gpio_i2c/i2c_write $(EXTDRV_KO)   
++
++clean:
++	@for x in `find ./ -maxdepth 2 -mindepth 2 -name "Makefile" `; do\
++	   { cd `dirname $$x`; if [ $$? ]; then make clean; cd ../; fi;}& done; wait
++	@if [ -e $(EXTDRV_KO) ];then rm $(EXTDRV_KO) -fr; fi
++	@if [ -e $(REL_KO) ];then rmdir --ignore-fail-on-non-empty "$(REL_KO)"; fi
++
+diff -uNr a/extdrv/nvp6114/Makefiler b/extdrv/nvp6114/Makefiler
+--- a/extdrv/nvp6114/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/nvp6114/Makefiler	2016-09-09 12:51:07.393741347 +0800
+@@ -0,0 +1,16 @@
++ifeq ($(PARAM_FILE), )
++		PARAM_FILE:=../Makefile.param
++		include $(PARAM_FILE)
++endif
++obj-m := nvp6114_ex.o
++nvp6114_ex-objs := nvp6114_drv.o coax_protocol.o video.o motion.o audio.o
++
++
++EXTRA_CFLAGS += -I$(PWD)/../gpio_i2c
++default:
++	@make -C $(LINUX_ROOT) M=$(PWD) modules 
++
++clean: 
++	@make -C $(LINUX_ROOT) M=$(PWD) clean 
++
++
+diff -uNr a/extdrv/nvp6114/Makefilerr b/extdrv/nvp6114/Makefilerr
+--- a/extdrv/nvp6114/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/nvp6114/Makefilerr	2016-09-09 12:51:07.393741347 +0800
+@@ -0,0 +1,16 @@
++ifeq ($(PARAM_FILE), )
++		PARAM_FILE:=../Makefile.param
++		include $(PARAM_FILE)
++endif
++obj-m := nvp6114_ex.o
++nvp6114_ex-objs := nvp6114_drv.o coax_protocol.o video.o motion.o audio.o
++
++
++EXTRA_CFLAGS += -I$(PWD)/../gpio_i2c
++default:
++	@make -C $(LINUX_ROOT) M=$(PWD) modules 
++
++clean: 
++	@make -C $(LINUX_ROOT) M=$(PWD) clean 
++
++
+diff -uNr a/extdrv/ssp-GV7601/Makefiler b/extdrv/ssp-GV7601/Makefiler
+--- a/extdrv/ssp-GV7601/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/ssp-GV7601/Makefiler	2016-09-09 12:51:07.396741331 +0800
+@@ -0,0 +1,21 @@
++
++ifeq ($(PARAM_FILE), )
++		PARAM_FILE:=../../Makefile.param
++		include $(PARAM_FILE)
++endif
++
++obj-m := ssp.o
++ssp-y += hi_ssp.o
++
++#EXTRA_CFLAGS += -D$(HI_FPGA) -D$(CHIP_ARCH)
++#EXTRA_CFLAGS+=-I$(PWD)/../gpio-i2c-8bit
++#EXTRA_CFLAGS += -DSSP_USE_GPIO_DO_CS
++ 
++default:	
++	$(CC) -g -Wall -o ssp_read ssp_read.c strfunc.c	
++	$(CC) -g -Wall -o ssp_write ssp_write.c	strfunc.c
++	@make -C $(LINUX_ROOT) M=$(PWD) modules
++	rm *.o modules.* *.symvers *.mod.c
++clean:
++	@make -C $(LINUX_ROOT) M=$(PWD) clean
++	@rm -rf ssp_read ssp_write
+diff -uNr a/extdrv/ssp-GV7601/Makefilerr b/extdrv/ssp-GV7601/Makefilerr
+--- a/extdrv/ssp-GV7601/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/ssp-GV7601/Makefilerr	2016-09-09 12:51:07.395741336 +0800
+@@ -0,0 +1,21 @@
++
++ifeq ($(PARAM_FILE), )
++		PARAM_FILE:=../../Makefile.param
++		include $(PARAM_FILE)
++endif
++
++obj-m := ssp.o
++ssp-y += hi_ssp.o
++
++#EXTRA_CFLAGS += -D$(HI_FPGA) -D$(CHIP_ARCH)
++#EXTRA_CFLAGS+=-I$(PWD)/../gpio-i2c-8bit
++#EXTRA_CFLAGS += -DSSP_USE_GPIO_DO_CS
++ 
++default:	
++	$(CC) -g -Wall -o ssp_read ssp_read.c strfunc.c	
++	$(CC) -g -Wall -o ssp_write ssp_write.c	strfunc.c
++	@make -C $(LINUX_ROOT) M=$(PWD) modules
++	rm *.o modules.* *.symvers *.mod.c
++clean:
++	@make -C $(LINUX_ROOT) M=$(PWD) clean
++	@rm -rf ssp_read ssp_write
+diff -uNr a/extdrv/tlv320aic31/Makefiler b/extdrv/tlv320aic31/Makefiler
+--- a/extdrv/tlv320aic31/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/tlv320aic31/Makefiler	2016-09-09 12:51:07.398741320 +0800
+@@ -0,0 +1,16 @@
++
++ifeq ($(PARAM_FILE), )
++        PARAM_FILE:=../../Makefile.param
++        include $(PARAM_FILE)
++endif
++			
++obj-m := tlv_320aic31.o
++tlv_320aic31-y += tlv320aic31.o
++
++EXTRA_CFLAGS += -I$(PWD)/ -DHI_GPIO_I2C -D$(HI_FPGA) 
++EXTRA_CFLAGS += -I$(PWD)/../gpio_i2c_8b 
++
++default:
++	@make -C $(LINUX_ROOT) M=$(PWD) modules 
++clean: 
++	@make -C $(LINUX_ROOT) M=$(PWD) clean 
+diff -uNr a/extdrv/tlv320aic31/Makefilerr b/extdrv/tlv320aic31/Makefilerr
+--- a/extdrv/tlv320aic31/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/tlv320aic31/Makefilerr	2016-09-09 12:51:07.397741325 +0800
+@@ -0,0 +1,16 @@
++
++ifeq ($(PARAM_FILE), )
++        PARAM_FILE:=../../Makefile.param
++        include $(PARAM_FILE)
++endif
++			
++obj-m := tlv_320aic31.o
++tlv_320aic31-y += tlv320aic31.o
++
++EXTRA_CFLAGS += -I$(PWD)/ -DHI_GPIO_I2C -D$(HI_FPGA) 
++EXTRA_CFLAGS += -I$(PWD)/../gpio_i2c_8b 
++
++default:
++	@make -C $(LINUX_ROOT) M=$(PWD) modules 
++clean: 
++	@make -C $(LINUX_ROOT) M=$(PWD) clean 
+diff -uNr a/extdrv/tw2865/Makefiler b/extdrv/tw2865/Makefiler
+--- a/extdrv/tw2865/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/tw2865/Makefiler	2016-09-09 12:51:07.388741374 +0800
+@@ -0,0 +1,20 @@
++
++ifeq ($(PARAM_FILE), )
++	PARAM_FILE:=../../Makefile.param
++		include $(PARAM_FILE)
++endif
++
++obj-m := tw2865.o
++tw_2865-y += tw2865.o
++
++EXTRA_CFLAGS += -D$(HI_FPGA) 
++#EXTRA_CFLAGS+=-I$(PWD)/../gpio-i2c -I$(PWD)/../gpio-i2c1
++EXTRA_CFLAGS +=-I$(PWD)/../gpio-i2c_8b
++
++default:
++	@make -C $(LINUX_ROOT) M=$(PWD) modules
++clean: 
++	@make -C $(LINUX_ROOT) M=$(PWD) clean
++
++
++
+diff -uNr a/extdrv/tw2865/Makefilerr b/extdrv/tw2865/Makefilerr
+--- a/extdrv/tw2865/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/tw2865/Makefilerr	2016-09-09 12:51:07.387741380 +0800
+@@ -0,0 +1,20 @@
++
++ifeq ($(PARAM_FILE), )
++	PARAM_FILE:=../../Makefile.param
++		include $(PARAM_FILE)
++endif
++
++obj-m := tw2865.o
++tw_2865-y += tw2865.o
++
++EXTRA_CFLAGS += -D$(HI_FPGA) 
++#EXTRA_CFLAGS+=-I$(PWD)/../gpio-i2c -I$(PWD)/../gpio-i2c1
++EXTRA_CFLAGS +=-I$(PWD)/../gpio-i2c_8b
++
++default:
++	@make -C $(LINUX_ROOT) M=$(PWD) modules
++clean: 
++	@make -C $(LINUX_ROOT) M=$(PWD) clean
++
++
++
+diff -uNr a/extdrv/tw2868/Makefiler b/extdrv/tw2868/Makefiler
+--- a/extdrv/tw2868/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/tw2868/Makefiler	2016-09-09 12:51:07.379741424 +0800
+@@ -0,0 +1,20 @@
++
++ifeq ($(PARAM_FILE), )
++		PARAM_FILE:=../../Makefile.param
++		include $(PARAM_FILE)
++endif
++
++obj-m := tw2868.o
++tw_2868-y += tw2868.o
++
++EXTRA_CFLAGS += -D$(HI_FPGA) 
++#EXTRA_CFLAGS+=-I$(PWD)/../gpio-i2c -I$(PWD)/../gpio-i2c1
++EXTRA_CFLAGS += -I$(PWD)/../gpio-i2c_8b
++
++default:
++	@make -C $(LINUX_ROOT) M=$(PWD) modules
++clean: 
++	@make -C $(LINUX_ROOT) M=$(PWD) clean
++
++
++
+diff -uNr a/extdrv/tw2868/Makefilerr b/extdrv/tw2868/Makefilerr
+--- a/extdrv/tw2868/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/tw2868/Makefilerr	2016-09-09 12:51:07.378741429 +0800
+@@ -0,0 +1,20 @@
++
++ifeq ($(PARAM_FILE), )
++		PARAM_FILE:=../../Makefile.param
++		include $(PARAM_FILE)
++endif
++
++obj-m := tw2868.o
++tw_2868-y += tw2868.o
++
++EXTRA_CFLAGS += -D$(HI_FPGA) 
++#EXTRA_CFLAGS+=-I$(PWD)/../gpio-i2c -I$(PWD)/../gpio-i2c1
++EXTRA_CFLAGS += -I$(PWD)/../gpio-i2c_8b
++
++default:
++	@make -C $(LINUX_ROOT) M=$(PWD) modules
++clean: 
++	@make -C $(LINUX_ROOT) M=$(PWD) clean
++
++
++
+diff -uNr a/extdrv/tw2960/Makefiler b/extdrv/tw2960/Makefiler
+--- a/extdrv/tw2960/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/tw2960/Makefiler	2016-09-09 12:51:07.390741363 +0800
+@@ -0,0 +1,20 @@
++
++ifeq ($(PARAM_FILE), )
++		PARAM_FILE:=../../Makefile.param
++		include $(PARAM_FILE)
++endif
++
++obj-m := tw2960.o
++tw_2960-y += tw2960.o
++
++EXTRA_CFLAGS += -D$(HI_FPGA) 
++#EXTRA_CFLAGS+=-I$(PWD)/../gpio-i2c -I$(PWD)/../gpio-i2c1
++EXTRA_CFLAGS += -I$(PWD)/../gpio-i2c_8b
++
++default:
++	@make -C $(LINUX_ROOT) M=$(PWD) modules
++clean: 
++	@make -C $(LINUX_ROOT) M=$(PWD) clean
++
++
++
+diff -uNr a/extdrv/tw2960/Makefilerr b/extdrv/tw2960/Makefilerr
+--- a/extdrv/tw2960/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/extdrv/tw2960/Makefilerr	2016-09-09 12:51:07.389741369 +0800
+@@ -0,0 +1,20 @@
++
++ifeq ($(PARAM_FILE), )
++		PARAM_FILE:=../../Makefile.param
++		include $(PARAM_FILE)
++endif
++
++obj-m := tw2960.o
++tw_2960-y += tw2960.o
++
++EXTRA_CFLAGS += -D$(HI_FPGA) 
++#EXTRA_CFLAGS+=-I$(PWD)/../gpio-i2c -I$(PWD)/../gpio-i2c1
++EXTRA_CFLAGS += -I$(PWD)/../gpio-i2c_8b
++
++default:
++	@make -C $(LINUX_ROOT) M=$(PWD) modules
++clean: 
++	@make -C $(LINUX_ROOT) M=$(PWD) clean
++
++
++
+diff -uNr a/Makefile.param b/Makefile.param
+--- a/Makefile.param	2015-02-06 20:34:23.000000000 +0800
++++ b/Makefile.param	2016-09-09 12:51:07.399741314 +0800
+@@ -88,7 +88,7 @@
+ export PARAM_FILE
+ export SDK_PATH?=$(shell cd $(PWD)/`dirname $(PARAM_FILE)`/..; pwd)
+ export DRV_ROOT?=$(SDK_PATH)/drv
+-export MPP_PATH?=$(SDK_PATH)/mpp
++export MPP_PATH?=$(SDK_PATH)
+ 
+ # Allocated the linux position
+ ifneq ($(shell ls $(HIWORK_PATH)/osdrv$(HIARCH)$(CVER)), )
+@@ -121,8 +121,8 @@
+ 
+ # Define the object output directory
+ ifeq ($(MPP_BUILD), y)
+-	REL_DIR=$(SDK_PATH)/mpp/release/$(HIARCH)
+-	SAMPLE_DIR=$(SDK_PATH)/mpp/sample/$(HIARCH)
++	REL_DIR=$(SDK_PATH)/release/$(HIARCH)
++	SAMPLE_DIR=$(SDK_PATH)/sample/$(HIARCH)
+ else
+ 	REL_DIR=$(MPP_PATH)
+ 	EXTDRV=extdrv
+@@ -156,7 +156,7 @@
+ 
+ # include the config file of platform
+ ifeq ($(MPP_BUILD), y)
+-	-include $(SDK_PATH)/mpp/configs/config.mk
++	-include $(SDK_PATH)/configs/config.mk
+ else
+ 	export CONFIG_ISP=y
+ endif
+diff -uNr a/Makefile.paramr b/Makefile.paramr
+--- a/Makefile.paramr	1970-01-01 08:00:00.000000000 +0800
++++ b/Makefile.paramr	2016-09-09 12:51:07.431741138 +0800
+@@ -0,0 +1,164 @@
++# Makefile.param 
++# Only global variable should be defined here.
++# All the variables must be used as "export" and "?=".
++# Otherwise, there will be some errors, when Makefile.param is nested.
++
++# Use this file as the following sample
++# ifeq ($(PARAM_FILE), )
++#     PARAM_FILE:=../Makefile.param
++#     include $(PARAM_FILE)
++# endif
++
++# Define the default OS link directory.
++export HIWORK_PATH?=/hiwork
++
++export ARCH=arm
++export MPP_BUILD=n
++
++# use HIARCH indicate chip, use libc to choose cross compiler.
++export HIARCH?=hi3520D
++export LIBC?=uclibc
++
++# Whether support the debug information. HI_DEBUG or HI_RELEASE
++export HIDBG?=HI_DEBUG
++
++# Whether open -g 
++#export HIGDB?=y
++export HIGDB?=n
++
++# FPGA board or not
++export FPGA?=n
++
++ifeq ($(HIARCH), )
++$(error HIARCH not defined! Please check!)
++endif
++
++ifeq ($(LIBC), )
++$(error LIBC not defined! Please check!)
++endif
++
++ifeq ($(HIARCH),hi3531)
++	export HICHIP?=0x35310100
++	export ARCH_DIR?=hi3531
++endif
++
++ifeq ($(HIARCH),hi3532)
++	export HICHIP?=0x35320100
++	export ARCH_DIR?=hi3531
++endif
++
++ifeq ($(HIARCH),hi3521)
++	export HICHIP?=0x35210100
++	export ARCH_DIR?=hi3521
++endif
++
++ifeq ($(HIARCH),hi3520A)
++	export HICHIP?=0x3520A100
++	export ARCH_DIR?=hi3521
++endif
++
++ifeq ($(HIARCH),hi3520D)
++	export HICHIP?=0x3520D100
++	export ARCH_DIR?=hi3520D
++endif
++
++ifeq ($(HIARCH),hi3518)
++	export HICHIP?=0x35180100
++	export ARCH_DIR?=hi3518
++endif
++
++# use C01 to indicate uclibc, C02 to  indicate glibc, C00 to indicate FPGA.
++ifeq ($(LIBC),glibc)
++	export CVER?=.C02
++else
++	export CVER?=.C01
++endif
++
++ifeq ($(FPGA),y)
++	export CVER=.C00
++	export HI_FPGA:=HI_FPGA
++	export EXTDRV:=extdrv/$(HIARCH)_fpga
++else
++	export HI_FPGA:=HI_XXXX
++	export EXTDRV:=extdrv/$(HIARCH)
++endif
++
++# Get the local SDK_ROOT path or RELEASE_ROOT path by PARAM_FILE.
++# PARAM_FILE is configed at Makefile before include this file
++export PARAM_FILE
++export SDK_PATH?=$(shell cd $(PWD)/`dirname $(PARAM_FILE)`/..; pwd)
++export DRV_ROOT?=$(SDK_PATH)/drv
++export MPP_PATH?=$(SDK_PATH)
++
++# Allocated the linux position
++ifneq ($(shell ls $(HIWORK_PATH)/osdrv$(HIARCH)$(CVER)), )
++	export LINUX_ROOT?=$(HIWORK_PATH)/osdrv$(HIARCH)$(CVER)/kernel/linux-3.0.y
++else
++	export LINUX_ROOT?=$(SDK_PATH)/osdrv/kernel/linux-3.0.y
++endif
++
++# Define cross compiler
++ifeq ($(LIBC),glibc)
++	export CROSS_COMPILE?= arm-hisiv200-linux-
++	export CROSS?= arm-hisiv200-linux-
++else
++	export CROSS_COMPILE?= arm-hisiv100nptl-linux-
++	export CROSS?= arm-hisiv100nptl-linux-
++endif
++
++export CC:=$(CROSS)gcc
++export AR:=$(CROSS)ar
++
++export MPP_CFLAGS:= -Wall
++
++ifeq ($(HIGDB), y)
++	MPP_CFLAGS += -g
++else
++	MPP_CFLAGS += -O2
++endif
++
++MPP_CFLAGS += -ffunction-sections
++
++# Define the object output directory
++ifeq ($(MPP_BUILD), y)
++	REL_DIR=$(SDK_PATH)/release/$(HIARCH)
++	SAMPLE_DIR=$(SDK_PATH)/sample/$(HIARCH)
++else
++	REL_DIR=$(MPP_PATH)
++	EXTDRV=extdrv
++	SAMPLE_DIR=$(MPP_PATH)/sample
++endif
++
++export REL_INC := $(REL_DIR)/include
++export REL_LIB := $(REL_DIR)/lib
++export REL_KO  := $(REL_DIR)/ko
++
++# Define the lib of audio codec
++export AUDIO_PATH?=$(MPP_PATH)/component/audio/lib/$(CROSS)
++
++export AUDIO_LIBA := $(REL_LIB)/libVoiceEngine.a \
++		$(REL_LIB)/libaec.a	\
++		$(REL_LIB)/libresampler.a \
++		$(REL_LIB)/libanr.a\
++		$(REL_LIB)/libvqev2.a
++
++# Define the lib of jpeg codec
++export JPEGD_PATH?=$(MPP_PATH)/component/jpegd
++export JPEGD_LIBA:=$(REL_LIB)/libjpeg.a
++
++#********************* Macro for version management***************************** 
++VER_X ?= 1
++VER_Y ?= 0
++VER_Z ?= 0
++VER_P ?= 0
++MPP_CFLAGS += -DVER_X=$(VER_X) -DVER_Y=$(VER_Y) -DVER_Z=$(VER_Z) -DVER_P=$(VER_P)
++#******************************************************************************* 
++
++# include the config file of platform
++ifeq ($(MPP_BUILD), y)
++	-include $(SDK_PATH)/configs/config.mk
++else
++	export CONFIG_ISP=y
++endif
++
++# End!!
+diff -uNr a/Makefile.paramrr b/Makefile.paramrr
+--- a/Makefile.paramrr	1970-01-01 08:00:00.000000000 +0800
++++ b/Makefile.paramrr	2016-09-09 12:51:07.431741138 +0800
+@@ -0,0 +1,164 @@
++# Makefile.param 
++# Only global variable should be defined here.
++# All the variables must be used as "export" and "?=".
++# Otherwise, there will be some errors, when Makefile.param is nested.
++
++# Use this file as the following sample
++# ifeq ($(PARAM_FILE), )
++#     PARAM_FILE:=../Makefile.param
++#     include $(PARAM_FILE)
++# endif
++
++# Define the default OS link directory.
++export HIWORK_PATH?=/hiwork
++
++export ARCH=arm
++export MPP_BUILD=n
++
++# use HIARCH indicate chip, use libc to choose cross compiler.
++export HIARCH?=hi3520D
++export LIBC?=uclibc
++
++# Whether support the debug information. HI_DEBUG or HI_RELEASE
++export HIDBG?=HI_DEBUG
++
++# Whether open -g 
++#export HIGDB?=y
++export HIGDB?=n
++
++# FPGA board or not
++export FPGA?=n
++
++ifeq ($(HIARCH), )
++$(error HIARCH not defined! Please check!)
++endif
++
++ifeq ($(LIBC), )
++$(error LIBC not defined! Please check!)
++endif
++
++ifeq ($(HIARCH),hi3531)
++	export HICHIP?=0x35310100
++	export ARCH_DIR?=hi3531
++endif
++
++ifeq ($(HIARCH),hi3532)
++	export HICHIP?=0x35320100
++	export ARCH_DIR?=hi3531
++endif
++
++ifeq ($(HIARCH),hi3521)
++	export HICHIP?=0x35210100
++	export ARCH_DIR?=hi3521
++endif
++
++ifeq ($(HIARCH),hi3520A)
++	export HICHIP?=0x3520A100
++	export ARCH_DIR?=hi3521
++endif
++
++ifeq ($(HIARCH),hi3520D)
++	export HICHIP?=0x3520D100
++	export ARCH_DIR?=hi3520D
++endif
++
++ifeq ($(HIARCH),hi3518)
++	export HICHIP?=0x35180100
++	export ARCH_DIR?=hi3518
++endif
++
++# use C01 to indicate uclibc, C02 to  indicate glibc, C00 to indicate FPGA.
++ifeq ($(LIBC),glibc)
++	export CVER?=.C02
++else
++	export CVER?=.C01
++endif
++
++ifeq ($(FPGA),y)
++	export CVER=.C00
++	export HI_FPGA:=HI_FPGA
++	export EXTDRV:=extdrv/$(HIARCH)_fpga
++else
++	export HI_FPGA:=HI_XXXX
++	export EXTDRV:=extdrv/$(HIARCH)
++endif
++
++# Get the local SDK_ROOT path or RELEASE_ROOT path by PARAM_FILE.
++# PARAM_FILE is configed at Makefile before include this file
++export PARAM_FILE
++export SDK_PATH?=$(shell cd $(PWD)/`dirname $(PARAM_FILE)`/..; pwd)
++export DRV_ROOT?=$(SDK_PATH)/drv
++export MPP_PATH?=$(SDK_PATH)
++
++# Allocated the linux position
++ifneq ($(shell ls $(HIWORK_PATH)/osdrv$(HIARCH)$(CVER)), )
++	export LINUX_ROOT?=$(HIWORK_PATH)/osdrv$(HIARCH)$(CVER)/kernel/linux-3.0.y
++else
++	export LINUX_ROOT?=$(SDK_PATH)/osdrv/kernel/linux-3.0.y
++endif
++
++# Define cross compiler
++ifeq ($(LIBC),glibc)
++	export CROSS_COMPILE?= arm-hisiv200-linux-
++	export CROSS?= arm-hisiv200-linux-
++else
++	export CROSS_COMPILE?= arm-hisiv100nptl-linux-
++	export CROSS?= arm-hisiv100nptl-linux-
++endif
++
++export CC:=$(CROSS)gcc
++export AR:=$(CROSS)ar
++
++export MPP_CFLAGS:= -Wall
++
++ifeq ($(HIGDB), y)
++	MPP_CFLAGS += -g
++else
++	MPP_CFLAGS += -O2
++endif
++
++MPP_CFLAGS += -ffunction-sections
++
++# Define the object output directory
++ifeq ($(MPP_BUILD), y)
++	REL_DIR=$(SDK_PATH)/release/$(HIARCH)
++	SAMPLE_DIR=$(SDK_PATH)/sample/$(HIARCH)
++else
++	REL_DIR=$(MPP_PATH)
++	EXTDRV=extdrv
++	SAMPLE_DIR=$(MPP_PATH)/sample
++endif
++
++export REL_INC := $(REL_DIR)/include
++export REL_LIB := $(REL_DIR)/lib
++export REL_KO  := $(REL_DIR)/ko
++
++# Define the lib of audio codec
++export AUDIO_PATH?=$(MPP_PATH)/component/audio/lib/$(CROSS)
++
++export AUDIO_LIBA := $(REL_LIB)/libVoiceEngine.a \
++		$(REL_LIB)/libaec.a	\
++		$(REL_LIB)/libresampler.a \
++		$(REL_LIB)/libanr.a\
++		$(REL_LIB)/libvqev2.a
++
++# Define the lib of jpeg codec
++export JPEGD_PATH?=$(MPP_PATH)/component/jpegd
++export JPEGD_LIBA:=$(REL_LIB)/libjpeg.a
++
++#********************* Macro for version management***************************** 
++VER_X ?= 1
++VER_Y ?= 0
++VER_Z ?= 0
++VER_P ?= 0
++MPP_CFLAGS += -DVER_X=$(VER_X) -DVER_Y=$(VER_Y) -DVER_Z=$(VER_Z) -DVER_P=$(VER_P)
++#******************************************************************************* 
++
++# include the config file of platform
++ifeq ($(MPP_BUILD), y)
++	-include $(SDK_PATH)/configs/config.mk
++else
++	export CONFIG_ISP=y
++endif
++
++# End!!
+diff -uNr a/sample/audio/Makefiler b/sample/audio/Makefiler
+--- a/sample/audio/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/audio/Makefiler	2016-09-09 12:51:07.410741254 +0800
+@@ -0,0 +1,33 @@
++# Hisilicon Hi3516 sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++	@rm -f *.h264
++	@rm -f *.jpg
++	@rm -f *.mjp
++	@rm -f *.mp4
+diff -uNr a/sample/audio/Makefilerr b/sample/audio/Makefilerr
+--- a/sample/audio/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/audio/Makefilerr	2016-09-09 12:51:07.409741259 +0800
+@@ -0,0 +1,33 @@
++# Hisilicon Hi3516 sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++	@rm -f *.h264
++	@rm -f *.jpg
++	@rm -f *.mjp
++	@rm -f *.mp4
+diff -uNr a/sample/common/loadbmp.c b/sample/common/loadbmp.c
+--- a/sample/common/loadbmp.c	2015-02-06 20:34:24.000000000 +0800
++++ b/sample/common/loadbmp.c	2016-09-09 12:53:35.855926877 +0800
+@@ -13,7 +13,7 @@
+                                                     {0, 8, 8, 8},   /*RGB888*/
+                                                     {8, 8, 8, 8}    /*ARGB8888*/
+                                                     };
+-inline HI_U16 OSD_MAKECOLOR_U16(HI_U8 r, HI_U8 g, HI_U8 b, OSD_COMP_INFO compinfo)
++static inline HI_U16 OSD_MAKECOLOR_U16(HI_U8 r, HI_U8 g, HI_U8 b, OSD_COMP_INFO compinfo)
+ {
+     HI_U8 r1, g1, b1;
+     HI_U16 pixel = 0;
+diff -uNr a/sample/common/sample_comm_audio.c b/sample/common/sample_comm_audio.c
+--- a/sample/common/sample_comm_audio.c	2015-02-06 20:34:24.000000000 +0800
++++ b/sample/common/sample_comm_audio.c	2016-09-09 12:53:25.445983987 +0800
+@@ -1422,7 +1422,7 @@
+     return HI_SUCCESS;
+ }
+ 
+-inline HI_S32 SAMPLE_COMM_AUDIO_StopHdmi(HI_VOID)
++static inline HI_S32 SAMPLE_COMM_AUDIO_StopHdmi(HI_VOID)
+ {
+     HI_S32 s32Ret;
+     VO_DEV VoDev = 0;
+diff -uNr a/sample/hifb/Makefiler b/sample/hifb/Makefiler
+--- a/sample/hifb/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/hifb/Makefiler	2016-09-09 12:51:07.420741199 +0800
+@@ -0,0 +1,32 @@
++# Hisilicon Hi3516 sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++MPI_LIBS += $(REL_LIB)/libtde.a
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)  
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++	@rm -f *.h264
++	@rm -f *.jpg
++	@rm -f *.mjp
++	@rm -f *.mp4
+diff -uNr a/sample/hifb/Makefilerr b/sample/hifb/Makefilerr
+--- a/sample/hifb/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/hifb/Makefilerr	2016-09-09 12:51:07.419741204 +0800
+@@ -0,0 +1,32 @@
++# Hisilicon Hi3516 sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++MPI_LIBS += $(REL_LIB)/libtde.a
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)  
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++	@rm -f *.h264
++	@rm -f *.jpg
++	@rm -f *.mjp
++	@rm -f *.mp4
+diff -uNr a/sample/ive/Makefiler b/sample/ive/Makefiler
+--- a/sample/ive/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/ive/Makefiler	2016-09-09 12:51:07.415741226 +0800
+@@ -0,0 +1,33 @@
++# Hisilicon Hi3520D sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++	@rm -f *.h264
++	@rm -f *.jpg
++	@rm -f *.mjp
++	@rm -f *.mp4
+diff -uNr a/sample/ive/Makefilerr b/sample/ive/Makefilerr
+--- a/sample/ive/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/ive/Makefilerr	2016-09-09 12:51:07.414741232 +0800
+@@ -0,0 +1,33 @@
++# Hisilicon Hi3520D sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++	@rm -f *.h264
++	@rm -f *.jpg
++	@rm -f *.mjp
++	@rm -f *.mp4
+diff -uNr a/sample/Makefile.param b/sample/Makefile.param
+--- a/sample/Makefile.param	2015-02-06 20:34:26.000000000 +0800
++++ b/sample/Makefile.param	2016-09-09 12:51:07.404741286 +0800
+@@ -14,11 +14,11 @@
+ 
+ INC_FLAGS := -I$(REL_INC) 
+ INC_FLAGS += -I$(COMMON_DIR) 
+-INC_FLAGS += -I$(SDK_PATH)/mpp/$(EXTDRV)/tw2865 
+-INC_FLAGS += -I$(SDK_PATH)/mpp/$(EXTDRV)/tw2960 
+-INC_FLAGS += -I$(SDK_PATH)/mpp/$(EXTDRV)/tlv320aic31 
+-INC_FLAGS += -I$(SDK_PATH)/mpp/$(EXTDRV)/cx26828
+-INC_FLAGS += -I$(SDK_PATH)/mpp/$(EXTDRV)/nvp6114
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/tw2865 
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/tw2960 
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/tlv320aic31 
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/cx26828
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/nvp6114
+ 
+ CFLAGS := -Wall -g $(INC_FLAGS) -D$(HIARCH) -DHICHIP=$(HICHIP) -D$(HIDBG) -D$(HI_FPGA) -D$(HI3520D_BOARD) -lpthread -lm
+ 
+diff -uNr a/sample/Makefile.paramr b/sample/Makefile.paramr
+--- a/sample/Makefile.paramr	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/Makefile.paramr	2016-09-09 12:51:07.426741166 +0800
+@@ -0,0 +1,27 @@
++# Hisilicon Hi3520D sample Makefile.param
++
++ifeq ($(PARAM_FILE), )
++     PARAM_FILE:=../../Makefile.param
++     include $(PARAM_FILE)
++endif
++
++#demo or socket, just useful for hi3520D
++HI3520D_BOARD=DEMO
++#HI3520D_BOARD=SOCKET
++
++
++COMMON_DIR:=$(PWD)/../common
++
++INC_FLAGS := -I$(REL_INC) 
++INC_FLAGS += -I$(COMMON_DIR) 
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/tw2865 
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/tw2960 
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/tlv320aic31 
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/cx26828
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/nvp6114
++
++CFLAGS := -Wall -g $(INC_FLAGS) -D$(HIARCH) -DHICHIP=$(HICHIP) -D$(HIDBG) -D$(HI_FPGA) -D$(HI3520D_BOARD) -lpthread -lm
++
++CFLAGS += -Wl,-gc-sections
++COMM_SRC := $(wildcard $(COMMON_DIR)/*.c)
++COMM_OBJ := $(COMM_SRC:%.c=%.o)
+diff -uNr a/sample/Makefile.paramrr b/sample/Makefile.paramrr
+--- a/sample/Makefile.paramrr	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/Makefile.paramrr	2016-09-09 12:51:07.430741144 +0800
+@@ -0,0 +1,27 @@
++# Hisilicon Hi3520D sample Makefile.param
++
++ifeq ($(PARAM_FILE), )
++     PARAM_FILE:=../../Makefile.param
++     include $(PARAM_FILE)
++endif
++
++#demo or socket, just useful for hi3520D
++HI3520D_BOARD=DEMO
++#HI3520D_BOARD=SOCKET
++
++
++COMMON_DIR:=$(PWD)/../common
++
++INC_FLAGS := -I$(REL_INC) 
++INC_FLAGS += -I$(COMMON_DIR) 
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/tw2865 
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/tw2960 
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/tlv320aic31 
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/cx26828
++INC_FLAGS += -I$(SDK_PATH)/$(EXTDRV)/nvp6114
++
++CFLAGS := -Wall -g $(INC_FLAGS) -D$(HIARCH) -DHICHIP=$(HICHIP) -D$(HIDBG) -D$(HI_FPGA) -D$(HI3520D_BOARD) -lpthread -lm
++
++CFLAGS += -Wl,-gc-sections
++COMM_SRC := $(wildcard $(COMMON_DIR)/*.c)
++COMM_OBJ := $(COMM_SRC:%.c=%.o)
+diff -uNr a/sample/Makefiler b/sample/Makefiler
+--- a/sample/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/Makefiler	2016-09-09 12:51:07.426741166 +0800
+@@ -0,0 +1,31 @@
++# 
++rel:
++	@cd hifb;   make
++	@cd vio;    make
++	@cd venc;   make
++	@cd vdec;   make
++	@cd region;    make
++	@cd vda;    make
++	@cd audio;  make
++	@cd tde;    make
++
++clean:
++	@cd hifb;   make clean
++	@cd vio;    make clean
++	@cd venc;   make clean
++	@cd vdec;   make clean
++	@cd region; make clean
++	@cd vda;    make clean
++	@cd audio;  make clean
++	@cd tde; make clean
++
++cleanall:
++	@cd hifb;   make clean;   make cleanstream
++	@cd vio;    make clean;   make cleanstream
++	@cd venc;   make clean;   make cleanstream
++	@cd vdec;   make clean;   make cleanstream
++	@cd region;    make clean;   make cleanstream
++	@cd vda;    make clean;   make cleanstream
++	@cd audio;  make clean;   make cleanstream
++	@cd tde; make clean
++
+diff -uNr a/sample/Makefilerr b/sample/Makefilerr
+--- a/sample/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/Makefilerr	2016-09-09 12:51:07.408741265 +0800
+@@ -0,0 +1,31 @@
++# 
++rel:
++	@cd hifb;   make
++	@cd vio;    make
++	@cd venc;   make
++	@cd vdec;   make
++	@cd region;    make
++	@cd vda;    make
++	@cd audio;  make
++	@cd tde;    make
++
++clean:
++	@cd hifb;   make clean
++	@cd vio;    make clean
++	@cd venc;   make clean
++	@cd vdec;   make clean
++	@cd region; make clean
++	@cd vda;    make clean
++	@cd audio;  make clean
++	@cd tde; make clean
++
++cleanall:
++	@cd hifb;   make clean;   make cleanstream
++	@cd vio;    make clean;   make cleanstream
++	@cd venc;   make clean;   make cleanstream
++	@cd vdec;   make clean;   make cleanstream
++	@cd region;    make clean;   make cleanstream
++	@cd vda;    make clean;   make cleanstream
++	@cd audio;  make clean;   make cleanstream
++	@cd tde; make clean
++
+diff -uNr a/sample/region/Makefiler b/sample/region/Makefiler
+--- a/sample/region/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/region/Makefiler	2016-09-09 12:51:07.422741188 +0800
+@@ -0,0 +1,33 @@
++# Hisilicon Hi3516 sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++	@rm -f *.h264
++	@rm -f *.jpg
++	@rm -f *.mjp
++	@rm -f *.mp4
+diff -uNr a/sample/region/Makefilerr b/sample/region/Makefilerr
+--- a/sample/region/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/region/Makefilerr	2016-09-09 12:51:07.422741188 +0800
+@@ -0,0 +1,33 @@
++# Hisilicon Hi3516 sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++	@rm -f *.h264
++	@rm -f *.jpg
++	@rm -f *.mjp
++	@rm -f *.mp4
+diff -uNr a/sample/tde/Makefiler b/sample/tde/Makefiler
+--- a/sample/tde/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/tde/Makefiler	2016-09-09 12:51:07.417741215 +0800
+@@ -0,0 +1,22 @@
++# Hisilicon Hi3531 sample Makefile
++
++include ../Makefile.param
++
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++LIBS += $(REL_LIB)/libmpi.a $(REL_LIB)/libtde.a $(REL_LIB)/libhdmi.a $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(LIBS) 
++
++clean:
++	@-rm -f $(TARGET)
++	@-rm -f $(OBJ)
+diff -uNr a/sample/tde/Makefilerr b/sample/tde/Makefilerr
+--- a/sample/tde/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/tde/Makefilerr	2016-09-09 12:51:07.416741221 +0800
+@@ -0,0 +1,22 @@
++# Hisilicon Hi3531 sample Makefile
++
++include ../Makefile.param
++
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++LIBS += $(REL_LIB)/libmpi.a $(REL_LIB)/libtde.a $(REL_LIB)/libhdmi.a $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(LIBS) 
++
++clean:
++	@-rm -f $(TARGET)
++	@-rm -f $(OBJ)
+diff -uNr a/sample/vda/Makefiler b/sample/vda/Makefiler
+--- a/sample/vda/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/vda/Makefiler	2016-09-09 12:51:07.412741243 +0800
+@@ -0,0 +1,33 @@
++# Hisilicon Hi3516 sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++	@rm -f *.h264
++	@rm -f *.jpg
++	@rm -f *.mjp
++	@rm -f *.mp4
+diff -uNr a/sample/vda/Makefilerr b/sample/vda/Makefilerr
+--- a/sample/vda/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/vda/Makefilerr	2016-09-09 12:51:07.412741243 +0800
+@@ -0,0 +1,33 @@
++# Hisilicon Hi3516 sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++	@rm -f *.h264
++	@rm -f *.jpg
++	@rm -f *.mjp
++	@rm -f *.mp4
+diff -uNr a/sample/vdec/Makefiler b/sample/vdec/Makefiler
+--- a/sample/vdec/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/vdec/Makefiler	2016-09-09 12:51:07.429741149 +0800
+@@ -0,0 +1,33 @@
++# Hisilicon Hi3516 sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++#	@rm -f *.h264
++#	@rm -f *.jpg
++#	@rm -f *.mjp
++#	@rm -f *.mp4
+diff -uNr a/sample/vdec/Makefilerr b/sample/vdec/Makefilerr
+--- a/sample/vdec/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/vdec/Makefilerr	2016-09-09 12:51:07.428741155 +0800
+@@ -0,0 +1,33 @@
++# Hisilicon Hi3516 sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++#	@rm -f *.h264
++#	@rm -f *.jpg
++#	@rm -f *.mjp
++#	@rm -f *.mp4
+diff -uNr a/sample/venc/Makefiler b/sample/venc/Makefiler
+--- a/sample/venc/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/venc/Makefiler	2016-09-09 12:51:07.425741171 +0800
+@@ -0,0 +1,33 @@
++# Hisilicon Hi3516 sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++	@rm -f *.h264
++	@rm -f *.jpg
++	@rm -f *.mjp
++	@rm -f *.mp4
+diff -uNr a/sample/venc/Makefilerr b/sample/venc/Makefilerr
+--- a/sample/venc/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/venc/Makefilerr	2016-09-09 12:51:07.424741177 +0800
+@@ -0,0 +1,33 @@
++# Hisilicon Hi3516 sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++	@rm -f *.h264
++	@rm -f *.jpg
++	@rm -f *.mjp
++	@rm -f *.mp4
+diff -uNr a/sample/vio/Makefiler b/sample/vio/Makefiler
+--- a/sample/vio/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/vio/Makefiler	2016-09-09 12:51:07.407741270 +0800
+@@ -0,0 +1,33 @@
++# Hisilicon Hi3516 sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++	@rm -f *.h264
++	@rm -f *.jpg
++	@rm -f *.mjp
++	@rm -f *.mp4
+diff -uNr a/sample/vio/Makefilerr b/sample/vio/Makefilerr
+--- a/sample/vio/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/sample/vio/Makefilerr	2016-09-09 12:51:07.406741275 +0800
+@@ -0,0 +1,33 @@
++# Hisilicon Hi3516 sample Makefile
++
++include ../Makefile.param
++#ifeq ($(SAMPLE_PARAM_FILE), )
++#     SAMPLE_PARAM_FILE:=../Makefile.param
++#     include $(SAMPLE_PARAM_FILE)
++#endif
++
++# target source
++SRC  := $(wildcard *.c) 
++OBJ  := $(SRC:%.c=%.o)
++
++TARGET := $(OBJ:%.o=%)
++.PHONY : clean all
++
++all: $(TARGET)
++
++MPI_LIBS := $(REL_LIB)/libmpi.a
++MPI_LIBS += $(REL_LIB)/libhdmi.a
++
++$(TARGET):%:%.o $(COMM_OBJ)
++	$(CC) $(CFLAGS) -lpthread -lm -o $@ $^ $(MPI_LIBS) $(AUDIO_LIBA) $(JPEGD_LIBA)
++
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
++	@rm -f $(COMM_OBJ)
++
++cleanstream:
++	@rm -f *.h264
++	@rm -f *.jpg
++	@rm -f *.mjp
++	@rm -f *.mp4
+diff -uNr a/tools/Makefiler b/tools/Makefiler
+--- a/tools/Makefiler	1970-01-01 08:00:00.000000000 +0800
++++ b/tools/Makefiler	2016-09-09 12:51:07.402741297 +0800
+@@ -0,0 +1,29 @@
++ifeq ($(PARAM_FILE), )
++     PARAM_FILE:=../Makefile.param
++     include $(PARAM_FILE)
++endif
++
++SRC  := $(wildcard *.c)
++OBJ  := $(SRC:%.c=%.o)
++
++INC_FLAGS := -I$(REL_INC)
++CFLAGS += -Wall -g -lpthread $(INC_FLAGS)
++LIBS += $(REL_LIB)/libmpi.a
++
++LIBS += $(REL_LIB)/libhdmi.a $(JPEGD_LIBA)
++
++
++CFLAGS += -DHICHIP=$(HICHIP)
++
++TARGET := $(OBJ:%.o=%)
++
++.PHONY : clean all
++
++all: $(TARGET)
++
++$(TARGET):%:%.o 
++	$(CC) $(CFLAGS)  -o $@ $^ $(LIBS) $(AUDIO_LIBA) -Wl,-gc-sections
++	@rm *.o
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
+diff -uNr a/tools/Makefilerr b/tools/Makefilerr
+--- a/tools/Makefilerr	1970-01-01 08:00:00.000000000 +0800
++++ b/tools/Makefilerr	2016-09-09 12:51:07.401741303 +0800
+@@ -0,0 +1,29 @@
++ifeq ($(PARAM_FILE), )
++     PARAM_FILE:=../Makefile.param
++     include $(PARAM_FILE)
++endif
++
++SRC  := $(wildcard *.c)
++OBJ  := $(SRC:%.c=%.o)
++
++INC_FLAGS := -I$(REL_INC)
++CFLAGS += -Wall -g -lpthread $(INC_FLAGS)
++LIBS += $(REL_LIB)/libmpi.a
++
++LIBS += $(REL_LIB)/libhdmi.a $(JPEGD_LIBA)
++
++
++CFLAGS += -DHICHIP=$(HICHIP)
++
++TARGET := $(OBJ:%.o=%)
++
++.PHONY : clean all
++
++all: $(TARGET)
++
++$(TARGET):%:%.o 
++	$(CC) $(CFLAGS)  -o $@ $^ $(LIBS) $(AUDIO_LIBA) -Wl,-gc-sections
++	@rm *.o
++clean:
++	@rm -f $(TARGET)
++	@rm -f $(OBJ)
