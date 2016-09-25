@@ -54,6 +54,8 @@
 #define CFG_TIMER_PER 2
 #define CFG_TIMER_CLK (CFG_CLK_BUS/CFG_TIMER_PER)
 
+#define CONFIG_HI3520A		1
+
 #define CONFIG_CMD_BDI		/* bdinfo			*/
 #define CONFIG_CMD_BOOTD	/* bootd			*/
 #define CONFIG_CMD_ECHO		/* echo arguments		*/
