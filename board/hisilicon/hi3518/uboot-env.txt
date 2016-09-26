@@ -1,7 +1,8 @@
-meminfo=mem=64M
-sensor_type=imx122
+meminfo=mem=40M
+sensor_type=sc1135
 console=ttyAMA0,115200n8
-bootargs=mem=64M console=ttyAMA0,115200n8
+bootargs=mem=40M console=ttyAMA0,115200n8
+init=/init
 bootdelay=1
 baudrate=115200
 ethaddr=00:00:23:34:45:66
@@ -22,8 +23,10 @@ hieth=hieth.mdioifu=0 hieth.mdioifd=0 hieth.phyaddru=1 hieth.phyaddrd=2
 mtdparts=hi_sfc:512k(uboot)ro,256k(uboot-env),256k(mfd),2m(kernel),5m(rootfs),-(user)
 flashroot=/dev/mtdblock4
 flashrootfstype=squashfs,jffs2
-commonargs=setenv bootargs ${meminfo} console=${console} mtdparts=${mtdparts} ${hieth} init=/preinit
-flashargs=run commonargs; setenv bootargs ${bootargs} root=${flashroot} rootfstype=${flashrootfstype}
+flashoverlay=/dev/mtdblock5
+flashoverlayfstype=jffs2
+commonargs=setenv bootargs ${meminfo} console=${console} mtdparts=${mtdparts} ${hieth} init=${init}
+flashargs=run commonargs; setenv bootargs ${bootargs} root=${flashroot} overlay=${overlay} rootfstype=${flashrootfstype} overlay=${flashoverlay} overlayfstype=${flashoverlayfstype}
 flashboot=echo Booting from SPI Flash...; run flashargs; sf probe 0 && sf read ${loadaddr} 0x100000 0x200000 && bootm
 nfsargs=run commonargs; setenv bootargs ${bootargs} root=/dev/nfs nfsroot=${serverip}:${rootpath},${nfsopts}
 addip=setenv bootargs ${bootargs} ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:${netdev}:off
