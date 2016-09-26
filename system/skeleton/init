@@ -1,0 +1,26 @@
+#!/bin/sh
+
+on_exit()
+{
+  mountpoint -q /proc && umount /proc
+  exec /sbin/init $*
+}
+trap on_exit 0
+
+mount -t proc proc /proc || exit
+grep -q overlayfs /proc/filesystems || exit
+
+# kernel cmdline option "overlay=" specifies the overlayfs device,
+# and "overlayfstype=" specifies the overlay filesystem type.
+ovl_device=`sed -nr 's/.*\<overlay=([^[:space:]]*).*/\1/p' /proc/cmdline`
+ovl_fstype=`sed -nr 's/.*\<overlayfstype=([^[:space:]]*).*/\1/p' /proc/cmdline`
+mount -t "${ovl_fstype:-jffs2}" "${ovl_device}" /overlay || \
+mount -t tmpfs tmpfs /overlay || exit
+
+mount -t overlayfs overlayfs -olowerdir=/,upperdir=/overlay,ro /mnt \
+  || { umount /overlay; exit; }
+
+pivot_root /mnt /mnt/rom
+mount -o noatime,move /rom/proc /proc
+mount -o noatime,move /rom/dev /dev
+mount -o noatime,move /rom/overlay /overlay
