@@ -6,6 +6,7 @@
 #include <linux/amba/bus.h>
 #include <linux/amba/clcd.h>
 #include <linux/clocksource.h>
+#include <linux/amba/pl061.h>
 #include <linux/clockchips.h>
 #include <linux/cnt32_to_63.h>
 #include <linux/io.h>
@@ -113,10 +114,78 @@ HIL_AMBA_DEVICE(uart0, "uart:0",  UART0,    NULL);
 HIL_AMBA_DEVICE(uart1, "uart:1",  UART1,    NULL);
 HIL_AMBA_DEVICE(uart2, "uart:2",  UART2,    NULL);
 
+#if defined(CONFIG_GPIO_PL061) || defined(CONFIG_GPIO_PL061_MODULE)
+static struct pl061_platform_data gpio0_plat_data = {
+	.gpio_base	= 0,
+	.irq_base	= INTNR_GPIO0_START,
+};
+
+static struct pl061_platform_data gpio1_plat_data = {
+	.gpio_base	= 8,
+	.irq_base	= INTNR_GPIO1_START,
+};
+
+static struct pl061_platform_data gpio2_plat_data = {
+	.gpio_base	= 16,
+	.irq_base	= INTNR_GPIO2_START,
+};
+
+static struct pl061_platform_data gpio3_plat_data = {
+	.gpio_base	= 24,
+	.irq_base	= INTNR_GPIO3_START,
+};
+
+static struct pl061_platform_data gpio4_plat_data = {
+	.gpio_base	= 32,
+	.irq_base	= INTNR_GPIO4_START,
+};
+
+static struct pl061_platform_data gpio5_plat_data = {
+	.gpio_base	= 40,
+	.irq_base	= INTNR_GPIO5_START,
+};
+
+static struct pl061_platform_data gpio6_plat_data = {
+	.gpio_base	= 48,
+	.irq_base	= INTNR_GPIO6_START,
+};
+
+static struct pl061_platform_data gpio7_plat_data = {
+	.gpio_base	= 56,
+	.irq_base	= INTNR_GPIO7_START,
+};
+
+static struct pl061_platform_data gpio8_plat_data = {
+	.gpio_base	= 64,
+	.irq_base	= INTNR_GPIO8_START,
+};
+
+HIL_AMBA_DEVICE(gpio0,  "dev:gpio0",  GPIO0,  &gpio0_plat_data);
+HIL_AMBA_DEVICE(gpio1,  "dev:gpio1",  GPIO1,  &gpio1_plat_data);
+HIL_AMBA_DEVICE(gpio2,  "dev:gpio2",  GPIO2,  &gpio2_plat_data);
+HIL_AMBA_DEVICE(gpio3,  "dev:gpio3",  GPIO3,  &gpio3_plat_data);
+HIL_AMBA_DEVICE(gpio4,  "dev:gpio4",  GPIO4,  &gpio4_plat_data);
+HIL_AMBA_DEVICE(gpio5,  "dev:gpio5",  GPIO5,  &gpio5_plat_data);
+HIL_AMBA_DEVICE(gpio6,  "dev:gpio6",  GPIO6,  &gpio6_plat_data);
+HIL_AMBA_DEVICE(gpio7,  "dev:gpio7",  GPIO7,  &gpio7_plat_data);
+HIL_AMBA_DEVICE(gpio8,  "dev:gpio8",  GPIO8,  &gpio8_plat_data);
+#endif
+
 static struct amba_device *amba_devs[] __initdata = {
 	&HIL_AMBADEV_NAME(uart0),
 	&HIL_AMBADEV_NAME(uart1),
 	&HIL_AMBADEV_NAME(uart2),
+#if defined(CONFIG_GPIO_PL061) || defined(CONFIG_GPIO_PL061_MODULE)
+	&HIL_AMBADEV_NAME(gpio0),
+	&HIL_AMBADEV_NAME(gpio1),
+	&HIL_AMBADEV_NAME(gpio2),
+	&HIL_AMBADEV_NAME(gpio3),
+	&HIL_AMBADEV_NAME(gpio4),
+	&HIL_AMBADEV_NAME(gpio5),
+	&HIL_AMBADEV_NAME(gpio6),
+	&HIL_AMBADEV_NAME(gpio7),
+	&HIL_AMBADEV_NAME(gpio8),
+#endif
 };
 
 /*****************************************************************************/
@@ -130,6 +199,12 @@ static struct clk uart_clk = {
 static struct clk sp804_clk = {
 	.rate = 3000000,
 };
+
+#if defined(CONFIG_GPIO_PL061) || defined(CONFIG_GPIO_PL061_MODULE)
+static struct clk gpio_clk = {
+	.rate = CONFIG_DEFAULT_BUSCLK,
+};
+#endif
 
 static struct clk_lookup lookups[] = {
 	{	/* UART0 */
@@ -145,6 +220,44 @@ static struct clk_lookup lookups[] = {
 		.dev_id		= "sp804",
 		.clk		= &sp804_clk,
 	},
+#if defined(CONFIG_GPIO_PL061) || defined(CONFIG_GPIO_PL061_MODULE)
+	{ /* GPIO0 */
+		.dev_id		= "dev:gpio0",
+		.clk		= &gpio_clk,
+	},
+	{ /* GPIO1 */
+		.dev_id		= "dev:gpio1",
+		.clk		= &gpio_clk,
+	},
+	{ /* GPIO2 */
+		.dev_id		= "dev:gpio2",
+		.clk		= &gpio_clk,
+	},
+	{ /* GPIO3 */
+		.dev_id		= "dev:gpio3",
+		.clk		= &gpio_clk,
+	},
+	{ /* GPIO4 */
+		.dev_id		= "dev:gpio4",
+		.clk		= &gpio_clk,
+	},
+	{ /* GPIO5 */
+		.dev_id		= "dev:gpio5",
+		.clk		= &gpio_clk,
+	},
+	{ /* GPIO6 */
+		.dev_id		= "dev:gpio6",
+		.clk		= &gpio_clk,
+	},
+	{ /* GPIO7 */
+		.dev_id		= "dev:gpio7",
+		.clk		= &gpio_clk,
+	},
+	{ /* GPIO8 */
+		.dev_id		= "dev:gpio8",
+		.clk		= &gpio_clk,
+	},
+#endif
 };
 
 static void __init hi3518ev200_reserve(void)
