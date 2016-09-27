@@ -41,6 +41,8 @@
 /* bit[3]=0; SPI nor flash; bit[3]=1: SPI nand flash */
 #define GET_SPI_DEVICE_TYPE(_reg)	(((_reg) >> 3) & 0x1)
 
+#define REG_BASE_WATCHDOG	0x20040000
+
 /* -------------------------------------------------------------------- */
 /* Clock and Reset Generator REG */
 /* -------------------------------------------------------------------- */

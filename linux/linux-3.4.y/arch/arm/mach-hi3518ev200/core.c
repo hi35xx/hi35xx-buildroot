@@ -114,6 +114,10 @@ HIL_AMBA_DEVICE(uart0, "uart:0",  UART0,    NULL);
 HIL_AMBA_DEVICE(uart1, "uart:1",  UART1,    NULL);
 HIL_AMBA_DEVICE(uart2, "uart:2",  UART2,    NULL);
 
+#if defined(CONFIG_ARM_SP805_WATCHDOG) || defined(CONFIG_ARM_SP805_WATCHDOG_MODULE)
+HIL_AMBA_DEVICE(wdt0, "dev:wdt0", WATCHDOG, NULL);
+#endif
+
 #if defined(CONFIG_GPIO_PL061) || defined(CONFIG_GPIO_PL061_MODULE)
 static struct pl061_platform_data gpio0_plat_data = {
 	.gpio_base	= 0,
@@ -175,6 +179,9 @@ static struct amba_device *amba_devs[] __initdata = {
 	&HIL_AMBADEV_NAME(uart0),
 	&HIL_AMBADEV_NAME(uart1),
 	&HIL_AMBADEV_NAME(uart2),
+#if defined(CONFIG_ARM_SP805_WATCHDOG) || defined(CONFIG_ARM_SP805_WATCHDOG_MODULE)
+	&HIL_AMBADEV_NAME(wdt0),
+#endif
 #if defined(CONFIG_GPIO_PL061) || defined(CONFIG_GPIO_PL061_MODULE)
 	&HIL_AMBADEV_NAME(gpio0),
 	&HIL_AMBADEV_NAME(gpio1),
@@ -200,6 +207,12 @@ static struct clk sp804_clk = {
 	.rate = 3000000,
 };
 
+#if defined(CONFIG_ARM_SP805_WATCHDOG) || defined(CONFIG_ARM_SP805_WATCHDOG_MODULE)
+static struct clk wdt_clk = {
+	.rate = 3000000,
+};
+#endif
+
 #if defined(CONFIG_GPIO_PL061) || defined(CONFIG_GPIO_PL061_MODULE)
 static struct clk gpio_clk = {
 	.rate = CONFIG_DEFAULT_BUSCLK,
@@ -220,6 +233,12 @@ static struct clk_lookup lookups[] = {
 		.dev_id		= "sp804",
 		.clk		= &sp804_clk,
 	},
+#if defined(CONFIG_ARM_SP805_WATCHDOG) || defined(CONFIG_ARM_SP805_WATCHDOG_MODULE)
+	{ /* WDT0 */
+		.dev_id		= "dev:wdt0",
+		.clk		= &wdt_clk,
+	},
+#endif
 #if defined(CONFIG_GPIO_PL061) || defined(CONFIG_GPIO_PL061_MODULE)
 	{ /* GPIO0 */
 		.dev_id		= "dev:gpio0",
