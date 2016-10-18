@@ -17,7 +17,7 @@ start() {
 stop() {
     echo -n "Stopping live-streamer: "
     start-stop-daemon -K -q -p /var/run/live-streamer.pid
-    usleep 200000
+    usleep 1000000
     echo "OK"
 }
 
