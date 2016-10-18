@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LIVE_STREAMER_VERSION = e0e2c4497d5350ca54d0770aecd40f300c6e735a
+LIVE_STREAMER_VERSION = c1f034e9350952f937aec211e63c0afbb88d5d0c
 LIVE_STREAMER_SITE = $(call github,hi35xx,live-streamer,$(LIVE_STREAMER_VERSION))
 LIVE_STREAMER_DEPENDENCIES = host-pkgconf libev dbus-cpp live555
 LIVE_STREAMER_DEPENDENCIES += fontconfig sdl_ttf sdl_image
