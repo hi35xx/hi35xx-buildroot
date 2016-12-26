@@ -1258,7 +1258,7 @@ static void hi_mci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 request_end:
 	/* clear MMC host intr */
 	spin_lock_irqsave(&host->lock, flags);
-	himci_writel(ALL_INT_CLR, host->base + MCI_RINTSTS);
+	himci_writel(ALL_SD_INT_CLR, host->base + MCI_RINTSTS);
 	spin_unlock_irqrestore(&host->lock, flags);
 
 	hi_mci_finish_request(slot, mrq);
@@ -1627,7 +1627,6 @@ static void hi_mci_enable_sdio_irq(struct mmc_host *mmc, int enable)
 	struct himci_host *host = slot->host;
 	unsigned int reg_value;
 
-	himci_claim_host(host, slot);
 	himci_switch_card(slot);
 	reg_value = readl(host->base + MCI_INTMASK);
 	if (enable)
@@ -1635,9 +1634,8 @@ static void hi_mci_enable_sdio_irq(struct mmc_host *mmc, int enable)
 	else
 		reg_value &= ~SDIO_INT_MASK;
 	writel(reg_value, host->base + MCI_INTMASK);
-
-	himci_release_host(host);
 }
+
 static int hi_mci_get_card_detect(struct mmc_host *mmc)
 {
 	unsigned ret;
@@ -1668,6 +1666,7 @@ static irqreturn_t hisd_irq(int irq, void *dev_id)
 	struct himci_host *host = dev_id;
 	struct himci_slot *slot = host->slot;
 	u32 state = 0;
+	u32 mstate = 0;
 	int handle = 0;
 
 	spin_lock(&host->lock);
@@ -1679,7 +1678,9 @@ static irqreturn_t hisd_irq(int irq, void *dev_id)
 	if (host->mmc->caps & MMC_CAP_SDIO_IRQ) {
 		if ((slot->mmc->card != NULL)
 				&& (slot->mmc->card->type == MMC_TYPE_SDIO)) {
-			if (state & SDIO_INT_STATUS) {
+			mstate = himci_readl(host->base + MCI_INTMASK);
+			if ((state & SDIO_INT_STATUS) &&
+					(mstate & SDIO_INT_MASK)) {
 				spin_lock(&host->lock);
 				himci_writel(SDIO_INT_STATUS,
 						host->base + MCI_RINTSTS);

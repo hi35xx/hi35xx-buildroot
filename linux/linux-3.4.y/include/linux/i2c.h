@@ -547,6 +547,7 @@ struct i2c_msg {
 #define I2C_M_RECV_LEN		0x0400	/* length will be first received byte */
 #define I2C_M_16BIT_REG		0x0002	/* indicate reg bit-width is 16bit */
 #define I2C_M_16BIT_DATA	0x0008	/* indicate data bit-width is 16bit */
+#define I2C_M_DMA		0x0004	/* indicate use dma mode */
 	__u16 len;		/* msg length				*/
 	__u8 *buf;		/* pointer to msg data			*/
 };

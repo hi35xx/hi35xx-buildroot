@@ -149,7 +149,7 @@ static struct spi_nand_driver  spi_nand_driver_micron = {
 };
 
 /*****************************************************************************/
-#define SPI_NAND_ID_TAB_VER		"1.8"
+#define SPI_NAND_ID_TAB_VER		"1.9"
 
 /******* SPI Nand ID Table ***************************************************
 * Version	Manufacturer	Chip Name	Size		Operation
@@ -174,6 +174,7 @@ static struct spi_nand_driver  spi_nand_driver_micron = {
 *		TOSHIBA		TC58CVG2S0H	512MB
 * 1.8		ALL-flash	AFS2GQ4UAD	256MB		Add 2 chip
 *		Paragon		PN26G02A	256MB
+* 1.9		HeYangTek	HYF1GQ4UAACAE	128MB		Add 1 chip
 ******************************************************************************/
 struct hisnfc_chip_info hisnfc_spi_nand_flash_table[] = {
 	/* ESMT F50L512M41A 512Mbit */
@@ -799,6 +800,33 @@ struct hisnfc_chip_info hisnfc_spi_nand_flash_table[] = {
 		.driver    = &spi_nand_driver_esmt,
 	},
 
+	/* HeYangTek HYF1GQ4UAACAE 1Gbit */
+	{
+		.name      = "HYF1GQ4UAACAE",
+		.id        = {0xc9, 0x51},
+		.id_len    = 2,
+		.chipsize  = _128M,
+		.erasesize = _128K,
+		.pagesize  = _2K,
+		.oobsize   = 128,
+		.badblock_pos = BBP_FIRST_PAGE,
+		.read      = {
+			&READ_STD(1, INFINITE, 24),
+			&READ_FAST(1, INFINITE, 50),
+			&READ_DUAL(1, INFINITE, 50),
+			&READ_QUAD(1, INFINITE, 50),
+			0
+		},
+		.write     = {
+			&WRITE_STD(0, 256, 24),
+			0
+		},
+		.erase     = {
+			&ERASE_SECTOR_128K(0, _128K, 24),
+			0
+		},
+		.driver    = &spi_nand_driver_general,
+	},
 	{	.id_len    = 0,	},
 };
 

@@ -25,6 +25,7 @@
 #include <linux/slab.h>
 #include <linux/io.h>
 #include "i2c-hisilicon.h"
+#include <linux/dma-mapping.h>
 
 #ifdef CONFIG_HI_DMAC
 #include <linux/hidmac.h>
@@ -43,9 +44,9 @@
 
 #define hi_err(x...) \
 	do { \
-		printk(KERN_ALERT "%s->%d: ", __func__, __LINE__); \
-		printk(KERN_ALERT x); \
-		printk(KERN_ALERT "\n"); \
+		pr_alert("%s->%d: ", __func__, __LINE__); \
+		pr_alert(x); \
+		pr_alert("\n"); \
 	} while (0)
 
 /* #define HI_I2C_DEBUG */
@@ -54,15 +55,14 @@
 
 #define hi_msg(x...) \
 	do { \
-		printk(KERN_ALERT "%s (line:%d) ", __func__, __LINE__); \
-		printk(x); \
+		pr_alert("%s (line:%d) ", __func__, __LINE__); \
+		pr_alert(x); \
 	} while (0)
 #else
 #define hi_msg(args...) do { } while (0)
 #endif
 
-#define I2C_WAIT_TIME_OUT       0x1000000
-#define I2C_WAIT_IDLE_TIME_OUT  0x1000000
+#define I2C_WAIT_TIME_OUT	20000
 
 #define I2C_DFT_RATE	(100000)
 
@@ -72,24 +72,19 @@ struct hi_i2c {
 	struct resource *mem;
 	unsigned int irq;
 	struct i2c_adapter adap;
-	struct i2c_msg *msgs;
-	__u16 msg_num;
-	__u16 msg_addr;
-	unsigned int msg_index;
+	struct i2c_msg *msg;
 	struct hi_platform_i2c *pdata;
 	unsigned int g_last_dev_addr;
 	unsigned int g_last_mode;
 };
 
-static void hi_i2c_abortprocess(struct hi_i2c *pinfo)
+static int hi_i2c_abortprocess(struct hi_i2c *pinfo)
 {
 	unsigned int auto_status;
 	unsigned int tx_src;
 
 	tx_src = readl(pinfo->regbase + I2C_TX_ABRT_SRC);
-
-	/* disable i2c */
-	writel(0, pinfo->regbase + I2C_ENABLE_REG);
+	hi_err("tx_abrt_src is %x.\n", tx_src);
 
 	auto_status = readl(pinfo->regbase + I2C_AUTO_REG);
 
@@ -103,8 +98,13 @@ static void hi_i2c_abortprocess(struct hi_i2c *pinfo)
 	writel(auto_status, pinfo->regbase + I2C_AUTO_REG);
 	writel(0x1, pinfo->regbase + I2C_CLR_INTR_REG);
 
+	/* disable i2c */
+	writel(0, pinfo->regbase + I2C_ENABLE_REG);
+
 	/* enable i2c */
 	writel(0x1, pinfo->regbase + I2C_ENABLE_REG);
+
+	return 0;
 }
 
 void hi_i2c_set_rate(struct hi_i2c *pinfo)
@@ -168,176 +168,141 @@ void hi_i2c_hw_init(struct hi_i2c *pinfo)
 	pinfo->g_last_dev_addr = 0;
 	pinfo->g_last_mode = I2C_MODE_NONE;
 
-	pinfo->msgs = NULL;
-	pinfo->msg_num = 0;
+	pinfo->msg = NULL;
 }
 
 int hi_i2c_wait_idle(struct hi_i2c *pinfo)
 {
-	unsigned int  work_status;
-	unsigned int  auto_status;
-	unsigned int  int_raw_status = 0;
-	unsigned int  i = 0;
-	int ret = 0;
+	unsigned int val;
+	unsigned int time_cnt;
 
-#ifdef CONFIG_HI_DMAC
-	unsigned int dmac_finish;
-#endif
-
-	auto_status = readl(pinfo->regbase + I2C_AUTO_REG);
-	while (!IS_FIFO_EMPTY(auto_status)) {
-		if (i > I2C_WAIT_IDLE_TIME_OUT) {
-			hi_err("wait i2c fifo empty timeout!"\
-					"auto_status: 0x%x\n",
-					auto_status);
-			ret = -1;
-			break;
+	time_cnt = 0;
+	do {
+		val = readl(pinfo->regbase + I2C_INTR_RAW_REG);
+		if (val & I2C_RAW_TX_ABORT) {
+			hi_err("wait last i2c fifo is empty abort! "\
+					"int_raw_status: %#x!\n", val);
+			return hi_i2c_abortprocess(pinfo);
 		}
 
-		i++;
+		val = readl(pinfo->regbase + I2C_AUTO_REG);
+		if (!IS_RX_FIFO_EMPTY(val))
+			readl(pinfo->regbase + I2C_TX_RX_REG);
 
-		hi_msg("===== i: %d, auto_status: 0x%x\n",
-				i, auto_status);
+		if (IS_FIFO_EMPTY(val))
+			break;
 
-		auto_status = readl(pinfo->regbase + I2C_AUTO_REG);
-	};
+		if (time_cnt > I2C_WAIT_TIME_OUT) {
+			hi_err("wait last i2c fifo is empty timeout! "\
+					"auto_status: %#x\n", val);
+			return -EBUSY;
+		}
+		time_cnt++;
+		udelay(50);
+	} while (1);
 
 	udelay(10);
 
-	i = 0;
-	work_status = readl(pinfo->regbase + I2C_STATUS_REG);
-	while (!IS_I2C_IDLE(work_status)) {
-		if (i > I2C_WAIT_IDLE_TIME_OUT) {
-			hi_err("wait i2c idle timeout!"\
-					" work_status: 0x%x\n",
-					work_status);
-			ret = -1;
-			break;
+	time_cnt = 0;
+	do {
+		val = readl(pinfo->regbase + I2C_INTR_RAW_REG);
+		if (val & I2C_RAW_TX_ABORT) {
+			hi_err("wait last i2c is idle abort! "\
+					"int_raw_status: %#x!\n", val);
+			return hi_i2c_abortprocess(pinfo);
 		}
 
-		i++;
-
-		hi_msg("===== i: %d, work_status: 0x%x.\n",
-				i, work_status);
-
-		work_status = readl(pinfo->regbase + I2C_STATUS_REG);
-	};
-
-#ifdef CONFIG_HI_DMAC
-	i = 0;
-	dmac_finish = readl(IO_ADDRESS(0x10060000) + 0x010c);
-	while (dmac_finish & 0xfff) {
-		if (i > 0x10000)
+		val = readl(pinfo->regbase + I2C_STATUS_REG);
+		if (IS_I2C_IDLE(val))
 			break;
-		i++;
-		dmac_finish = readl(IO_ADDRESS(0x10060000) + 0x010c);
-	}
-#endif
 
-	int_raw_status = readl(pinfo->regbase + I2C_INTR_RAW_REG);
+		if (time_cnt > I2C_WAIT_TIME_OUT) {
+			hi_err("wait last i2c is idle timeout! "\
+					"auto_status: %#x\n", val);
+			return -EBUSY;
+		}
+		time_cnt++;
+		udelay(50);
+	} while (1);
 
-	if ((int_raw_status & I2C_RAW_TX_ABORT) == I2C_RAW_TX_ABORT) {
-		hi_err("transmit error, int_raw_status: 0x%x!\n",
-				int_raw_status);
-		hi_i2c_abortprocess(pinfo);
-		ret = -1;
-	}
-
-	return ret;
+	return 0;
 }
 
 /* wait until tx fifo is not full */
 int hi_i2c_wait_txfifo_notfull(struct hi_i2c *pinfo)
 {
-	unsigned int  auto_status = 0;
-	unsigned int  int_raw_status = 0;
-	unsigned int  i = 0;
-	int ret = 0;
+	unsigned int val;
+	unsigned int time_cnt;
 
-	auto_status = readl(pinfo->regbase + I2C_AUTO_REG);
-
-	while ((auto_status & I2c_AUTO_TX_FIFO_NOT_FULL)
-			!= I2c_AUTO_TX_FIFO_NOT_FULL) {
-		if (i > I2C_WAIT_TIME_OUT) {
-			hi_err("wait timeout, auto_status: 0x%x!\n",
-					auto_status);
-			ret = -1;
-			break;
+	time_cnt = 0;
+	do {
+		val = readl(pinfo->regbase + I2C_INTR_RAW_REG);
+		if (val & I2C_RAW_TX_ABORT) {
+			hi_err("abort! last int_raw_status: %#x!\n", val);
+			return hi_i2c_abortprocess(pinfo);
 		}
 
-		i++;
+		val = readl(pinfo->regbase + I2C_AUTO_REG);
+		if (!IS_RX_FIFO_EMPTY(val))
+			readl(pinfo->regbase + I2C_TX_RX_REG);
 
-		hi_msg("===== i: %d, auto_status: 0x%x\n", i, auto_status);
+		if (val & I2c_AUTO_TX_FIFO_NOT_FULL)
+			break;
 
-		auto_status = readl(pinfo->regbase + I2C_AUTO_REG);
-	};
+		if (time_cnt > I2C_WAIT_TIME_OUT) {
+			hi_err("timeout! last auto_status: %#x\n", val);
+			return -EBUSY;
+		}
+		time_cnt++;
+		udelay(50);
+	} while (1);
 
-	int_raw_status = readl(pinfo->regbase + I2C_INTR_RAW_REG);
-
-	if ((int_raw_status & I2C_RAW_TX_ABORT) == I2C_RAW_TX_ABORT) {
-		hi_err("transmit error, int_raw_status: 0x%x!\n",
-				int_raw_status);
-		hi_err("tx_abrt_cause is %x.\n",
-				readl(pinfo->regbase + I2C_TX_ABRT_SRC));
-		hi_i2c_abortprocess(pinfo);
-		ret = -1;
-	}
-
-	return ret;
+	return 0;
 }
 
 /* wait until tx fifo is not empty */
 int hi_i2c_wait_rxfifo_notempty(struct hi_i2c *pinfo)
 {
-	unsigned int  auto_status = 0;
-	unsigned int  int_raw_status = 0;
-	unsigned int  i = 0;
-	int ret = 0;
+	unsigned int val;
+	unsigned int time_cnt;
 
-	auto_status = readl(pinfo->regbase + I2C_AUTO_REG);
-	while ((auto_status & I2C_AUTO_RX_FIFO_NOT_EMPTY)
-			!= I2C_AUTO_RX_FIFO_NOT_EMPTY) {
-		if (i > I2C_WAIT_TIME_OUT) {
-			hi_err("wait timeout! auto_status: 0x%x\n",
-					auto_status);
-			ret = -1;
-			break;
-		}
-		i++;
-
-		auto_status = readl(pinfo->regbase + I2C_AUTO_REG);
-		hi_msg("===== i: %d, auto_status: 0x%x\n", i, auto_status);
-	};
-
-	if (ret == -1) {
-		int_raw_status = readl(pinfo->regbase + I2C_INTR_RAW_REG);
-		if ((int_raw_status & I2C_RAW_TX_ABORT) == I2C_RAW_TX_ABORT) {
-			hi_err("transmit error, int_raw_status: 0x%x!\n",
-					int_raw_status);
-			hi_err("tx_abrt_cause is %x.\n",
-				readl(pinfo->regbase + I2C_TX_ABRT_SRC));
+	time_cnt = 0;
+	do {
+		val = readl(pinfo->regbase + I2C_INTR_RAW_REG);
+		if ((val & I2C_RAW_TX_ABORT) == I2C_RAW_TX_ABORT) {
+			hi_err("abort! int_raw_status: %#x!\n", val);
 			hi_i2c_abortprocess(pinfo);
-			ret = -1;
+			return -EIO;
 		}
-	}
 
-	return ret;
+		val = readl(pinfo->regbase + I2C_AUTO_REG);
+		if (!IS_RX_FIFO_EMPTY(val))
+			break;
+
+		if (time_cnt > I2C_WAIT_TIME_OUT) {
+			hi_err("timeout! auto_status: %#x\n", val);
+			hi_i2c_abortprocess(pinfo);
+			return -EBUSY;
+		}
+		time_cnt++;
+		udelay(50);
+	} while (1);
+
+	return 0;
 }
 
 static inline int hi_i2c_set_dev_addr_and_mode(struct hi_i2c *pinfo,
 		unsigned int work_mode)
 {
-	unsigned int dev_addr = pinfo->msgs->addr;
+	unsigned int dev_addr = pinfo->msg->addr;
 
 	if ((pinfo->g_last_dev_addr == dev_addr)
 			&& (pinfo->g_last_mode == work_mode))
 		return 0;
 
 	/* wait until all cmd in fifo is finished and i2c is idle */
-	if (hi_i2c_wait_idle(pinfo) < 0) {
-		hi_err("wait i2c idle time out.\n");
+	if (hi_i2c_wait_idle(pinfo) < 0)
 		return -1;
-	}
 
 	/* disable i2c */
 	writel(0x0, pinfo->regbase + I2C_ENABLE_REG);
@@ -385,45 +350,46 @@ int hi_i2c_write(struct hi_i2c *pinfo)
 	unsigned int temp_reg;
 	unsigned int temp_data;
 	unsigned int temp_auto_reg;
-	struct i2c_msg *msgs = pinfo->msgs;
+	struct i2c_msg *msg = pinfo->msg;
+	unsigned int msg_buf_ptr = 0;
 
 	if (hi_i2c_set_dev_addr_and_mode(pinfo, I2C_MODE_AUTO) < 0)
 		return -1;
 
 	temp_auto_reg = HI_I2C_WRITE;
 
-	if (msgs->flags & I2C_M_16BIT_REG) {
+	if (msg->flags & I2C_M_16BIT_REG) {
 		/* 16bit reg addr */
 		temp_auto_reg |= I2C_AUTO_ADDR;
 
 		/* switch high byte and low byte */
-		temp_reg = msgs->buf[pinfo->msg_index] << 8;
+		temp_reg = msg->buf[msg_buf_ptr] << 8;
 
-		pinfo->msg_index++;
+		msg_buf_ptr++;
 
-		temp_reg |= msgs->buf[pinfo->msg_index];
+		temp_reg |= msg->buf[msg_buf_ptr];
 
-		pinfo->msg_index++;
+		msg_buf_ptr++;
 	} else {
-		temp_reg = msgs->buf[pinfo->msg_index];
-		pinfo->msg_index++;
+		temp_reg = msg->buf[msg_buf_ptr];
+		msg_buf_ptr++;
 	}
 
-	if (msgs->flags & I2C_M_16BIT_DATA) {
+	if (msg->flags & I2C_M_16BIT_DATA) {
 		/* 16bit data */
 		temp_auto_reg |= I2C_AUTO_DATA;
 
 		/* switch high byte and low byte */
-		temp_data =  msgs->buf[pinfo->msg_index] << 8;
+		temp_data =  msg->buf[msg_buf_ptr] << 8;
 
-		pinfo->msg_index++;
+		msg_buf_ptr++;
 
-		temp_data |= msgs->buf[pinfo->msg_index];
+		temp_data |= msg->buf[msg_buf_ptr];
 
-		pinfo->msg_index++;
+		msg_buf_ptr++;
 	} else {
-		temp_data = msgs->buf[pinfo->msg_index];
-		pinfo->msg_index++;
+		temp_data = msg->buf[msg_buf_ptr];
+		msg_buf_ptr++;
 	}
 
 	writel(temp_auto_reg, pinfo->regbase + I2C_AUTO_REG);
@@ -441,9 +407,9 @@ int hi_i2c_write(struct hi_i2c *pinfo)
 	writel(reg_val, pinfo->regbase + I2C_TX_RX_REG);
 
 	hi_msg("dev_addr =%x, reg_addr = %x, Data = %x\n",
-		pinfo->msgs->addr, pinfo->msgs->buf[0], pinfo->msgs->buf[1]);
+		pinfo->msg->addr, pinfo->msg->buf[0], pinfo->msg->buf[1]);
 
-	return pinfo->msg_index;
+	return 0;
 }
 
 unsigned int hi_i2c_read(struct hi_i2c *pinfo)
@@ -452,28 +418,25 @@ unsigned int hi_i2c_read(struct hi_i2c *pinfo)
 	unsigned int temp_reg;
 	unsigned int ret_data = 0xffff;
 	unsigned int temp_auto_reg;
-	unsigned int data_num = 0;
-	struct i2c_msg *msgs = pinfo->msgs;
+	struct i2c_msg *msg = pinfo->msg;
 
 	if (hi_i2c_set_dev_addr_and_mode(pinfo, I2C_MODE_AUTO) < 0)
 		return -1;
 
 	temp_auto_reg = HI_I2C_READ;
 
-	if (msgs->flags & I2C_M_16BIT_REG) {
+	if (msg->flags & I2C_M_16BIT_REG) {
 		/* 16bit reg addr */
 		temp_auto_reg |= I2C_AUTO_ADDR;
 
 		/* switch high byte and low byte */
-		temp_reg = msgs->buf[pinfo->msg_index] << 8;
-		pinfo->msg_index++;
-		temp_reg |= msgs->buf[pinfo->msg_index];
+		temp_reg = msg->buf[0] << 8;
+		temp_reg |= msg->buf[1];
 	} else {
-		temp_reg = msgs->buf[pinfo->msg_index];
-		pinfo->msg_index++;
+		temp_reg = msg->buf[0];
 	}
 
-	if (msgs->flags & I2C_M_16BIT_DATA)
+	if (msg->flags & I2C_M_16BIT_DATA)
 		/* 16bit data */
 		temp_auto_reg |= I2C_AUTO_DATA;
 
@@ -499,38 +462,16 @@ unsigned int hi_i2c_read(struct hi_i2c *pinfo)
 	ret_data = readl(pinfo->regbase + I2C_TX_RX_REG) & DATA_16BIT_MASK;
 	hi_msg("ret_data = %x\n", ret_data);
 
-	if (msgs->flags & I2C_M_16BIT_DATA) {
-		pinfo->msgs->buf[0] = ret_data & DATA_8BIT_MASK;
-		pinfo->msgs->buf[1] = (ret_data >> 8) & DATA_8BIT_MASK;
-		data_num = 2;
+	if (msg->flags & I2C_M_16BIT_DATA) {
+		pinfo->msg->buf[0] = ret_data & DATA_8BIT_MASK;
+		pinfo->msg->buf[1] = (ret_data >> 8) & DATA_8BIT_MASK;
 	} else {
-		pinfo->msgs->buf[0] = ret_data & DATA_8BIT_MASK;
-		data_num = 1;
+		pinfo->msg->buf[0] = ret_data & DATA_8BIT_MASK;
 	}
 
 	writel(0x1, pinfo->regbase + I2C_CLR_INTR_REG);
 
-	return data_num;
-}
-
-static int hi_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
-		int num)
-{
-	struct hi_i2c *pinfo;
-	int errorcode;
-
-	pinfo = (struct hi_i2c *)i2c_get_adapdata(adap);
-
-	pinfo->msgs = msgs;
-	pinfo->msg_num = num;
-	pinfo->msg_index = 0;
-
-	if (msgs->flags & I2C_M_RD)
-		errorcode = hi_i2c_read(pinfo);
-	else
-		errorcode = hi_i2c_write(pinfo);
-
-	return errorcode;
+	return 0;
 }
 
 /************************************
@@ -604,6 +545,104 @@ int i2c_to_dma(unsigned int src, unsigned int dst, unsigned int length)
 	return chan;
 }
 
+static int hi_i2c_do_dma_write(struct hi_i2c *pinfo,
+		unsigned int reg_addr, unsigned int reg_addr_num,
+		unsigned int dma_buf, unsigned int length)
+{
+	unsigned int temp_reg = reg_addr;
+	int chan;
+
+	/* 1. switch i2c devaddr and dma mode*/
+	if (hi_i2c_set_dev_addr_and_mode(pinfo, I2C_MODE_DMA) < 0)
+		return -1;
+
+	if (2 == reg_addr_num) {
+		/* switch high byte and low byte */
+		temp_reg = REVERT_HL_BYTE(reg_addr);
+		writel(0x10000000, pinfo->regbase + I2C_DMA_CMD0);
+	} else {
+		writel(0x0, pinfo->regbase + I2C_DMA_CMD0);
+	}
+
+	/* 2. config i2c into DMA mode */
+	hi_i2c_dmac_config(pinfo, 0x1);
+
+	/* 3. start i2c logic to write */
+	hi_i2c_start_tx(pinfo, temp_reg, length - 1);
+
+	/* 4. transmit DATA from DMAC to I2C in DMA mode */
+	chan = dma_to_i2c(dma_buf, (pinfo->mem->start + I2C_DATA_CMD_REG),
+				length);
+
+	if (dmac_wait(chan) != DMAC_CHN_SUCCESS) {
+		hi_err("dma wait failed\n");
+		dmac_channel_free(chan);
+		return -1;
+	}
+
+	dmac_channel_free(chan);
+
+	return 0;
+}
+
+static int hi_i2c_do_dma_read(struct hi_i2c *pinfo,
+		unsigned int reg_addr, unsigned int reg_addr_num,
+		unsigned int dma_buf, unsigned int length)
+{
+	unsigned int temp_reg = reg_addr;
+	int chan;
+
+	/* 1. switch i2c devaddr and dma mode*/
+	if (hi_i2c_set_dev_addr_and_mode(pinfo, I2C_MODE_DMA) < 0)
+		return -1;
+
+	if (2 == reg_addr_num) {
+		/* switch high byte and low byte */
+		temp_reg = REVERT_HL_BYTE(reg_addr);
+		writel(0x10000000, pinfo->regbase + I2C_DMA_CMD0);
+	} else {
+		writel(0x0, pinfo->regbase + I2C_DMA_CMD0);
+	}
+
+	/* 2. config i2c into DMA mode */
+	hi_i2c_dmac_config(pinfo, 0x0);
+
+	/* 3. transmit DATA from I2C to DMAC in DMA mode */
+	chan = i2c_to_dma((pinfo->mem->start + I2C_DATA_CMD_REG),
+				dma_buf, length);
+
+	/* 4. start i2c logic to read */
+	hi_i2c_start_rx(pinfo, temp_reg, length - 1);
+
+	if (dmac_wait(chan) != DMAC_CHN_SUCCESS) {
+		hi_err("dma wait failed\n");
+		dmac_channel_free(chan);
+		return -1;
+	}
+
+	dmac_channel_free(chan);
+
+	return 0;
+}
+
+#else
+static int hi_i2c_do_dma_write(struct hi_i2c *pinfo,
+		unsigned int reg_addr, unsigned int reg_addr_num,
+		unsigned int dma_buf, unsigned int length)
+{
+	hi_err("DMA is not enabled!");
+	return -1;
+}
+
+static int hi_i2c_do_dma_read(struct hi_i2c *pinfo,
+		unsigned int reg_addr, unsigned int reg_addr_num,
+		unsigned int dma_buf, unsigned int length)
+{
+	hi_err("DMA is not enabled!");
+	return -1;
+}
+#endif
+
 /**
  * i2c_trylock_adapter - Try to get exclusive access to an I2C bus segment
  * @adapter: Target I2C bus segment
@@ -618,16 +657,14 @@ static int i2c_trylock_adapter(struct i2c_adapter *adapter)
 		return rt_mutex_trylock(&adapter->bus_lock);
 }
 
-int hi_i2c_dma_write(const struct i2c_client *client, unsigned int data_addr,
+int hi_i2c_dma_write(const struct i2c_client *client, unsigned int dma_buf,
 		unsigned int reg_addr, unsigned int reg_addr_num,
 		unsigned int length)
 {
 	struct i2c_adapter *adap = client->adapter;
 	struct hi_i2c *pinfo = (struct hi_i2c *)i2c_get_adapdata(adap);
-	unsigned int temp_reg = reg_addr;
-	int chan;
-
 	struct i2c_msg msg;
+	int ret;
 
 	if (in_atomic() || irqs_disabled()) {
 		if (!i2c_trylock_adapter(adap))
@@ -642,55 +679,25 @@ int hi_i2c_dma_write(const struct i2c_client *client, unsigned int data_addr,
 	msg.flags = client->flags;
 	msg.len = length;
 
-	pinfo->msgs = &msg;
-	pinfo->msg_num = length;
-	pinfo->msg_index = 0;
+	pinfo->msg = &msg;
 
-	/* 1. switch i2c devaddr and dma mode*/
-	if (hi_i2c_set_dev_addr_and_mode(pinfo, I2C_MODE_DMA) < 0) {
-		hi_err("HI_I2C_Dma_Write error...\n");
-		return -1;
-	}
-
-	if (2 == reg_addr_num) {
-		/* switch high byte and low byte */
-		temp_reg = REVERT_HL_BYTE(reg_addr);
-		writel(0x10000000, pinfo->regbase + I2C_DMA_CMD0);
-	}
-
-	/* 2. config i2c into DMA mode */
-	hi_i2c_dmac_config(pinfo, 0x1);
-
-	/* 3. start i2c logic to write */
-	hi_i2c_start_tx(pinfo, temp_reg, length - 1);
-
-	/* 4. transmit DATA from DMAC to I2C in DMA mode */
-	chan = dma_to_i2c(data_addr, (pinfo->mem->start + I2C_DATA_CMD_REG),
-				length);
-
-	if (dmac_wait(chan) != DMAC_CHN_SUCCESS) {
-		hi_err("dma wait failed\n");
-		return -1;
-	}
-
-	dmac_channel_free(chan);
+	ret = hi_i2c_do_dma_write(pinfo, reg_addr, reg_addr_num, dma_buf,
+			length);
 
 	i2c_unlock_adapter(adap);
 
-	return 0;
+	return ret;
 }
 EXPORT_SYMBOL(hi_i2c_dma_write);
 
-int hi_i2c_dma_read(const struct i2c_client *client, unsigned int data_addr,
+int hi_i2c_dma_read(const struct i2c_client *client, unsigned int dma_buf,
 		unsigned int reg_addr, unsigned int reg_addr_num,
 		unsigned int length)
 {
 	struct i2c_adapter *adap = client->adapter;
 	struct hi_i2c *pinfo = (struct hi_i2c *)i2c_get_adapdata(adap);
-	unsigned int temp_reg = reg_addr;
-	int chan;
-
 	struct i2c_msg msg;
+	int ret;
 
 	if (in_atomic() || irqs_disabled()) {
 		if (!i2c_trylock_adapter(adap))
@@ -706,41 +713,101 @@ int hi_i2c_dma_read(const struct i2c_client *client, unsigned int data_addr,
 	msg.flags |= I2C_M_RD;
 	msg.len = length;
 
-	pinfo->msgs = &msg;
-	pinfo->msg_num = length;
-	pinfo->msg_index = 0;
+	pinfo->msg = &msg;
 
-	/* 1. switch i2c devaddr and dma mode*/
-	if (hi_i2c_set_dev_addr_and_mode(pinfo, I2C_MODE_DMA) < 0)
-		return -1;
-
-	if (2 == reg_addr_num) {
-		/* switch high byte and low byte */
-		temp_reg = REVERT_HL_BYTE(reg_addr);
-		writel(0x10000000, pinfo->regbase + I2C_DMA_CMD0);
-	}
-
-	/* 2. config i2c into DMA mode */
-	hi_i2c_dmac_config(pinfo, 0x0);
-
-	/* 3. transmit DATA from I2C to DMAC in DMA mode */
-	chan = i2c_to_dma((pinfo->mem->start + I2C_DATA_CMD_REG),
-				data_addr, length);
-
-	/* 4. start i2c logic to read */
-	hi_i2c_start_rx(pinfo, temp_reg, length - 1);
-
-	if (dmac_wait(chan) != DMAC_CHN_SUCCESS)
-		return -1;
-
-	dmac_channel_free(chan);
+	ret = hi_i2c_do_dma_read(pinfo, reg_addr, reg_addr_num, dma_buf,
+			length);
 
 	i2c_unlock_adapter(adap);
 
-	return 0;
+	return ret;
 }
 EXPORT_SYMBOL(hi_i2c_dma_read);
-#endif
+
+static int hi_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg *msgs,
+		int num)
+{
+	struct hi_i2c *pinfo;
+	unsigned int msg_idx;
+	dma_addr_t dma_buf;
+	__u16 len;
+	unsigned int reg_addr;
+	unsigned int reg_width;
+	int ret;
+
+	if (!msgs || (num <= 0)) {
+		hi_err("msgs == NULL || num <= 0, Invalid argument!\n");
+		return -EINVAL;
+	}
+
+	pinfo = (struct hi_i2c *)i2c_get_adapdata(adap);
+	pinfo->msg = msgs;
+
+	for (msg_idx = 0; msg_idx < num; msg_idx++) {
+		len =  pinfo->msg->len;
+		if (pinfo->msg->flags & I2C_M_16BIT_REG) {
+			reg_addr = pinfo->msg->buf[0];
+			reg_addr |= pinfo->msg->buf[1] << 8;
+			reg_width = 2;
+		} else {
+			reg_addr = pinfo->msg->buf[0];
+			reg_width = 1;
+		}
+
+		if (pinfo->msg->flags & I2C_M_DMA) {
+			if (pinfo->msg->flags & I2C_M_16BIT_DATA) {
+				hi_err("I2C DMA no support I2C_M_16BIT_DATA\n");
+				return -EINVAL;
+			}
+
+			if (((pinfo->msg->flags & I2C_M_RD) && (len <= 0)) ||
+					(!(pinfo->msg->flags & I2C_M_RD) &&
+					 (len <= reg_width))) {
+				hi_err("msg->len == %d, Invalid argument!\n",
+						len);
+				return -EINVAL;
+			}
+
+			dma_buf = dma_map_single(pinfo->dev,
+					pinfo->msg->buf, len,
+					DMA_BIDIRECTIONAL);
+			if (dma_mapping_error(pinfo->dev, dma_buf)) {
+				hi_err("DMA mapping failed\n");
+				return -EINVAL;
+			}
+
+			if (pinfo->msg->flags & I2C_M_RD)
+				ret = hi_i2c_do_dma_read(pinfo, reg_addr,
+						reg_width, dma_buf, len);
+			else
+				ret = hi_i2c_do_dma_write(pinfo, reg_addr,
+						reg_width, dma_buf + reg_width,
+						len - reg_width);
+
+			dma_unmap_single(pinfo->dev, dma_buf, len,
+						DMA_BIDIRECTIONAL);
+
+			if (ret)
+				break;
+		} else {
+			if (pinfo->msg->flags & I2C_M_RD)
+				ret = hi_i2c_read(pinfo);
+			else
+				ret = hi_i2c_write(pinfo);
+
+			if (ret)
+				break;
+		}
+		pinfo->msg++;
+	}
+
+	if (!ret || msg_idx > 0)
+		ret = msg_idx;
+	else
+		ret = -EIO;
+
+	return ret;
+}
 
 /**************************************************************/
 
@@ -977,9 +1044,9 @@ static int __init hi_i2c_module_init(void)
 
 	ret = platform_driver_register(&hi_i2c_driver);
 	if (ret) {
-		platform_device_unregister(&hi_i2c0_device);
-		platform_device_unregister(&hi_i2c1_device);
 		platform_device_unregister(&hi_i2c2_device);
+		platform_device_unregister(&hi_i2c1_device);
+		platform_device_unregister(&hi_i2c0_device);
 		hi_err("i2c driver register failed!\n");
 		return ret;
 	}
@@ -991,9 +1058,9 @@ static void __exit hi_i2c_module_exit(void)
 {
 	platform_driver_unregister(&hi_i2c_driver);
 
-	platform_device_unregister(&hi_i2c0_device);
-	platform_device_unregister(&hi_i2c1_device);
 	platform_device_unregister(&hi_i2c2_device);
+	platform_device_unregister(&hi_i2c1_device);
+	platform_device_unregister(&hi_i2c0_device);
 }
 
 module_init(hi_i2c_module_init);

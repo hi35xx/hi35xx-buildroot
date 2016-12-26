@@ -81,6 +81,7 @@ static int hifmc100_driver_probe(struct platform_device *plat_dev)
 			HIFMC_REG_ADDRESS_LEN);
 	if (!host->regbase) {
 		DB_MSG("Error: SPI nor reg base-address ioremap failed.\n");
+		result = -EFAULT;
 		goto fail;
 	}
 
@@ -88,6 +89,7 @@ static int hifmc100_driver_probe(struct platform_device *plat_dev)
 			SPI_NOR_BUFFER_LEN);
 	if (!host->iobase) {
 		DB_MSG("Error: SPI nor buffer base-address ioremap failed.\n");
+		result = -EFAULT;
 		goto fail;
 	}
 
@@ -96,6 +98,7 @@ static int hifmc100_driver_probe(struct platform_device *plat_dev)
 			&host->dma_buffer, GFP_KERNEL);
 	if (!host->buffer) {
 		DB_BUG("Error: Can't allocate memory for dma buffer.");
+		result = -ENOMEM;
 		goto fail;
 	}
 
@@ -208,6 +211,7 @@ static void hifmc100_driver_shutdown(struct platform_device *pltdev)
 	if (start_up_addr_mode == SPI_NOR_ADDR_MODE_3_BYTES) {
 		int ix;
 		struct hifmc_host *host = platform_get_drvdata(pltdev);
+		struct mtd_info *mtd = host->mtd;
 		struct hifmc_spi *spi;
 
 		if (host)
@@ -215,12 +219,21 @@ static void hifmc100_driver_shutdown(struct platform_device *pltdev)
 		else
 			return;
 
+#ifdef CONFIG_HIFMC_SWITCH_DEV_TYPE
+		mutex_lock(&spi_type_mutex);
+		mtd_switch_spi_type(mtd);
+#endif
+		mutex_lock(&host->lock);
 		for (ix = 0; ix < host->num_chip; ix++, spi++) {
 			if (spi->addrcycle == 4) {
 				spi->driver->wait_ready(spi);
 				spi->driver->entry_4addr(spi, DISABLE);
 			}
 		}
+		mutex_unlock(&host->lock);
+#ifdef CONFIG_HIFMC_SWITCH_DEV_TYPE
+		mutex_unlock(&spi_type_mutex);
+#endif
 	}
 }
 
@@ -230,8 +243,14 @@ static int hifmc100_suspend(struct platform_device *dev, pm_message_t state)
 {
 	unsigned char cs, chip_num = CONFIG_SPI_NOR_MAX_CHIP_NUM;
 	struct hifmc_host *host = platform_get_drvdata(dev);
+	struct mtd_info *mtd = host->mtd;
 	struct hifmc_spi *spi = host->spi;
 
+#ifdef CONFIG_HIFMC_SWITCH_DEV_TYPE
+	mutex_lock(&spi_type_mutex);
+	mtd_switch_spi_type(mtd);
+#endif
+	mutex_lock(&host->lock);
 	for (cs = 0; chip_num && (cs < CONFIG_HIFMC_MAX_CS_NUM); cs++, spi++) {
 		spi->driver->wait_ready(spi);
 		chip_num--;
@@ -240,6 +259,10 @@ static int hifmc100_suspend(struct platform_device *dev, pm_message_t state)
 	if (host->set_system_clock)
 		host->set_system_clock(0, DISABLE);
 	FMC_PR(PM_DBG, "\t|-disable system clock\n");
+	mutex_unlock(&host->lock);
+#ifdef CONFIG_HIFMC_SWITCH_DEV_TYPE
+	mutex_unlock(&spi_type_mutex);
+#endif
 
 	return 0;
 }
@@ -247,8 +270,18 @@ static int hifmc100_suspend(struct platform_device *dev, pm_message_t state)
 static int hifmc100_resume(struct platform_device *dev)
 {
 	struct hifmc_host *host = platform_get_drvdata(dev);
+	struct mtd_info *mtd = host->mtd;
 
+#ifdef CONFIG_HIFMC_SWITCH_DEV_TYPE
+	mutex_lock(&spi_type_mutex);
+	mtd_switch_spi_type(mtd);
+#endif
+	mutex_lock(&host->lock);
 	hifmc100_spi_nor_config(host);
+	mutex_unlock(&host->lock);
+#ifdef CONFIG_HIFMC_SWITCH_DEV_TYPE
+	mutex_unlock(&spi_type_mutex);
+#endif
 
 	return 0;
 }

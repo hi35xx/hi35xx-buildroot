@@ -342,7 +342,12 @@ struct compress_writer *get_susp_compress_writer(const char *path)
 	writer->dst_buf_sz = SZ_1M * 9U;
 #endif
 
+#ifdef CONFIG_ARCH_HI3516A
+	writer->src = __ALIGN_UP(writer->work_mem + 1U, SZ_1M);
+#else
 	writer->src = __ALIGN_UP(writer->work_mem + 1U, SZ_1K*4);
+#endif
+
 	writer->dst = writer->src + writer->src_buf_sz;
 
 #ifdef CONFIG_DEFAULT_MTD
@@ -355,8 +360,14 @@ struct compress_writer *get_susp_compress_writer(const char *path)
 	printk(KERN_INFO "PM: compress: using dev %s(%u:%u)\n",
 			d, MAJOR(device), MINOR(device));
 #else
+
+#ifdef CONFIG_ARCH_HI3516A
+	writer->image = (void *)__ALIGN_UP(
+			writer->dst + writer->dst_buf_sz + 1U, SZ_1M);
+#else
 	writer->image = (void *)__ALIGN_UP(
 			writer->dst + writer->dst_buf_sz + 1U, SZ_1K*4);
+#endif
 
 	writer->image_buf_sz = snapshot_buf_size -
 		((unsigned long)writer->image - (unsigned long)writer);

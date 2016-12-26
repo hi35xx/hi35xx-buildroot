@@ -33,12 +33,6 @@ struct kvec {
 	size_t iov_len;
 };
 
-enum {
-	ITER_IOVEC = 0,
-	ITER_KVEC = 2,
-	ITER_BVEC = 4,
-};
-
 /*
  * Total number of bytes covered by an iovec.
  *

@@ -123,6 +123,7 @@ static int hisnfc100_os_probe(struct platform_device *pltdev)
 	res1 = platform_get_resource_byname(pltdev, IORESOURCE_MEM, "base");
 	if (!res1) {
 		PR_BUG("Can't get resource for reg address.\n");
+		result = -EIO;
 		goto fail;
 	}
 
@@ -130,12 +131,14 @@ static int hisnfc100_os_probe(struct platform_device *pltdev)
 					res1->end - res1->start + 1);
 	if (!host->regbase) {
 		PR_BUG("io remap reg address failed\n");
+		result = -EFAULT;
 		goto fail;
 	}
 
 	res2 = platform_get_resource_byname(pltdev, IORESOURCE_MEM, "buffer");
 	if (!res2) {
 		PR_BUG("Can't get resource for buffer address.\n");
+		result = -EIO;
 		goto fail;
 	}
 
@@ -143,6 +146,7 @@ static int hisnfc100_os_probe(struct platform_device *pltdev)
 					res2->end - res2->start + 1);
 	if (!host->iobase) {
 		PR_BUG("io remap buffer address failed\n");
+		result = -EFAULT;
 		goto fail;
 	}
 	memset((char *)host->iobase, 0xff, HISNFC100_BUFFER_BASE_ADDRESS_LEN);
@@ -152,6 +156,7 @@ static int hisnfc100_os_probe(struct platform_device *pltdev)
 						&host->dma_buffer, GFP_KERNEL);
 	if (!host->buffer) {
 		PR_BUG("Can't malloc memory for SPI Nand driver.");
+		result = -ENOMEM;
 		goto fail;
 	}
 	memset(host->buffer, 0xff, HISNFC100_BUFFER_LEN);

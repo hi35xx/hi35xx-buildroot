@@ -186,19 +186,17 @@ static int spi_general_entry_4addr(struct hifmc_spi *spi, int enable)
 
 	host->set_host_addr_mode(host, enable);
 
-	if (AC_DBG) {
-		spi->driver->wait_ready(spi);
+	spi->driver->wait_ready(spi);
 
-		status = spi_general_get_flash_register(spi, SPI_CMD_RDSR3);
-		FMC_PR(AC_DBG, "\t  Read SR-3[%#x]:%#x\n", SPI_CMD_RDSR3,
-				status);
-		if (SPI_NOR_GET_4BYTE_BY_CR(status) == enable)
-			FMC_PR(AC_DBG, "\t  %s 4-byte success, SR3:%#x\n",
-					str[enable], status);
-		else
-			DB_MSG("Error: %s 4-byte failed! SR3:%#x\n",
-					str[enable], status);
-	}
+	status = spi_general_get_flash_register(spi, SPI_CMD_RDSR3);
+	FMC_PR(AC_DBG, "\t  Read SR-3[%#x]:%#x\n", SPI_CMD_RDSR3,
+			status);
+	if (SPI_NOR_GET_4BYTE_BY_CR(status) == enable)
+		FMC_PR(AC_DBG, "\t  %s 4-byte success, SR3:%#x\n",
+				str[enable], status);
+	else
+		DB_MSG("Error: %s 4-byte failed! SR3:%#x\n",
+				str[enable], status);
 
 	FMC_PR(AC_DBG, "\t* End SPI Nor flash %s 4-byte mode.\n", str[enable]);
 

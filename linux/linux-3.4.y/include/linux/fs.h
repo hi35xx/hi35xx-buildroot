@@ -540,14 +540,10 @@ struct address_space;
 struct writeback_control;
 
 struct iov_iter {
-	int type;
+	const struct iovec *iov;
+	unsigned long nr_segs;
 	size_t iov_offset;
 	size_t count;
-	union {
-		const struct iovec *iov;
-		const struct bio_vec *bvec;
-	};
-	unsigned long nr_segs;
 };
 
 size_t iov_iter_copy_from_user_atomic(struct page *page,

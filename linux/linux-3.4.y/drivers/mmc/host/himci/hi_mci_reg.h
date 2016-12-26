@@ -91,6 +91,7 @@
 */
 #define ALL_INT_MASK				0x1ffff
 #define DTO_INT_MASK				(1<<3)
+#define SDIO_INT_MASK				(1<<16)
 
 /* bit[18:16] sampling phase */
 #define CLK_SMPL_PHS_MASK			(7<<16)
@@ -163,6 +164,7 @@
    hardware locked write error interrupt
 */
 #define ALL_INT_CLR       0x1efff
+#define ALL_SD_INT_CLR    0xefff
 
 #define PHASE_SHIFT		0x1030000
 #define READ_THRESHOLD_SIZE	0x2000001

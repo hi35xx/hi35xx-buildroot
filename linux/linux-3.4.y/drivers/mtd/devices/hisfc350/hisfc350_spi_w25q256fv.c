@@ -19,6 +19,8 @@ static int spi_w25q256fv_entry_4addr(struct hisfc_spi *spi, int enable)
 
 	if (spi->addrcycle != SPI_4BYTE_ADDR_LEN)
 		return 0;
+
+	spi->driver->wait_ready(spi);
 	/* This chip should not enable write here,
 	 * we have confirmed with the WINBOND */
 	/* spi->driver->write_enable(spi); */

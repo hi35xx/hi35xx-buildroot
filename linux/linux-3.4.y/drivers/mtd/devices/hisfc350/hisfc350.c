@@ -1353,6 +1353,7 @@ static int hisfc350_driver_probe(struct platform_device *plat_dev)
 		HISFC350_SYSCTRL_LENGTH);
 	if (!host->sysreg) {
 		printk(KERN_ERR "spi system reg ioremap failed.\n");
+		result = -EFAULT;
 		goto fail;
 	}
 
@@ -1362,6 +1363,7 @@ static int hisfc350_driver_probe(struct platform_device *plat_dev)
 	host->set_host_addr_mode = hisfc350_set_host_addr_mode;
 	if (!host->regbase) {
 		printk(KERN_ERR "spi base reg ioremap failed.\n");
+		result = -EFAULT;
 		goto fail;
 	}
 
@@ -1370,6 +1372,7 @@ static int hisfc350_driver_probe(struct platform_device *plat_dev)
 		HISFC350_BUFFER_BASE_LEN);
 	if (!host->iobase) {
 		printk(KERN_ERR "spi buffer ioremap failed.\n");
+		result = -EFAULT;
 		goto fail;
 	}
 #endif
@@ -1378,6 +1381,7 @@ static int hisfc350_driver_probe(struct platform_device *plat_dev)
 		&host->dma_buffer, GFP_KERNEL);
 	if (host->buffer == NULL) {
 		printk(KERN_ERR "spi alloc dma buffer failed.\n");
+		result = -ENOMEM;
 		goto fail;
 	}
 

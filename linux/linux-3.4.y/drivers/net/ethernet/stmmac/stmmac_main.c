@@ -1140,19 +1140,29 @@ static void stmmac_poll_func(unsigned long arg)
 	struct net_device *dev = (struct net_device *)arg;
 	struct stmmac_priv *priv = netdev_priv(dev);
 
-	unsigned long status1, status2;
-	status1 = readl(priv->ioaddr + 0x1014);
+	int ch = 0;
+	unsigned long status;
 
-	if (status1 & 0x680000) {
-		writel(0x0, priv->ioaddr + 0x1004);
-		writel(0x0, priv->ioaddr + 0x1008);
+	for (ch = 0; ch < TNK_NUM_GMACS; ch++) {
+		status = readl(priv->ioaddr + (ch * 0x100) + DMA_STATUS);
+		if (status & 0x680000) {
+			writel(0x0, priv->ioaddr +
+					(ch * 0x100) + DMA_XMT_POLL_DEMAND);
+			writel(0x0, priv->ioaddr +
+					(ch * 0x100) + DMA_RCV_POLL_DEMAND);
+		}
 	}
 
-	status2 = readl(priv->ioaddr + 0x1114);
-
-	if (status2 & 0x680000) {
-		writel(0x0, priv->ioaddr + 0x1104);
-		writel(0x0, priv->ioaddr + 0x1108);
+	if (hitoe) {
+		int max_ch = TNK_NUM_GMACS + 1;
+		for (ch = 2; ch < max_ch; ch++) {
+			status = readl(priv->ioaddr +
+					(ch * 0x100) + DMA_STATUS);
+			if ((status & DMA_STATUS_RS_MASK) ==
+				(0x4 << DMA_STATUS_RS_SHIFT)) {
+				tnkhw_rx_refill();
+			}
+		}
 	}
 
 	mod_timer(&priv->poll_timer, jiffies + STMMAC_POLL_TIMER);
@@ -2715,6 +2725,8 @@ static int stmmac_dvr_probe(struct platform_device *pdev)
 			ret = -ENODEV;
 			goto ndev_fail;
 		}
+
+		stmmac_syscfg_phy_cfg(priv, SPEED_100, DUPLEX_FULL, 0);
 
 		pr_info("\t%s - (dev. name: %s - id: %d, IRQ #%d\n"
 			"\tIO base addr: 0x%p)\n", ndev->name, pdev->name,

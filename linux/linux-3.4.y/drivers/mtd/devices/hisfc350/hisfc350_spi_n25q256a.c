@@ -17,6 +17,8 @@ static int spi_n25q256a_entry_4addr(struct hisfc_spi *spi, int enable)
 	if (spi->addrcycle != 4)
 		return 0;
 
+	spi->driver->wait_ready(spi);
+
 	if (enable) {
 		spi->driver->write_enable(spi);
 		hisfc_write(host, HISFC350_CMD_INS, SPI_CMD_EN4B);

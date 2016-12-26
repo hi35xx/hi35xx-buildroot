@@ -43,6 +43,8 @@ extern void complete_xiso_ep(dwc_otg_pcd_ep_t *ep);
 #endif
 
 #define DEBUG_EP0
+
+extern void hisi_switch_func(int otg);
 /**
  * This function updates OTG.
  */
@@ -5071,10 +5073,12 @@ int32_t dwc_otg_pcd_handle_intr(dwc_otg_pcd_t *pcd)
 		if (gintr_status.b.erlysuspend) {
 			retval |= dwc_otg_pcd_handle_early_suspend_intr(pcd);
 			otg_usbhost_stat = 0;
+			hisi_switch_func(0);
 		}
 		if (gintr_status.b.usbreset) {
 			otg_usbhost_stat = 1;
 			retval |= dwc_otg_pcd_handle_usb_reset_intr(pcd);
+			hisi_switch_func(0);
 		}
 		if (gintr_status.b.enumdone) {
 			retval |= dwc_otg_pcd_handle_enum_done_intr(pcd);

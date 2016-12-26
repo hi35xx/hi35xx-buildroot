@@ -30,6 +30,8 @@ static int spi_mx25l25635e_qe_enable(struct hisfc_spi *spi)
 	if (DEBUG_SPI_QE)
 		printk(KERN_INFO "* Start SPI Nor %s Quad.\n", str[op]);
 
+	spi->driver->wait_ready(spi);
+
 	status = spi_general_get_flash_register(spi, SPI_CMD_RDSR);
 	if (DEBUG_SPI_QE)
 		printk(KERN_INFO "  Read status %#x, val[%#x]\n", SPI_CMD_RDSR,

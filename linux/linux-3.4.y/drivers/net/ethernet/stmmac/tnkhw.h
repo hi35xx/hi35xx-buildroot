@@ -333,6 +333,8 @@ struct tnkhw_rx_dma_info {
 	unsigned int head;
 	/* Next Rx buffer to be freed */
 	unsigned int tail;
+	/* Spinlock to to protect head and tail pointer */
+	spinlock_t rx_desc_lock;
 	/* skbuff recycling list */
 	struct sk_buff_head free_skbs;
 };
@@ -475,6 +477,7 @@ void *tnkhw_ioaddr_get(void);
 /* For use by interrupt polling mechanism only */
 int tnkhw_rx(int limit);
 int tnkhw_tx_reclaim(void);
+void tnkhw_rx_refill(void);
 void tnkhw_tx_channel_reclaim(unsigned cindex, int shutdown);
 void tnkhw_skb_recycle(struct sk_buff *skb);
 void tnkhw_ctrl_interrupt(int source_mask);

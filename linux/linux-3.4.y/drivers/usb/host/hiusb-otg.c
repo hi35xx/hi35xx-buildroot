@@ -14,6 +14,7 @@
 
 static struct task_struct *kusbotg_task;
 
+#define USB2_SWITCH_BASE                IO_ADDRESS(0x20050130)
 #define PERI_USB0                       IO_ADDRESS(0x20120078)
 #define DWC_OTG_EN                      (1 << 31)
 #define USB2_PHY_DPPULL_DOWN		(0x3 << 26)
@@ -21,6 +22,21 @@ static struct task_struct *kusbotg_task;
 extern int otg_usbdev_stat;
 int otg_usbhost_stat;
 EXPORT_SYMBOL(otg_usbhost_stat);
+
+void hisi_switch_func(int otg)
+{
+	int reg;
+
+	reg = readl(USB2_SWITCH_BASE);
+	if (otg) {
+		reg |= 0x1;
+		writel(reg, USB2_SWITCH_BASE);
+	} else {
+		reg &= ~(0x1);
+		writel(reg, USB2_SWITCH_BASE);
+	}
+}
+EXPORT_SYMBOL(hisi_switch_func);
 
 static void device_to_host(void)
 {

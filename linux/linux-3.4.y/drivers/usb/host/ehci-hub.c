@@ -28,8 +28,9 @@
 
 /*-------------------------------------------------------------------------*/
 #include <linux/usb/otg.h>
-
 #define	PORT_WAKE_BITS	(PORT_WKOC_E|PORT_WKDISC_E|PORT_WKCONN_E)
+#define CRG_REG_BASE            0x20030000
+#define REG_CRG46                       0xb8
 
 #ifdef	CONFIG_PM
 
@@ -1035,7 +1036,22 @@ static int ehci_hub_control (
 				ehci->reset_done [wIndex] = jiffies
 						+ msecs_to_jiffies (50);
 			}
-			ehci_writel(ehci, temp, status_reg);
+
+			if (ehci_readl(ehci, status_reg) == 0x1005) {
+				unsigned int reg, reg1, base_reg;
+
+				ehci_writel(ehci, temp, status_reg);
+
+				base_reg = IO_ADDRESS(CRG_REG_BASE + REG_CRG46);
+				reg = reg1 = ehci_readl(ehci,
+						(u32 __iomem *)base_reg);
+				reg1 |= (1 << 2); /* USBPHY_PORT0_TREQ */
+				ehci_writel(ehci, reg1,
+						(u32 __iomem *)base_reg);
+				ehci_writel(ehci, reg, (u32 __iomem *)base_reg);
+			} else
+				ehci_writel(ehci, temp, status_reg);
+
 			break;
 
 		/* For downstream facing ports (these):  one hub port is put

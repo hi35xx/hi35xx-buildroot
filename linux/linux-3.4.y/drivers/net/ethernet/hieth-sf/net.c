@@ -388,6 +388,9 @@ static int hieth_net_open(struct net_device *dev)
 
 	hieth_feed_hw(ld);
 
+	tx_flow_ctrl_en = 1;
+	hieth_set_flow_ctrl(ld);
+
 	netif_start_queue(dev);
 
 	ld->link_stat = 0;
@@ -474,6 +477,9 @@ static int hieth_net_close(struct net_device *dev)
 	phy_stop(ld->phy);
 
 	del_timer_sync(&ld->monitor);
+
+	tx_flow_ctrl_en = 0;
+	hieth_set_flow_ctrl(ld);
 
 	/* reset and init port */
 	hieth_port_reset(ld, ld->port);

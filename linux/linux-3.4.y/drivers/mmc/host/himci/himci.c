@@ -944,7 +944,7 @@ static void hi_mci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 request_end:
 	/* clear MMC host intr */
 	spin_lock_irqsave(&host->lock, flags);
-	himci_writel(ALL_INT_CLR, host->base + MCI_RINTSTS);
+	himci_writel(ALL_SD_INT_CLR, host->base + MCI_RINTSTS);
 	spin_unlock_irqrestore(&host->lock, flags);
 
 	hi_mci_finish_request(host, mrq);
@@ -1427,6 +1427,7 @@ static irqreturn_t hisd_irq(int irq, void *dev_id)
 {
 	struct himci_host *host = dev_id;
 	u32 state = 0;
+	u32 mstate = 0;
 	int handle = 0;
 
 	spin_lock(&host->lock);
@@ -1438,7 +1439,9 @@ static irqreturn_t hisd_irq(int irq, void *dev_id)
 	if (host->mmc->caps & MMC_CAP_SDIO_IRQ) {
 		if ((host->mmc->card != NULL)
 				&& (host->mmc->card->type == MMC_TYPE_SDIO)) {
-			if (state & SDIO_INT_STATUS) {
+			mstate = himci_readl(host->base + MCI_INTMASK);
+			if ((state & SDIO_INT_STATUS) &&
+					(mstate & SDIO_INT_MASK)) {
 				spin_lock(&host->lock);
 				himci_writel(SDIO_INT_STATUS,
 						host->base + MCI_RINTSTS);

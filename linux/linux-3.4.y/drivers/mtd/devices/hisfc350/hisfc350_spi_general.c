@@ -75,6 +75,8 @@ static int spi_general_write_enable(struct hisfc_spi *spi)
 {
 	struct hisfc_host *host = (struct hisfc_host *)spi->host;
 
+	spi->driver->wait_ready(spi);
+
 	hisfc_write(host, HISFC350_CMD_INS, SPI_CMD_WREN);
 
 	hisfc_write(host, HISFC350_CMD_CONFIG,
@@ -93,6 +95,8 @@ static int spi_general_write_enable(struct hisfc_spi *spi)
 static int spi_general_entry_4addr(struct hisfc_spi *spi, int enable)
 {
 	struct hisfc_host *host = (struct hisfc_host *)spi->host;
+
+	spi->driver->wait_ready(spi);
 
 	if (spi->addrcycle != SPI_4BYTE_ADDR_LEN)
 		return 0;

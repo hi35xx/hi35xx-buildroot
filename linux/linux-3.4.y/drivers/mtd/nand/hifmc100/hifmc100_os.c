@@ -10,6 +10,7 @@
 /*****************************************************************************/
 #include <linux/kernel.h>
 #include <linux/slab.h>
+#include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/dma-mapping.h>
@@ -72,6 +73,30 @@ static int __init parse_nand_partitions(const struct tag *tag)
 __tagtable(0x48694E70, parse_nand_partitions);
 
 /*****************************************************************************/
+static int hifmc100_spi_nand_pre_probe(struct nand_chip *chip)
+{
+	uint8_t nand_maf_id;
+	struct hifmc_host *host = chip->priv;
+
+	/* Reset the chip first */
+	host->send_cmd_reset(host);
+	udelay(1000);
+
+	/* Check the ID */
+	host->offset = 0;
+	memset((unsigned char *)(chip->IO_ADDR_R), 0, 0x10);
+	host->send_cmd_readid(host);
+	nand_maf_id = readb(chip->IO_ADDR_R);
+
+	if (nand_maf_id == 0x00 || nand_maf_id == 0xff) {
+		printk("Cannot found a valid SPI Nand Device\n");
+		return 1;
+	}
+
+	return 0;
+}
+
+/*****************************************************************************/
 static int hifmc_nand_scan(struct mtd_info *mtd)
 {
 	int result = 0;
@@ -81,13 +106,21 @@ static int hifmc_nand_scan(struct mtd_info *mtd)
 
 	for (cs = 0; chip_num && (cs < CONFIG_HIFMC_MAX_CS_NUM); cs++) {
 		if (hifmc_cs_user[cs]) {
+			result = -ENODEV;
 			FMC_PR(BT_DBG, "\t\t*-Current CS(%d) is occupied.\n",
 					cs);
 			continue;
 		}
 
 		host->cmd_op.cs = cs;
-		if (nand_scan(mtd, chip_num)) {
+
+		if (hifmc100_spi_nand_pre_probe(chip)) {
+			result = -ENODEV;
+			goto fail;
+		}
+
+		result = nand_scan(mtd, chip_num);
+		if (result) {
 			result = -ENXIO;
 			goto fail;
 		}
@@ -178,6 +211,7 @@ static int hifmc100_os_probe(struct platform_device *pltdev)
 	rs_reg = platform_get_resource_byname(pltdev, IORESOURCE_MEM, "base");
 	if (!rs_reg) {
 		DB_MSG("Error: Can't get resource for reg address.\n");
+		result = -EIO;
 		goto fail;
 	}
 
@@ -185,13 +219,15 @@ static int hifmc100_os_probe(struct platform_device *pltdev)
 	host->regbase = ioremap_nocache(rs_reg->start, len);
 	if (!host->regbase) {
 		DB_MSG("Error: SPI nand reg base-address ioremap failed.\n");
+		result = -EFAULT;
 		goto fail;
 	}
 
 	FMC_PR(BT_DBG, "\t|-Get SPI nand driver resource for iobase\n");
 	rs_io = platform_get_resource_byname(pltdev, IORESOURCE_MEM, "buffer");
 	if (!rs_io) {
-		DB_MSG("Error: Can't get resource for buffer address\n");
+		DB_MSG("Error: Can't get resource for buffer address.\n");
+		result = -EIO;
 		goto fail;
 	}
 
@@ -199,6 +235,7 @@ static int hifmc100_os_probe(struct platform_device *pltdev)
 	host->iobase = ioremap_nocache(rs_io->start, len);
 	if (!host->iobase) {
 		DB_MSG("Error: SPI nand buffer base-address ioremap failed.\n");
+		result = -EFAULT;
 		goto fail;
 	}
 	memset((char *)host->iobase, 0xff, SPI_NAND_BUFFER_LEN);
@@ -209,6 +246,7 @@ static int hifmc100_os_probe(struct platform_device *pltdev)
 			&host->dma_buffer, GFP_KERNEL);
 	if (!host->buffer) {
 		DB_MSG("Error: Can't allocate memory for dma buffer.");
+		result = -EIO;
 		goto fail;
 	}
 	memset(host->buffer, 0xff, SPI_NAND_BUFFER_LEN);
@@ -251,10 +289,7 @@ static int hifmc100_os_probe(struct platform_device *pltdev)
 	}
 
 	DB_MSG("Error: MTD partition register failed! result: %d\n", result);
-
 	result = -ENODEV;
-	nand_release(mtd);
-
 fail:
 	if (host->buffer) {
 		dma_free_coherent(host->dev, SPI_NAND_BUFFER_LEN, host->buffer,
@@ -271,8 +306,16 @@ fail:
 	if (rs_reg)
 		release_resource(rs_reg);
 
-	platform_set_drvdata(pltdev, NULL);
+#ifdef CONFIG_HIFMC_SWITCH_DEV_TYPE
+	FMC_PR(BT_DBG, "\t|-Switch device type to default.\n");
+	mtd->type = MTD_ABSENT;
+	mtd_switch_spi_type(mtd);
+	mtd->type = MTD_NANDFLASH;
+#endif
+	nand_release(host->mtd);
 	kfree(host);
+	platform_set_drvdata(pltdev, NULL);
+	return result;
 
 end:
 #ifdef CONFIG_HIFMC_SWITCH_DEV_TYPE

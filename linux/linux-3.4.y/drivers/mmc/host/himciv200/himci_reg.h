@@ -173,6 +173,7 @@
    hardware locked write error interrupt
 */
 #define ALL_INT_CLR       0x1efff
+#define ALL_SD_INT_CLR    0xefff
 
 #define READ_THRESHOLD_SIZE	0x2000001
 /* MCI_STATUS(0x48) details */

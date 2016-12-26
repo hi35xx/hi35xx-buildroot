@@ -310,6 +310,7 @@ static const char fsg_string_interface[] = "Mass Storage";
 
 #include "storage_common.c"
 
+extern void hisi_switch_func(int otg);
 
 /*-------------------------------------------------------------------------*/
 
@@ -2056,6 +2057,8 @@ static int do_scsi_command(struct fsg_common *common)
 				      "READ CAPACITY");
 		if (reply == 0)
 			reply = do_read_capacity(common, bh);
+
+		hisi_switch_func(1);
 		break;
 
 	case READ_HEADER:

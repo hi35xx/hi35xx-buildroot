@@ -850,6 +850,7 @@ static int tnkhw_rx_dma_init(void)
 	/* Reset our head/tail indices */
 	r->head = 0;
 	r->tail = 0;
+	spin_lock_init(&r->rx_desc_lock);
 
 	/*  Pre-fill the RX recycle queue ring with additional empty buffers */
 	skb_queue_head_init(&r->free_skbs);
@@ -1036,12 +1037,14 @@ static void tnkhw_tx_dma_free(void)
 	tnk_tx_dma_list = NULL;
 }
 
-static inline void tnkhw_rx_refill(void)
+void tnkhw_rx_refill(void)
 {
 	unsigned int rxsize = tnk_rx_fifo;
 	struct tnkhw_rx_dma_info *r = &tnk_rx_dma;
 	unsigned count = 0;
 	unsigned long long bitwize_tnk;
+
+	spin_lock(&r->rx_desc_lock);
 
 	bitwize_tnk = r->head + 0x100000000ull;
 
@@ -1129,6 +1132,8 @@ static inline void tnkhw_rx_refill(void)
 		TNK_DBG("%s: alloc_skb: %d\n", __func__, count_skb);
 	}
 
+	spin_unlock(&r->rx_desc_lock);
+
 	TNK_DBG("%s end\n", __func__);
 }
 
@@ -1170,17 +1175,22 @@ int tnkhw_rx(int limit)
 {
 	unsigned int rxsize = tnk_rx_fifo;
 	struct tnkhw_rx_dma_info *r = &tnk_rx_dma;
-	unsigned int entry = r->head % rxsize;
+	unsigned int entry;
 	unsigned int next_entry;
 	unsigned int count = 0;
 	unsigned int max_valid;
-	struct tnk_rx_dma_desc *p = r->desc_list + entry;
+	struct tnk_rx_dma_desc *p;
 	struct tnk_rx_dma_desc *p_next;
 
 	TNK_DBG("%s begin\n", __func__);
 
 	if (unlikely((limit < 0) || (limit > rxsize)))
 		limit = rxsize;
+
+	spin_lock(&r->rx_desc_lock);
+
+	entry = r->head % rxsize;
+	p = r->desc_list + entry;
 
 	/*  Prevent overtaking the tail pointer on wrap-around */
 	max_valid = r->tail + rxsize - r->head;
@@ -1354,6 +1364,8 @@ int tnkhw_rx(int limit)
 		entry = next_entry;
 		p = p_next;	/* use prefetched values */
 	}
+
+	spin_unlock(&r->rx_desc_lock);
 
 	TNK_DBG("%s do refill\n", __func__);
 	tnkhw_rx_refill();

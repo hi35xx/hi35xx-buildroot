@@ -22,6 +22,8 @@ static int spi_s25fl256s_entry_4addr(struct hisfc_spi *spi, int enable)
 	if (spi->addrcycle != SPI_4BYTE_ADDR_LEN)
 		return 0;
 
+	spi->driver->wait_ready(spi);
+
 	if (enable) {
 		hisfc_write(host, HISFC350_CMD_INS, SPI_BRWR);
 		hisfc_write(host, HISFC350_CMD_DATABUF0, SPI_EN4B);

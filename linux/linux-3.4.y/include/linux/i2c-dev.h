@@ -52,6 +52,7 @@
 #define I2C_SMBUS	0x0720	/* SMBus transfer */
 #define I2C_16BIT_REG	0x0709	/* 16BIT REG WIDTH */
 #define I2C_16BIT_DATA	0x070a	/* 16BIT DATA WIDTH */
+#define I2C_DMA		0x070b	/* DMA mode */
 
 
 /* This is the structure as used in the I2C_SMBUS ioctl call */

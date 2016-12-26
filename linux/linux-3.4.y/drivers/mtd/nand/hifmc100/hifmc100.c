@@ -664,7 +664,7 @@ static struct nand_ecclayout nand_ecc_default = {
 static struct nand_config_info hifmc_spi_nand_config_table[] = {
 	{NAND_PAGE_4K,	NAND_ECC_24BIT,	200,	&nand_ecc_default},
 	{NAND_PAGE_4K,	NAND_ECC_16BIT,	144,	&nand_ecc_default},
-	{NAND_PAGE_4K,	NAND_ECC_8BIT,	88,	&nand_ecc_default},
+	{NAND_PAGE_4K,	NAND_ECC_8BIT,	128,	&nand_ecc_default},
 	{NAND_PAGE_4K,	NAND_ECC_0BIT,	32,	&nand_ecc_default},
 
 	{NAND_PAGE_2K,	NAND_ECC_24BIT,	128,	&nand_ecc_default},

@@ -163,19 +163,17 @@ static int spi_w25q256fv_qe_enable(struct hifmc_spi *spi)
 
 	FMC_CMD_WAIT_CPU_FINISH(host);
 
-	if (QE_DBG) {
-		spi->driver->wait_ready(spi);
+	spi->driver->wait_ready(spi);
 
-		status = spi_general_get_flash_register(spi, SPI_CMD_RDSR2);
-		FMC_PR(QE_DBG, "\t  Read Status Register-2[%#x]:%#x\n",
-				SPI_CMD_RDSR2, status);
-		if (SPI_NOR_GET_QE_BY_CR(status) == op)
-			FMC_PR(QE_DBG, "\t  %s Quad success. status:%#x\n",
-					str[op], status);
-		else
-			DB_MSG("Error: %s Quad failed! reg:%#x\n", str[op],
-					status);
-	}
+	status = spi_general_get_flash_register(spi, SPI_CMD_RDSR2);
+	FMC_PR(QE_DBG, "\t  Read Status Register-2[%#x]:%#x\n",
+			SPI_CMD_RDSR2, status);
+	if (SPI_NOR_GET_QE_BY_CR(status) == op)
+		FMC_PR(QE_DBG, "\t  %s Quad success. status:%#x\n",
+				str[op], status);
+	else
+		DB_MSG("Error: %s Quad failed! reg:%#x\n", str[op],
+				status);
 
 	FMC_PR(QE_DBG, "\t* End SPI Nor W25Q(128/256)FV %s Quad.\n", str[op]);
 

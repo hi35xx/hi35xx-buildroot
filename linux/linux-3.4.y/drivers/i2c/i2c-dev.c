@@ -143,20 +143,58 @@ static ssize_t i2cdev_read(struct file *file, char __user *buf, size_t count,
 	if (count > 8192)
 		count = 8192;
 
+#ifdef CONFIG_HI_I2C
+	{
+		unsigned reg_width;
+		unsigned data_width;
+
+		if (client->flags & I2C_M_16BIT_REG)
+			reg_width = 2;
+		else
+			reg_width = 1;
+
+		if (client->flags & I2C_M_16BIT_DATA)
+			data_width = 2;
+		else
+			data_width = 1;
+
+		if (client->flags & I2C_M_DMA)
+			tmp = kmalloc(max_t(size_t, reg_width, count),
+					GFP_KERNEL);
+		else
+			tmp = kmalloc(max_t(size_t, reg_width, data_width),
+					GFP_KERNEL);
+
+		if (tmp == NULL)
+			return -ENOMEM;
+
+		copy_from_user(tmp, buf, reg_width);
+	}
+#else
 	tmp = kmalloc(count, GFP_KERNEL);
 	if (tmp == NULL)
 		return -ENOMEM;
-
-#ifdef CONFIG_HI_I2C
-	copy_from_user(tmp, buf, count);
 #endif
 
 	pr_debug("i2c-dev: i2c-%d reading %zu bytes.\n",
 		iminor(file->f_path.dentry->d_inode), count);
 
 	ret = i2c_master_recv(client, tmp, count);
+#ifdef CONFIG_HI_I2C
+	if (ret >= 0) {
+		if (client->flags & I2C_M_DMA) {
+			ret = copy_to_user(buf, tmp, count) ? -EFAULT : ret;
+		} else {
+			if (client->flags & I2C_M_16BIT_DATA)
+				ret = copy_to_user(buf, tmp, 2) ? -EFAULT : ret;
+			else
+				ret = copy_to_user(buf, tmp, 1) ? -EFAULT : ret;
+		}
+	}
+#else
 	if (ret >= 0)
 		ret = copy_to_user(buf, tmp, count) ? -EFAULT : ret;
+#endif
 	kfree(tmp);
 	return ret;
 }
@@ -448,6 +486,12 @@ static long i2cdev_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 			client->flags |= I2C_M_16BIT_DATA;
 		else
 			client->flags &= ~I2C_M_16BIT_DATA;
+		return 0;
+	case I2C_DMA:
+		if (arg)
+			client->flags |= I2C_M_DMA;
+		else
+			client->flags &= ~I2C_M_DMA;
 		return 0;
 	case I2C_FUNCS:
 		funcs = i2c_get_functionality(client->adapter);

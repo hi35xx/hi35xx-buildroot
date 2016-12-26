@@ -153,6 +153,7 @@ irqreturn_t dmac_isr(int irq, void *dev_id)
 /*
  *	update the state of channels
  */
+#define HI_DMA_UPDATE_TIMEOUT  (5 * HZ)
 static int dma_update_status(unsigned int channel)
 {
 
@@ -160,9 +161,11 @@ static int dma_update_status(unsigned int channel)
 	unsigned int channel_tc_status[3];
 	unsigned int channel_err_status[3];
 	unsigned int i = channel, j;
-	unsigned int timeout = 0x10000000;
+	unsigned long update_jiffies_timeout;
 
-	while (timeout--) {
+	update_jiffies_timeout = jiffies + HI_DMA_UPDATE_TIMEOUT;
+
+	while (1) {
 		for (j = 0; j < 3; j++) {
 			dmac_readw(DMAC_INTTCSTATUS, channel_status);
 			channel_tc_status[j] = (channel_status >> i) & 0x01;
@@ -185,6 +188,11 @@ static int dma_update_status(unsigned int channel)
 			break;
 		}
 
+		if (!time_before(jiffies, update_jiffies_timeout)) {
+			dma_err("Timeout in DMAC %d!\n", i);
+			g_channel_status[i] = -DMAC_CHN_TIMEOUT;
+			break;
+		}
 	}
 
 	return g_channel_status[i];

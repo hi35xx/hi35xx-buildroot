@@ -1504,9 +1504,22 @@ static int pl011_startup(struct uart_port *port)
 	writew(uap->im, uap->port.membase + UART011_IMSC);
 
 #ifdef UART_OE_ENABLE
-	cr = UART01x_CR_UARTEN | UART011_CR_RXE | UART011_CR_TXE;
+	cr = UART01x_CR_UARTEN | UART011_CR_TXE | UART011_CR_LBE;
 	writew(cr, uap->port.membase + UART011_CR);
+
 	writew(0, uap->port.membase + UART01x_DR);
+
+	while (readw(uap->port.membase + UART01x_FR) & UART01x_FR_BUSY)
+		barrier();
+
+	/* restore RTS and DTR */
+	cr = uap->old_cr & (UART011_CR_RTS | UART011_CR_DTR);
+	cr |= UART01x_CR_UARTEN | UART011_CR_RXE | UART011_CR_TXE;
+	writew(cr, uap->port.membase + UART011_CR);
+
+	/* Clear pending error and receive interrupts */
+	writew(UART011_OEIS | UART011_BEIS | UART011_PEIS | UART011_FEIS |
+	       UART011_RTIS | UART011_RXIS, uap->port.membase + UART011_ICR);
 #endif
 
 	spin_unlock_irq(&uap->port.lock);
