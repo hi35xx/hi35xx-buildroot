@@ -481,6 +481,16 @@ define UCLIBC_INSTALL_UTILS_TARGET
 endef
 endif
 
+define UCLIBC_INSTALL_COMPAT_SYMLINKS
+	ln -sf libc.so.0 $(TARGET_DIR)/lib/libcrypt.so.0
+	ln -sf libc.so.0 $(TARGET_DIR)/lib/libdl.so.0
+	ln -sf libc.so.0 $(TARGET_DIR)/lib/libm.so.0
+	ln -sf libc.so.0 $(TARGET_DIR)/lib/libpthread.so.0
+	ln -sf libc.so.0 $(TARGET_DIR)/lib/librt.so.0
+	ln -sf libc.so.0 $(TARGET_DIR)/lib/libresolv.so.0
+	ln -sf libc.so.0 $(TARGET_DIR)/lib/libutil.so.0
+endef
+
 define UCLIBC_INSTALL_TARGET_CMDS
 	$(MAKE1) -C $(@D) \
 		$(UCLIBC_MAKE_FLAGS) \
@@ -491,7 +501,7 @@ define UCLIBC_INSTALL_TARGET_CMDS
 	$(UCLIBC_INSTALL_UTILS_TARGET)
 	$(UCLIBC_BUILD_TEST_SUITE)
 	$(UCLIBC_INSTALL_TEST_SUITE)
-	$(UCLIBC_INSTALL_LDSO_SYMLINKS)
+	$(UCLIBC_INSTALL_COMPAT_SYMLINKS)
 endef
 
 # STATIC has no ld* tools, only getconf
