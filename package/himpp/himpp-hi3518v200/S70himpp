@@ -6,7 +6,7 @@
 HIMPP_PREFIX=/usr
 SENSOR_TYPE=$(fw_printenv sensor_type 2>/dev/null)
 SENSOR_TYPE=${SENSOR_TYPE:12}
-SENSOR_TYPE=${SENSOR_TYPE:-ov9712}
+SENSOR_TYPE=${SENSOR_TYPE:-ar0130}
 
 start() {
     (
@@ -14,7 +14,7 @@ start() {
       cd ${HIMPP_PREFIX}/lib/himpp-ko
       osmem=$(cat /proc/cmdline 2>/dev/null | \
               sed -nr 's/mem=([^[:space:]]+).*/\1/p')
-      ./load3518e.sh -i -sensor ${SENSOR_TYPE} -osmem "${osmem%[mM]}"
+      ./load3518e.sh -i -sensor ${SENSOR_TYPE}
       [ $? = 0 ] && echo "OK" || echo "FAIL"
     )
 }
