@@ -11,14 +11,14 @@ start() {
     echo -n "Starting live-streamer: "
     start-stop-daemon -S -q -m -b -p /var/run/live-streamer.pid \
                       -x live-streamer -- -S ${SENSOR_TYPE}
-    echo "OK"
+    [ $? = 0 ] && echo "OK" || echo "FAIL"
 }
 
 stop() {
     echo -n "Stopping live-streamer: "
     start-stop-daemon -K -q -p /var/run/live-streamer.pid
+    [ $? = 0 ] && echo "OK" || echo "FAIL"
     usleep 1000000
-    echo "OK"
 }
 
 case "$1" in

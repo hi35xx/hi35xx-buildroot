@@ -1,2 +1,6 @@
-# http://www.lttng.org/files/lttng-ust/lttng-ust-2.7.1.tar.bz2.sha1
-sha1  597ebecb885debb58c263de57f30b1096d4eefc6  lttng-ust-2.7.1.tar.bz2
+# From http://lttng.org/files/lttng-ust/lttng-ust-2.8.1.tar.bz2.{md5,sha1}
+md5     be505077245dc05f93370a565eec15f4  lttng-ust-2.8.1.tar.bz2
+sha1    8bebdcbcb453d2643fb226dbe92de61764f1ee3b  lttng-ust-2.8.1.tar.bz2
+
+# Locally generated
+sha256  6e41349107e83e7b43c69ed358e48788ca2fd095bad61737b850e3f3d2c0508a  lttng-ust-2.8.1.tar.bz2
