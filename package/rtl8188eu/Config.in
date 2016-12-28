@@ -3,17 +3,33 @@ config BR2_PACKAGE_RTL8188EU
 	depends on BR2_LINUX_KERNEL
 	help
 	  A standalone driver for the RTL8188EU USB Wi-Fi adapter.
-	  This is needed only for Linux kernels before 3.12.
-	  Since 3.12, there is a (staging) driver in mainline, with a similar
-	  codebase.
+	  it is based on the realtek official driver.
 
-	  Make sure your target kernel has the CONFIG_WIRELESS_EXT config
-	  option enabled.
+	  https://github.com/hi35xx/rtl8188eu
 
-	  Note: this package needs a firmware loading mechanism to load the
-	  binary blob for the chip to work.
+if BR2_PACKAGE_RTL8188EU
 
-	  https://github.com/lwfinger/rtl8188eu
+config BR2_PACKAGE_RTL8188EU_CFG80211
+	bool "Enable cfg80211 support"
+	default y
+	help
+	  Enable support for cfg80211 support. This is the current wireless
+	  API for Linux.
+
+config BR2_PACKAGE_RTL8188EU_CONCURRENT_MODE
+	bool "Enable concurrent mode"
+	default n
+	help
+	  Realtek's Linux WiFi driver can support Station+AP and Station+P2P
+	  single channel concurrent mode.
+
+config BR2_PACKAGE_RTL8188EU_WIFI_MONITOR
+	bool "Enable WiFi monitor"
+	default n
+	help
+	  Enable monitor mode to sniffer packets in the air.
+
+endif
 
 comment "rtl8188eu needs a Linux kernel to be built"
 	depends on !BR2_LINUX_KERNEL
