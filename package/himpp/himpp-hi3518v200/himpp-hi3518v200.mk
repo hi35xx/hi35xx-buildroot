@@ -130,13 +130,6 @@ define HIMPP_HI3518V200_INSTALL_TARGET_CMDS
 	$(HIMPP_TARGET_INSTALL_PROGRAMS)
 	$(INSTALL) -m 0755 -D package/himpp/himpp-hi3518v200/$(HIMPP_HI3518V200_VERSION)/load3518e.sh \
 	    $(MPPDRV_TARGET_DIR)/load3518e.sh
-	# create uClibc-compatible symbolic links
-	for f in $(TARGET_DIR)/lib/lib*.so.1; do \
-	  l=`readlink $$f`; \
-	  if [ -n "$$l" ]; then \
-	    ln -sf "$$l" "$${f/%.1/.0}"; \
-	  fi; \
-	done
 endef
 
 define HIMPP_HI3518V200_INSTALL_INIT_SYSV
