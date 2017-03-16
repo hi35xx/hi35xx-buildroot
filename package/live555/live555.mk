@@ -42,7 +42,7 @@ define LIVE555_CONFIGURE_CMDS
 endef
 
 define LIVE555_BUILD_CMDS
-	$(MAKE) -C $(@D) all
+	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) all
 endef
 
 DIRS_TO_INSTALL-y = liveMedia groupsock UsageEnvironment BasicUsageEnvironment
@@ -52,13 +52,13 @@ DIRS_TO_INSTALL-$(BR2_PACKAGE_LIVE555_TEST_PROGS)   += testProgs
 
 define LIVE555_INSTALL_STAGING_CMDS
 	for dir in $(DIRS_TO_INSTALL-y); do \
-	  $(MAKE) DESTDIR=$(STAGING_DIR) PREFIX=/usr -C $(@D)/$$dir install; \
+	  $(TARGET_MAKE_ENV) $(MAKE) DESTDIR=$(STAGING_DIR) PREFIX=/usr -C $(@D)/$$dir install; \
 	done
 endef
 
 define LIVE555_INSTALL_TARGET_CMDS
 	for dir in $(DIRS_TO_INSTALL-y); do \
-	  $(MAKE) DESTDIR=$(TARGET_DIR) PREFIX=/usr -C $(@D)/$$dir install; \
+	  $(TARGET_MAKE_ENV) $(MAKE) DESTDIR=$(TARGET_DIR) PREFIX=/usr -C $(@D)/$$dir install; \
 	done
 endef
 
