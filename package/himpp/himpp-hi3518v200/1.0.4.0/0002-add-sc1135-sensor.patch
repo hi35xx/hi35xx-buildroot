@@ -1924,7 +1924,7 @@ diff -uNr a/component/isp/sensor/smartsens_sc1135/sc1135_sensor_ctl.c b/componen
 +	//io strength
 +	sensor_write_register(0x3640,0x03);
 +
-+#if 0
++#if 1
 +	//960 p
 +	/*27Minput54Moutputpixelclockfrequency*/
 +	sensor_write_register(0x3010,0x07);
