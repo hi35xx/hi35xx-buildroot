@@ -1077,6 +1077,15 @@ config RTC_DRV_PUV3
 	  This drive can also be built as a module. If so, the module
 	  will be called rtc-puv3.
 
+config RTC_DRV_HI3518
+	tristate "Hisilicon Hi3518 RTC support"
+	depends on ARCH_HI3518EV200
+	help
+	  This enables support for the RTC in the Hisilicon Hi3518 SoCs.
+
+	  This drive can also be built as a module. If so, the module
+	  will be called rtc-hi3518.
+
 config RTC_DRV_LOONGSON1
 	tristate "loongson1 RTC support"
 	depends on MACH_LOONGSON1
