@@ -40,12 +40,5 @@ else
 DBUS_CPP_CONF_OPTS += --disable-glib
 endif
 
-define DBUS_CPP_REMOVE_DEVFILES
-	rm -rf $(TARGET_DIR)/usr/bin/dbusxx-introspect
-	rm -rf $(TARGET_DIR)/usr/bin/dbusxx-xml2cpp
-endef
-
-DBUS_CPP_POST_INSTALL_TARGET_HOOKS += DBUS_CPP_REMOVE_DEVFILES
-
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))

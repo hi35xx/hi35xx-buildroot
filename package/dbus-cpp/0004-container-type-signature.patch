@@ -1,0 +1,27 @@
+From a0a2faa5325430ed31c70b87c8fed4609bd7a682 Mon Sep 17 00:00:00 2001
+From: Watson Xu <xuhuashan@gmail.com>
+Date: Wed, 12 Jul 2017 23:56:56 +0800
+Subject: fix the incorrect usage of container type signature when
+ calling dbus_message_iter_open_container() in MessageIter::copy_data()
+
+---
+ src/message.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/message.cpp b/src/message.cpp
+index 3f0cac4..cfb6877 100644
+--- a/src/message.cpp
++++ b/src/message.cpp
+@@ -350,7 +350,8 @@ void MessageIter::copy_data(MessageIter &to)
+       (
+         (DBusMessageIter *) & (to._iter),
+         from.type(),
+-        from.type() == DBUS_TYPE_VARIANT ? NULL : sig,
++        ((from.type() == DBUS_TYPE_VARIANT) || \
++         (from.type() == DBUS_TYPE_ARRAY)) ? sig : NULL,
+         (DBusMessageIter *) & (to_container._iter)
+       );
+ 
+-- 
+2.13.0
+
