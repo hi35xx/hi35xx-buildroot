@@ -4,9 +4,9 @@
 #
 ################################################################################
 
-SYSTEMD_VERSION = 232
+SYSTEMD_VERSION = 234
 SYSTEMD_SITE = $(call github,systemd,systemd,v$(SYSTEMD_VERSION))
-SYSTEMD_LICENSE = LGPLv2.1+, GPLv2+ (udev), Public Domain (few source files, see README)
+SYSTEMD_LICENSE = LGPL-2.1+, GPL-2.0+ (udev), Public Domain (few source files, see README)
 SYSTEMD_LICENSE_FILES = LICENSE.GPL2 LICENSE.LGPL2.1 README
 SYSTEMD_INSTALL_STAGING = YES
 SYSTEMD_DEPENDENCIES = \
@@ -19,11 +19,6 @@ SYSTEMD_DEPENDENCIES = \
 SYSTEMD_PROVIDES = udev
 SYSTEMD_AUTORECONF = YES
 
-SYSTEMD_PATCH = \
-	https://github.com/systemd/systemd/commit/a924f43f30f9c4acaf70618dd2a055f8b0f166be.patch \
-	https://github.com/systemd/systemd/commit/db848813bae4d28c524b3b6a7dad135e426659ce.patch \
-	https://github.com/systemd/systemd/commit/88795538726a5bbfd9efc13d441cb05e1d7fc139.patch
-
 # Make sure that systemd will always be built after busybox so that we have
 # a consistent init setup between two builds
 ifeq ($(BR2_PACKAGE_BUSYBOX),y)
@@ -35,7 +30,6 @@ SYSTEMD_CONF_OPTS += \
 	--enable-blkid \
 	--enable-static=no \
 	--disable-manpages \
-	--disable-pam \
 	--disable-ima \
 	--disable-libcryptsetup \
 	--disable-efi \
@@ -60,7 +54,7 @@ SYSTEMD_CONF_ENV = \
 	ac_cv_path_UMOUNT_PATH=/usr/bin/umount
 
 define SYSTEMD_RUN_INTLTOOLIZE
-	cd $(@D) && $(HOST_DIR)/usr/bin/intltoolize --force --automake
+	cd $(@D) && $(HOST_DIR)/bin/intltoolize --force --automake
 endef
 SYSTEMD_PRE_CONFIGURE_HOOKS += SYSTEMD_RUN_INTLTOOLIZE
 
@@ -99,12 +93,6 @@ else
 SYSTEMD_CONF_OPTS += --disable-xkbcommon
 endif
 
-ifeq ($(BR2_PACKAGE_SYSTEMD_KDBUS),y)
-SYSTEMD_CONF_OPTS += --enable-kdbus
-else
-SYSTEMD_CONF_OPTS += --disable-kdbus
-endif
-
 ifeq ($(BR2_PACKAGE_BZIP2),y)
 SYSTEMD_DEPENDENCIES += bzip2
 SYSTEMD_CONF_OPTS += --enable-bzip2
@@ -117,6 +105,13 @@ SYSTEMD_DEPENDENCIES += lz4
 SYSTEMD_CONF_OPTS += --enable-lz4
 else
 SYSTEMD_CONF_OPTS += --disable-lz4
+endif
+
+ifeq ($(BR2_PACKAGE_LINUX_PAM),y)
+SYSTEMD_DEPENDENCIES += linux-pam
+SYSTEMD_CONF_OPTS += --enable-pam
+else
+SYSTEMD_CONF_OPTS += --disable-pam
 endif
 
 ifeq ($(BR2_PACKAGE_XZ),y)
@@ -143,7 +138,7 @@ endif
 ifeq ($(BR2_PACKAGE_LIBGCRYPT),y)
 SYSTEMD_DEPENDENCIES += libgcrypt
 SYSTEMD_CONF_OPTS += \
-	--enable-gcrypt	\
+	--enable-gcrypt \
 	--with-libgcrypt-prefix=$(STAGING_DIR)/usr \
 	--with-libgpg-error-prefix=$(STAGING_DIR)/usr
 else
@@ -308,13 +303,6 @@ endef
 endif
 else
 SYSTEMD_CONF_OPTS += --disable-networkd
-define SYSTEMD_INSTALL_SERVICE_NETWORK
-	$(INSTALL) -D -m 644 package/systemd/network.service \
-		$(TARGET_DIR)/etc/systemd/system/network.service
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
-	ln -fs ../network.service \
-		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/network.service
-endef
 endif
 
 ifeq ($(BR2_PACKAGE_SYSTEMD_RESOLVED),y)
@@ -406,7 +394,6 @@ endif
 define SYSTEMD_INSTALL_INIT_SYSTEMD
 	$(SYSTEMD_DISABLE_SERVICE_TTY1)
 	$(SYSTEMD_INSTALL_SERVICE_TTY)
-	$(SYSTEMD_INSTALL_SERVICE_NETWORK)
 	$(SYSTEMD_INSTALL_SERVICE_TIMESYNC)
 	$(SYSTEMD_INSTALL_NETWORK_CONFS)
 endef

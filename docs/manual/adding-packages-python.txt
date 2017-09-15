@@ -24,7 +24,7 @@ with an example :
 07: PYTHON_FOO_VERSION = 1.0
 08: PYTHON_FOO_SOURCE = python-foo-$(PYTHON_FOO_VERSION).tar.xz
 09: PYTHON_FOO_SITE = http://www.foosoftware.org/download
-10: PYTHON_FOO_LICENSE = BSD-3c
+10: PYTHON_FOO_LICENSE = BSD-3-Clause
 11: PYTHON_FOO_LICENSE_FILES = LICENSE
 12: PYTHON_FOO_ENV = SOME_VAR=1
 13: PYTHON_FOO_DEPENDENCIES = libmad
@@ -167,7 +167,7 @@ possible to customize what is done in any particular step:
 
 If the Python package for which you would like to create a Buildroot
 package is available on PyPI, you may want to use the +scanpypi+ tool
-located in +support/scripts+ to automate the process.
+located in +utils/+ to automate the process.
 
 You can find the list of existing PyPI packages
 https://pypi.python.org[here].
@@ -178,7 +178,7 @@ your host.
 When at the root of your buildroot directory just do :
 
 -----------------------
-./support/scripts/scanpypi foo bar -o package
+utils/scanpypi foo bar -o package
 -----------------------
 
 This will generate packages +python-foo+ and +python-bar+ in the package
@@ -198,7 +198,7 @@ If your Buildroot package is not in the official Buildroot tree but in
 a br2-external tree, use the -o flag as follows:
 
 -----------------------
-./support/scripts/scanpypi foo bar -o other_package_dir
+utils/scanpypi foo bar -o other_package_dir
 -----------------------
 
 This will generate packages +python-foo+ and +python-bar+ in the
@@ -207,7 +207,7 @@ This will generate packages +python-foo+ and +python-bar+ in the
 Option +-h+ will list the available options:
 
 -----------------------
-./support/scripts/scanpypi -h
+utils/scanpypi -h
 -----------------------
 
 [[python-package-cffi-backend]]

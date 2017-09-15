@@ -7,7 +7,7 @@
 SOCAT_VERSION = 2.0.0-b9
 SOCAT_SOURCE = socat-$(SOCAT_VERSION).tar.bz2
 SOCAT_SITE = http://www.dest-unreach.org/socat/download
-SOCAT_LICENSE = GPLv2
+SOCAT_LICENSE = GPL-2.0
 SOCAT_LICENSE_FILES = COPYING
 
 SOCAT_CONF_ENV = sc_cv_termios_ispeed=no
@@ -44,7 +44,7 @@ SOCAT_CONF_OPTS += --disable-readline
 endif
 
 define SOCAT_RUN_AUTOCONF
-	(cd $(@D); $(HOST_DIR)/usr/bin/autoconf)
+	(cd $(@D); $(HOST_DIR)/bin/autoconf)
 endef
 
 SOCAT_PRE_CONFIGURE_HOOKS += SOCAT_RUN_AUTOCONF

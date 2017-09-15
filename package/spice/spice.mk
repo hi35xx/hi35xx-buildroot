@@ -7,23 +7,23 @@
 SPICE_VERSION = 0.12.8
 SPICE_SOURCE = spice-$(SPICE_VERSION).tar.bz2
 SPICE_SITE = http://www.spice-space.org/download/releases
-SPICE_LICENSE = LGPLv2.1+
+SPICE_LICENSE = LGPL-2.1+
 SPICE_LICENSE_FILES = COPYING
 SPICE_INSTALL_STAGING = YES
-SPICE_DEPENDENCIES =        \
-	jpeg                \
-	libglib2            \
-	openssl             \
-	pixman              \
+SPICE_DEPENDENCIES = \
+	jpeg \
+	libglib2 \
+	openssl \
+	pixman \
 	spice-protocol
 
 # We disable everything for now, because the dependency tree can become
 # quite deep if we try to enable some features, and I have not tested that.
-SPICE_CONF_OPTS =                 \
-	--disable-opengl          \
-	--disable-smartcard       \
+SPICE_CONF_OPTS = \
+	--disable-opengl \
+	--disable-smartcard \
 	--disable-automated-tests \
-	--without-sasl            \
+	--without-sasl \
 	--disable-manual
 
 SPICE_DEPENDENCIES += host-pkgconf
@@ -51,7 +51,7 @@ endif
 # it should link against libz and libjpeg. libz is pkg-config-aware, while
 # libjpeg isn't, hence the two-line tweak
 define SPICE_POST_INSTALL_STAGING_FIX_PC
-	$(SED) 's/^\(Requires.private:.*\)$$/\1 zlib/; s/^\(Libs.private:.*\)$$/\1 -ljpeg/;'    \
+	$(SED) 's/^\(Requires.private:.*\)$$/\1 zlib/; s/^\(Libs.private:.*\)$$/\1 -ljpeg/;' \
 		"$(STAGING_DIR)/usr/lib/pkgconfig/spice-server.pc"
 endef
 SPICE_POST_INSTALL_STAGING_HOOKS += SPICE_POST_INSTALL_STAGING_FIX_PC

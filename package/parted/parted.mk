@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-PARTED_VERSION = 3.1
+PARTED_VERSION = 3.2
 PARTED_SOURCE = parted-$(PARTED_VERSION).tar.xz
 PARTED_SITE = $(BR2_GNU_MIRROR)/parted
 PARTED_DEPENDENCIES = host-pkgconf util-linux
@@ -12,7 +12,7 @@ PARTED_INSTALL_STAGING = YES
 # For uclinux patch
 PARTED_AUTORECONF = YES
 PARTED_GETTEXTIZE = YES
-PARTED_LICENSE = GPLv3+
+PARTED_LICENSE = GPL-3.0+
 PARTED_LICENSE_FILES = COPYING
 
 ifeq ($(BR2_PACKAGE_READLINE),y)
@@ -36,7 +36,7 @@ endif
 HOST_PARTED_DEPENDENCIES = host-pkgconf host-util-linux
 HOST_PARTED_CONF_OPTS += \
 	--without-readline \
-	--disable-device-mapper \
+	--disable-device-mapper
 
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))

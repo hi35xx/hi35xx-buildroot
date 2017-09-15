@@ -76,8 +76,7 @@ II. User guide
     12. Legal notice and licensing
 
         12.1. Complying with open source licenses
-        12.2. License abbreviations
-        12.3. Complying with the Buildroot license
+        12.2. Complying with the Buildroot license
 
     13. Beyond Buildroot
 
@@ -92,6 +91,7 @@ III. Developer guide
         15.1. Config.in file
         15.2. The .mk file
         15.3. The documentation
+        15.4. Support scripts
 
     16. Adding support for a particular board
     17. Adding new packages to Buildroot
@@ -155,8 +155,8 @@ List of Examples
 
 ---------------------------------------------------------------------
 
-Buildroot 2017.02.4 manual generated on 2017-07-04 16:52:52 UTC from
-git revision 7ea1487c0a
+Buildroot 2017.08 manual generated on 2017-09-01 23:20:42 UTC from
+git revision 8ce27bb9fe
 
 The Buildroot manual is written by the Buildroot developers. It is
 licensed under the GNU General Public License, version 2. Refer to
@@ -558,8 +558,7 @@ Table of Contents
 12. Legal notice and licensing
 
     12.1. Complying with open source licenses
-    12.2. License abbreviations
-    12.3. Complying with the Buildroot license
+    12.2. Complying with the Buildroot license
 
 13. Beyond Buildroot
 
@@ -702,19 +701,17 @@ cross-compilation toolchains. Buildroot knows about a number of
 well-known cross-compilation toolchains (from Linaro [http://
 www.linaro.org] for ARM, Sourcery CodeBench [http://www.mentor.com/
 embedded-software/sourcery-tools/sourcery-codebench/editions/
-lite-edition/] for ARM, x86, x86-64, PowerPC, MIPS and SuperH,
-Blackfin toolchains from Analog Devices [https://blackfin.uclinux.org
-/gf/project/toolchain], etc.) and is capable of downloading them
-automatically, or it can be pointed to a custom toolchain, either
-available for download or installed locally.
+lite-edition/] for ARM, x86-64, PowerPC, and MIPS, and is capable of
+downloading them automatically, or it can be pointed to a custom
+toolchain, either available for download or installed locally.
 
 Then, you have three solutions to use an external toolchain:
 
   * Use a predefined external toolchain profile, and let Buildroot
     download, extract and install the toolchain. Buildroot already
-    knows about a few CodeSourcery, Linaro, Blackfin and Xilinx
-    toolchains. Just select the toolchain profile in Toolchain from
-    the available ones. This is definitely the easiest solution.
+    knows about a few CodeSourcery and Linaro toolchains. Just select
+    the toolchain profile in Toolchain from the available ones. This
+    is definitely the easiest solution.
   * Use a predefined external toolchain profile, but instead of
     having Buildroot download and extract the toolchain, you can tell
     Buildroot where your toolchain is already installed on your
@@ -772,7 +769,6 @@ Advantages of this backend:
   * Avoids the build time of the cross-compilation toolchain, which
     is often very significant in the overall build time of an
     embedded Linux system.
-  * Not limited to uClibc: glibc and eglibc toolchains are supported.
 
 Drawbacks of this backend:
 
@@ -1052,6 +1048,50 @@ well as the configuration:
 Notes. If ccache is enabled, running make clean or distclean does not
 empty the compiler cache used by Buildroot. To delete it, refer to
 Section 8.12.3, “Using ccache in Buildroot”.
+
+Dumping the internal make variables: One can dump all the variables
+known to make, along with their values:
+
+ $ make -s printvars
+ VARIABLE=value_of_variable
+ ...
+
+It is possible to tweak the output using some variables:
+
+  * VARS will limit the listing to variables which names match the
+    specified make-pattern
+  * QUOTED_VARS, if set to YES, will single-quote the value
+  * RAW_VARS, if set to YES, will print the unexpanded value
+
+For example:
+
+ $ make -s printvars VARS=BUSYBOX_%DEPENDENCIES
+ BUSYBOX_DEPENDENCIES=skeleton toolchain
+ BUSYBOX_FINAL_ALL_DEPENDENCIES=skeleton toolchain
+ BUSYBOX_FINAL_DEPENDENCIES=skeleton toolchain
+ BUSYBOX_FINAL_PATCH_DEPENDENCIES=
+ BUSYBOX_RDEPENDENCIES=ncurses util-linux
+
+ $ make -s printvars VARS=BUSYBOX_%DEPENDENCIES QUOTED_VARS=YES
+ BUSYBOX_DEPENDENCIES='skeleton toolchain'
+ BUSYBOX_FINAL_ALL_DEPENDENCIES='skeleton toolchain'
+ BUSYBOX_FINAL_DEPENDENCIES='skeleton toolchain'
+ BUSYBOX_FINAL_PATCH_DEPENDENCIES=''
+ BUSYBOX_RDEPENDENCIES='ncurses util-linux'
+
+ $ make -s printvars VARS=BUSYBOX_%DEPENDENCIES RAW_VARS=YES
+ BUSYBOX_DEPENDENCIES=skeleton toolchain
+ BUSYBOX_FINAL_ALL_DEPENDENCIES=$(sort $(BUSYBOX_FINAL_DEPENDENCIES) $(BUSYBOX_FINAL_PATCH_DEPENDENCIES))
+ BUSYBOX_FINAL_DEPENDENCIES=$(sort $(BUSYBOX_DEPENDENCIES))
+ BUSYBOX_FINAL_PATCH_DEPENDENCIES=$(sort $(BUSYBOX_PATCH_DEPENDENCIES))
+ BUSYBOX_RDEPENDENCIES=ncurses util-linux
+
+The output of quoted variables can be reused in shell scripts, for
+example:
+
+ $ eval $(make -s printvars VARS=BUSYBOX_DEPENDENCIES QUOTED_VARS=YES)
+ $ echo $BUSYBOX_DEPENDENCIES
+ skeleton toolchain
 
 8.2. Understanding when a full rebuild is necessary
 
@@ -1438,7 +1478,7 @@ script. It takes two file-size-stats.csv files (produced by make
 graph-size) as input. Refer to the help text of this script for more
 details:
 
-support/scripts/size-stats-compare -h
+utils/size-stats-compare -h
 
 8.11. Integration with Eclipse
 
@@ -1477,8 +1517,8 @@ software that are not packaged in Buildroot. In order to do this you
 can use the toolchain that was generated by Buildroot.
 
 The toolchain generated by Buildroot is located by default in output/
-host/. The simplest way to use it is to add output/host/usr/bin/ to
-your PATH environment variable and then to use ARCH-linux-gcc,
+host/. The simplest way to use it is to add output/host/bin/ to your
+PATH environment variable and then to use ARCH-linux-gcc,
 ARCH-linux-objdump, ARCH-linux-ld, etc.
 
 It is possible to relocate the toolchain - but then --sysroot must be
@@ -1521,7 +1561,7 @@ from the cross gdb.
 Then, on the host, you should start the cross gdb using the following
 command line:
 
-<buildroot>/output/host/usr/bin/<tuple>-gdb -x <buildroot>/output/staging/usr/share/buildroot/gdbinit foo
+<buildroot>/output/host/bin/<tuple>-gdb -x <buildroot>/output/staging/usr/share/buildroot/gdbinit foo
 
 Of course, foo must be available in the current directory, built with
 debugging symbols. Typically you start this command from the
@@ -2761,8 +2801,8 @@ package installed what and remove it when the package is unselected.
 However, it is much more complicated than that:
 
   * It is not only about the target/ directory, but also the sysroot
-    in host/usr/<tuple>/sysroot and the host/ directory itself. All
-    files installed in those directories by various packages must be
+    in host/<tuple>/sysroot and the host/ directory itself. All files
+    installed in those directories by various packages must be
     tracked.
   * When a package is unselected from the configuration, it is not
     sufficient to remove just the files it installed. One must also
@@ -2878,23 +2918,6 @@ Chapter 11. Known issues
     BR2_TARGET_LDFLAGS if such options contain a $ sign. For example,
     the following is known to break: BR2_TARGET_LDFLAGS="-Wl,-rpath=
     '$ORIGIN/../lib'"
-  * The ltp-testsuite package does not build with the default uClibc
-    configuration used by the Buildroot toolchain backend. The LTP
-    testsuite uses several functions that are considered obsolete,
-    such as sigset() and others. uClibc configuration options such as
-    DO_XSI_MATH, UCLIBC_HAS_OBSOLETE_BSD_SIGNAL and
-    UCLIBC_SV4_DEPRECATED are needed if one wants to build the
-    ltp-testsuite package with uClibc. You need to either use a glibc
-    based toolchain, or enable the appropriate options in the uClibc
-    configuration.
-  * The xfsprogs package does not build with the default uClibc
-    configuration used by the Buildroot toolchain backend. You need
-    to either use a glibc based toolchain, or enable the appropriate
-    options in the uClibc configuration.
-  * The mrouted package does not build with the default uClibc
-    configuration used by the Buildroot toolchain backend. You need
-    to either use a glibc based toolchain, or enable the appropriate
-    options in the uClibc configuration.
   * The libffi package is not supported on the SuperH 2 and ARC
     architectures.
   * The prboom package triggers a compiler failure with the SuperH 4
@@ -2979,53 +3002,7 @@ check the output of make legal-info before using it as your own
 compliance delivery. See the NO WARRANTY clauses (clauses 11 and 12)
 in the COPYING file at the root of the Buildroot distribution.
 
-12.2. License abbreviations
-
-Here is a list of the licenses that are most widely used by packages
-in Buildroot, with the name used in the manifest files:
-
-  * AGPLv3: GNU Affero General Public License, version 3 [http://
-    www.gnu.org/licenses/agpl-3.0.en.html];
-  * GPLv2: GNU General Public License, version 2 [http://www.gnu.org/
-    licenses/old-licenses/gpl-2.0.html];
-  * GPLv2+: GNU General Public License, version 2 [http://www.gnu.org
-    /licenses/old-licenses/gpl-2.0.html] or (at your option) any
-    later version;
-  * GPLv3: GNU General Public License, version 3 [http://www.gnu.org/
-    licenses/gpl.html];
-  * GPLv3+: GNU General Public License, version 3 [http://www.gnu.org
-    /licenses/gpl.html] or (at your option) any later version;
-  * GPL: GNU General Public License [http://www.gnu.org/licenses/
-    gpl.html] (any version);
-  * LGPLv2: GNU Library General Public License, version 2 [http://
-    www.gnu.org/licenses/old-licenses/lgpl-2.0.html];
-  * LGPLv2+: GNU Library General Public License, version 2 [http://
-    www.gnu.org/licenses/old-licenses/lgpl-2.0.html] or (at your
-    option) any later version;
-  * LGPLv2.1: GNU Lesser General Public License, version 2.1 [http://
-    www.gnu.org/licenses/old-licenses/lgpl-2.1.html];
-  * LGPLv2.1+: GNU Lesser General Public License, version 2.1 [http:/
-    /www.gnu.org/licenses/old-licenses/lgpl-2.1.html] or (at your
-    option) any later version;
-  * LGPLv3: GNU Lesser General Public License, version 3 [http://
-    www.gnu.org/licenses/lgpl.html];
-  * LGPLv3+: GNU Lesser General Public License, version 3 [http://
-    www.gnu.org/licenses/lgpl.html] or (at your option) any later
-    version;
-  * LGPL: GNU Lesser General Public License [http://www.gnu.org/
-    licenses/lgpl.html] (any version);
-  * BSD-4c: Original BSD 4-clause license [http://directory.fsf.org/
-    wiki/License:BSD_4Clause];
-  * BSD-3c: BSD 3-clause license [http://opensource.org/licenses/
-    BSD-3-Clause];
-  * BSD-2c: BSD 2-clause license [http://opensource.org/licenses/
-    BSD-2-Clause];
-  * MIT: MIT-style license [http://opensource.org/licenses/
-    mit-license.html];
-  * Apache-2.0: Apache License, version 2.0 [http://apache.org/
-    licenses/LICENSE-2.0.html];
-
-12.3. Complying with the Buildroot license
+12.2. Complying with the Buildroot license
 
 Buildroot itself is an open source software, released under the GNU
 General Public License, version 2 [http://www.gnu.org/licenses/
@@ -3052,7 +3029,7 @@ Keep in mind that this is only the Buildroot developers' opinion, and
 you should consult your legal department or lawyer in case of any
 doubt.
 
-12.3.1. Patches to packages
+12.2.1. Patches to packages
 
 Buildroot also bundles patch files, which are applied to the sources
 of the various packages. Those patches are not covered by the license
@@ -3128,6 +3105,7 @@ Table of Contents
     15.1. Config.in file
     15.2. The .mk file
     15.3. The documentation
+    15.4. Support scripts
 
 16. Adding support for a particular board
 17. Adding new packages to Buildroot
@@ -3257,7 +3235,8 @@ config BR2_PACKAGE_LIBFOO
         depends on BR2_PACKAGE_LIBBAZ
         select BR2_PACKAGE_LIBBAR
         help
-          This is a comment that explains what libfoo is.
+          This is a comment that explains what libfoo is. The help text
+          should be wrapped.
 
           http://foosoftware.org/libfoo/
 
@@ -3265,7 +3244,8 @@ config BR2_PACKAGE_LIBFOO
     tab.
   * The help text itself should be indented with one tab and two
     spaces.
-  * The help text should be wrapped to fit 72 columns.
+  * The help text should be wrapped to fit 72 columns, where tab
+    counts for 8, so 62 characters in the text itself.
 
 The Config.in files are the input for the configuration tool used in
 Buildroot, which is the regular Kconfig. For further details about
@@ -3351,6 +3331,12 @@ For further details about the asciidoc [http://www.methods.co.nz/
 asciidoc/] syntax, refer to http://www.methods.co.nz/asciidoc/
 userguide.html.
 
+15.4. Support scripts
+
+Some scripts in the support/ and utils/ directories are written in
+Python and should follow the PEP8 Style Guide for Python Code [https:
+//www.python.org/dev/peps/pep-0008/].
+
 Chapter 16. Adding support for a particular board
 
 Buildroot contains basic configurations for several publicly
@@ -3394,6 +3380,9 @@ applications) can be integrated into Buildroot. It also shows how
 existing packages are integrated, which is needed for fixing issues
 or tuning their configuration.
 
+When you add a new package, be sure to test it in various conditions;
+see Section 17.20.2, “How to test your package”
+
 17.1. Package directory
 
 First of all, create a directory under the package directory for your
@@ -3420,15 +3409,17 @@ It should basically contain:
 config BR2_PACKAGE_LIBFOO
         bool "libfoo"
         help
-          This is a comment that explains what libfoo is.
+          This is a comment that explains what libfoo is. The help text
+          should be wrapped.
 
           http://foosoftware.org/libfoo/
 
 The bool line, help line and other metadata information about the
 configuration option must be indented with one tab. The help text
 itself should be indented with one tab and two spaces, lines should
-not be longer than 72 columns, and it must mention the upstream URL
-of the project.
+be wrapped to fit 72 columns, where tab counts for 8, so 62
+characters in the text itself. The help text must mention the
+upstream URL of the project after an empty line.
 
 As a convention specific to Buildroot, the ordering of the attributes
 is as follows:
@@ -3801,11 +3792,13 @@ Further formatting details: see the writing rules Section 15.2, “The
 
 17.4. The .hash file
 
-Optionally, you can add a third file, named libfoo.hash, that
+When possible, you must add a third file, named libfoo.hash, that
 contains the hashes of the downloaded files for the libfoo package.
+The only reason for not adding a .hash file is when hash checking is
+not possible due to how the package is downloaded.
 
 The hashes stored in that file are used to validate the integrity of
-the downloaded files.
+the downloaded files and of the license files.
 
 The format of this file is one line for each file for which to check
 the hash, each line being space-separated, with these three fields:
@@ -3823,7 +3816,12 @@ the hash, each line being space-separated, with these three fields:
       + for sha256, 64 hexadecimal characters
       + for sha384, 96 hexadecimal characters
       + for sha512, 128 hexadecimal characters
-  * the name of the file, without any directory component
+  * the name of the file:
+
+      + for a source archive: the basename of the file, without any
+        directory component,
+      + for a license file: the path as it appears in
+        FOO_LICENSE_FILES.
 
 Lines starting with a # sign are considered comments, and ignored.
 Empty lines are ignored.
@@ -3839,6 +3837,12 @@ sha1 and sha512), then it is best to add all those hashes in the
 an md5 hash, then compute at least one strong hash yourself
 (preferably sha256, but not md5), and mention this in a comment line
 above the hashes.
+
+Note. The hashes for license files are used to detect a license
+change when a package version is bumped. For a package with multiple
+versions (like Qt5), create the hash file in a subdirectory
+<packageversion> of that package (see also Section 18.2, “How patches
+are applied”).
 
 Note. The number of spaces does not matter, so one can use spaces (or
 tabs) to properly align the different fields.
@@ -3865,6 +3869,10 @@ sha256 ff52101fb90bbfc3fe9475e425688c660f46216d7e751c4bbdb1dc85cdccacb9 libfoo-f
 # No hash for 1234:
 none   xxx                                                              libfoo-1234.tar.gz
 
+# Hash for license files:
+sha256 a45a845012742796534f7e91fe623262ccfb99460a2bd04015bd28d66fba95b8  COPYING
+sha256 01b1f9f2c8ee648a7a596a1abe8aa4ed7899b1c9e5551bda06da6e422b04aa55  doc/COPYING.LGPL
+
 If the .hash file is present, and it contains one or more hashes for
 a downloaded file, the hash(es) computed by Buildroot (after
 download) must match the hash(es) stored in the .hash file. If one or
@@ -3877,11 +3885,18 @@ However, the downloaded file is left in the download directory since
 this typically indicates that the .hash file is wrong but the
 downloaded file is probably OK.
 
-Sources that are downloaded from a version control system (git,
-subversion, etc…) can not have a hash, because the version control
-system and tar may not create exactly the same file (dates, files
-ordering…), so the hash could be wrong even for a valid download.
-Therefore, the hash check is entirely skipped for such sources.
+Hashes are currently checked for files fetched from http/ftp servers,
+Git repositories, files copied using scp and local files. Hashes are
+not checked for other version control systems (such as Subversion,
+CVS, etc.) because Buildroot currently does not generate reproducible
+tarballs when source code is fetched from such version control
+systems.
+
+Hashes should only be added in .hash files for files that are
+guaranteed to be stable. For example, patches auto-generated by
+Github are not guaranteed to be stable, and therefore their hashes
+can change over time. Such patches should not be downloaded, and
+instead be added locally to the package folder.
 
 If the .hash file is missing, then no check is done at all.
 
@@ -3903,7 +3918,7 @@ based on hand-written Makefiles or shell scripts.
 07: LIBFOO_VERSION = 1.0
 08: LIBFOO_SOURCE = libfoo-$(LIBFOO_VERSION).tar.gz
 09: LIBFOO_SITE = http://www.foosoftware.org/download
-10: LIBFOO_LICENSE = GPLv3+
+10: LIBFOO_LICENSE = GPL-3.0+
 11: LIBFOO_LICENSE_FILES = COPYING
 12: LIBFOO_INSTALL_STAGING = YES
 13: LIBFOO_CONFIG_SCRIPTS = libfoo-config
@@ -4097,7 +4112,7 @@ information is (assuming the package name is libfoo) :
     Mercurial, and Bazaar are supported URL types for retrieving
     packages directly from source code management systems. There is a
     helper function to make it easier to download source tarballs
-    from GitHub (refer to Section 17.20.2, “How to add a package from
+    from GitHub (refer to Section 17.20.3, “How to add a package from
     GitHub” for details). A filesystem path may be used to specify
     either a tarball or a directory containing the package source
     code. See LIBFOO_SITE_METHOD below for more details on how
@@ -4122,7 +4137,7 @@ information is (assuming the package name is libfoo) :
     file to be downloaded is located at LIBFOO_SITE. Buildroot will
     not do anything with those additional files, except download
     them: it will be up to the package recipe to use them from $
-    (BR2_DL_DIR).
+    (DL_DIR).
   * LIBFOO_SITE_METHOD determines the method used to fetch or copy
     the package source code. In many cases, Buildroot guesses the
     method from the contents of LIBFOO_SITE and setting
@@ -4171,7 +4186,10 @@ information is (assuming the package name is libfoo) :
       + local for a local source code directory. One should use this
         when LIBFOO_SITE specifies a local directory path containing
         the package source code. Buildroot copies the contents of the
-        source directory into the package’s build directory.
+        source directory into the package’s build directory. Note
+        that for local packages, no patches are applied. If you need
+        to still patch the source code, use LIBFOO_POST_RSYNC_HOOKS,
+        see Section 17.18.1, “Using the POST_RSYNC hook”.
   * LIBFOO_GIT_SUBMODULES can be set to YES to create an archive with
     the git submodules in the repository. This is only available for
     packages downloaded with git (i.e. when LIBFOO_SITE_METHOD=git).
@@ -4240,25 +4258,25 @@ information is (assuming the package name is libfoo) :
     syntax documentation. This variable is optional.
   * LIBFOO_LICENSE defines the license (or licenses) under which the
     package is released. This name will appear in the manifest file
-    produced by make legal-info. If the license appears in the
-    following list Section 12.2, “License abbreviations”, use the
-    same string to make the manifest file uniform. Otherwise,
-    describe the license in a precise and concise way, avoiding
-    ambiguous names such as BSD which actually name a family of
-    licenses. This variable is optional. If it is not defined,
-    unknown will appear in the license field of the manifest file for
-    this package. The expected format for this variable must comply
-    with the following rules:
+    produced by make legal-info. If the license appears in the SPDX
+    License List [https://spdx.org/licenses/], use the SPDX short
+    identifier to make the manifest file uniform. Otherwise, describe
+    the license in a precise and concise way, avoiding ambiguous
+    names such as BSD which actually name a family of licenses. This
+    variable is optional. If it is not defined, unknown will appear
+    in the license field of the manifest file for this package. The
+    expected format for this variable must comply with the following
+    rules:
 
       + If different parts of the package are released under
         different licenses, then comma separate licenses (e.g.
-        LIBFOO_LICENSE = GPLv2+, LGPLv2.1+). If there is clear
+        LIBFOO_LICENSE = GPL-2.0+, LGPL-2.1+). If there is clear
         distinction between which component is licensed under what
         license, then annotate the license with that component,
-        between parenthesis (e.g. LIBFOO_LICENSE = GPLv2+ (programs),
-        LGPLv2.1+ (libraries)).
+        between parenthesis (e.g. LIBFOO_LICENSE = GPL-2.0+
+        (programs), LGPL-2.1+ (libraries)).
       + If the package is dual licensed, then separate licenses with
-        the or keyword (e.g. LIBFOO_LICENSE = AFLv2.1 or GPLv2+).
+        the or keyword (e.g. LIBFOO_LICENSE = AFL-2.1 or GPL-2.0+).
   * LIBFOO_LICENSE_FILES is a space-separated list of files in the
     package tarball that contain the license(s) under which the
     package is released. make legal-info copies all of these files in
@@ -4370,6 +4388,8 @@ In the action definitions, you can use the following variables:
     runtime configuration file, a splashscreen image…
   * $(@D), which contains the directory in which the package source
     code has been uncompressed.
+  * $(DL_DIR) contains the path to the directory where all the
+    downloads made by Buildroot are stored.
   * $(TARGET_CC), $(TARGET_LD), etc. to get the target
     cross-compilation utilities
   * $(TARGET_CROSS) to get the cross-compilation toolchain prefix
@@ -4689,7 +4709,7 @@ an example :
 07: PYTHON_FOO_VERSION = 1.0
 08: PYTHON_FOO_SOURCE = python-foo-$(PYTHON_FOO_VERSION).tar.xz
 09: PYTHON_FOO_SITE = http://www.foosoftware.org/download
-10: PYTHON_FOO_LICENSE = BSD-3c
+10: PYTHON_FOO_LICENSE = BSD-3-Clause
 11: PYTHON_FOO_LICENSE_FILES = LICENSE
 12: PYTHON_FOO_ENV = SOME_VAR=1
 13: PYTHON_FOO_DEPENDENCIES = libmad
@@ -4826,7 +4846,7 @@ still possible to customize what is done in any particular step:
 
 If the Python package for which you would like to create a Buildroot
 package is available on PyPI, you may want to use the scanpypi tool
-located in support/scripts to automate the process.
+located in utils/ to automate the process.
 
 You can find the list of existing PyPI packages here [https://
 pypi.python.org].
@@ -4836,7 +4856,7 @@ host.
 
 When at the root of your buildroot directory just do :
 
-./support/scripts/scanpypi foo bar -o package
+utils/scanpypi foo bar -o package
 
 This will generate packages python-foo and python-bar in the package
 folder if they exist on https://pypi.python.org.
@@ -4855,14 +4875,14 @@ also need to manually add the package to the package/Config.in file.
 If your Buildroot package is not in the official Buildroot tree but
 in a br2-external tree, use the -o flag as follows:
 
-./support/scripts/scanpypi foo bar -o other_package_dir
+utils/scanpypi foo bar -o other_package_dir
 
 This will generate packages python-foo and python-bar in the
 other_package_directory instead of package.
 
 Option -h will list the available options:
 
-./support/scripts/scanpypi -h
+utils/scanpypi -h
 
 17.8.4. python-package CFFI backend
 
@@ -4907,33 +4927,39 @@ package, with an example :
 
 01: ################################################################################
 02: #
-03: # luafoo
+03: # lua-foo
 04: #
 05: ################################################################################
 06:
-07: LUAFOO_VERSION = 1.0.2-1
-08: LUAFOO_DEPENDENCIES = foo
-09:
-10: LUAFOO_BUILD_OPTS += FOO_INCDIR=$(STAGING_DIR)/usr/include
-11: LUAFOO_BUILD_OPTS += FOO_LIBDIR=$(STAGING_DIR)/usr/lib
-12: LUAFOO_LICENSE = luaFoo license
-13: LUAFOO_LICENSE_FILES = COPYING
-14:
-15: $(eval $(luarocks-package))
+07: LUA_FOO_VERSION = 1.0.2-1
+08: LUA_FOO_NAME_UPSTREAM = foo
+09: LUA_FOO_DEPENDENCIES = bar
+10:
+11: LUA_FOO_BUILD_OPTS += BAR_INCDIR=$(STAGING_DIR)/usr/include
+12: LUA_FOO_BUILD_OPTS += BAR_LIBDIR=$(STAGING_DIR)/usr/lib
+13: LUA_FOO_LICENSE = luaFoo license
+14: LUA_FOO_LICENSE_FILES = $(LUA_FOO_SUBDIR)/COPYING
+15:
+16: $(eval $(luarocks-package))
 
 On line 7, we declare the version of the package (the same as in the
 rockspec, which is the concatenation of the upstream version and the
 rockspec revision, separated by a hyphen -).
 
-On line 8, we declare our dependencies against native libraries, so
+On line 8, we declare that the package is called "foo" on LuaRocks.
+In Buildroot, we give Lua-related packages a name that starts with
+"lua", so the Buildroot name is different from the upstream name.
+LUA_FOO_NAME_UPSTREAM makes the link between the two names.
+
+On line 9, we declare our dependencies against native libraries, so
 that they are built before the build process of our package starts.
 
-On lines 10-11, we tell Buildroot to pass custom options to LuaRocks
+On lines 11-12, we tell Buildroot to pass custom options to LuaRocks
 when it is building the package.
 
-On lines 12-13, we specify the licensing terms for the package.
+On lines 13-14, we specify the licensing terms for the package.
 
-Finally, on line 15, we invoke the luarocks-package macro that
+Finally, on line 16, we invoke the luarocks-package macro that
 generates all the Makefile rules that actually allows the package to
 be built.
 
@@ -4959,25 +4985,27 @@ luarocks-package macro.
 
 First, all the package metadata information variables that exist in
 the generic infrastructure also exist in the LuaRocks infrastructure:
-LUAFOO_VERSION, LUAFOO_SOURCE, LUAFOO_SITE, LUAFOO_DEPENDENCIES,
-LUAFOO_LICENSE, LUAFOO_LICENSE_FILES.
+LUA_FOO_VERSION, LUA_FOO_SOURCE, LUA_FOO_SITE, LUA_FOO_DEPENDENCIES,
+LUA_FOO_LICENSE, LUA_FOO_LICENSE_FILES.
 
 Two of them are populated by the LuaRocks infrastructure (for the
 download step). If your package is not hosted on the LuaRocks mirror
 $(BR2_LUAROCKS_MIRROR), you can override them:
 
-  * LUAFOO_SITE, which defaults to $(BR2_LUAROCKS_MIRROR)
-  * LUAFOO_SOURCE, which defaults to luafoo-$
-    (LUAFOO_VERSION).src.rock
+  * LUA_FOO_SITE, which defaults to $(BR2_LUAROCKS_MIRROR)
+  * LUA_FOO_SOURCE, which defaults to $(lowercase
+    LUA_FOO_NAME_UPSTREAM)-$(LUA_FOO_VERSION).src.rock
 
 A few additional variables, specific to the LuaRocks infrastructure,
 are also defined. They can be overridden in specific cases.
 
-  * LUAFOO_ROCKSPEC, which defaults to luafoo-$
-    (LUAFOO_VERSION).rockspec
-  * LUAFOO_SUBDIR, which defaults to luafoo-$
-    (LUAFOO_VERSION_WITHOUT_ROCKSPEC_REVISION)
-  * LUAFOO_BUILD_OPTS contains additional build options for the
+  * LUA_FOO_NAME_UPSTREAM, which defaults to lua-foo, i.e. the
+    Buildroot package name
+  * LUA_FOO_ROCKSPEC, which defaults to $(lowercase
+    LUA_FOO_NAME_UPSTREAM)-$(LUA_FOO_VERSION).rockspec
+  * LUA_FOO_SUBDIR, which defaults to $(LUA_FOO_NAME_UPSTREAM)-$
+    (LUA_FOO_VERSION_WITHOUT_ROCKSPEC_REVISION)
+  * LUA_FOO_BUILD_OPTS contains additional build options for the
     luarocks build call.
 
 17.10. Infrastructure for Perl/CPAN packages
@@ -4997,7 +5025,7 @@ with an example :
 08: PERL_FOO_BAR_SOURCE = Foo-Bar-$(PERL_FOO_BAR_VERSION).tar.gz
 09: PERL_FOO_BAR_SITE = $(BR2_CPAN_MIRROR)/authors/id/M/MO/MONGER
 10: PERL_FOO_BAR_DEPENDENCIES = perl-strictures
-11: PERL_FOO_BAR_LICENSE = Artistic or GPLv1+
+11: PERL_FOO_BAR_LICENSE = Artistic or GPL-1.0+
 12: PERL_FOO_BAR_LICENSE_FILES = LICENSE
 13:
 14: $(eval $(perl-package))
@@ -5483,7 +5511,7 @@ only builds a kernel module, and no other component:
 07: FOO_VERSION = 1.2.3
 08: FOO_SOURCE = foo-$(FOO_VERSION).tar.xz
 09: FOO_SITE = http://www.foosoftware.org/download
-10: FOO_LICENSE = GPLv2
+10: FOO_LICENSE = GPL-2.0
 11: FOO_LICENSE_FILES = COPYING
 12:
 13: $(eval $(kernel-module))
@@ -5522,7 +5550,7 @@ Let’s look at a more complex example:
 07: FOO_VERSION = 1.2.3
 08: FOO_SOURCE = foo-$(FOO_VERSION).tar.xz
 09: FOO_SITE = http://www.foosoftware.org/download
-10: FOO_LICENSE = GPLv2
+10: FOO_LICENSE = GPL-2.0
 11: FOO_LICENSE_FILES = COPYING
 12:
 13: FOO_MODULE_SUBDIRS = driver/base
@@ -5746,8 +5774,8 @@ Note. Unlike other packages, the linux-tools package options appear
 in the linux kernel menu, under the Linux Kernel Tools sub-menu, not
 under the Target packages main menu.
 
-Then for each linux tool, add a new .mk file named package/
-linux-tools/linux-tool-foo.mk. It would basically look like:
+Then for each linux tool, add a new .mk.in file named package/
+linux-tools/linux-tool-foo.mk.in. It would basically look like:
 
 01: ################################################################################
 02: #
@@ -5929,50 +5957,50 @@ Many packages that support internationalization use the gettext
 library. Dependencies for this library are fairly complicated and
 therefore, deserve some explanation.
 
-The uClibc C library doesn’t implement gettext functionality;
-therefore with this C library, a separate gettext must be compiled,
-which is provided by the additional libintl library, part of the
-gettext package.
+The glibc C library integrates a full-blown implementation of gettext
+, supporting translation. Native Language Support is therefore
+built-in in glibc.
 
-On the other hand, the glibc C library does integrate its own gettext
-library functions, so it is not necessary to build a separate libintl
-library.
+On the other hand, the uClibc and musl C libraries only provide a
+stub implementation of the gettext functionality, which allows to
+compile libraries and programs using gettext functions, but without
+providing the translation capabilities of a full-blown gettext
+implementation. With such C libraries, if real Native Language
+Support is necessary, it can be provided by the libintl library of
+the gettext package.
 
-However, certain packages need some gettext utilities on the target,
-such as the gettext program itself, which allows to retrieve
-translated strings, from the command line.
-
-Additionally, some packages (such as libglib2) do require gettext
-functions unconditionally, while other packages (in general, those
-who support --disable-nls) only require gettext functions when locale
-support is enabled.
-
-Therefore, Buildroot defines two configuration options:
-
-  * BR2_NEEDS_GETTEXT, which is true as soon as the toolchain doesn’t
-    provide its own gettext implementation
-  * BR2_NEEDS_GETTEXT_IF_LOCALE, which is true if the toolchain
-    doesn’t provide its own gettext implementation and if locale
-    support is enabled
-
-Packages that need gettext only when locale support is enabled
+Due to this, and in order to make sure that Native Language Support
+is properly handled, packages in Buildroot that can use NLS support
 should:
 
-  * use select BR2_PACKAGE_GETTEXT if BR2_NEEDS_GETTEXT_IF_LOCALE in
-    the Config.in file;
-  * use $(if $(BR2_NEEDS_GETTEXT_IF_LOCALE),gettext) in the package
-    DEPENDENCIES variable in the .mk file.
+ 1. Ensure NLS support is enabled when BR2_SYSTEM_ENABLE_NLS=y. This
+    is done automatically for autotools packages and therefore should
+    only be done for packages using other package infrastructures.
+ 2. Add $(TARGET_NLS_DEPENDENCIES) to the package <pkg>_DEPENDENCIES
+    variable. This addition should be done unconditionally: the value
+    of this variable is automatically adjusted by the core
+    infrastructure to contain the relevant list of packages. If NLS
+    support is disabled, this variable is empty. If NLS support is
+    enabled, this variable contains host-gettext so that tools needed
+    to compile translation files are available on the host. In
+    addition, if uClibc or musl are used, this variable also contains
+    gettext in order to get the full-blown gettext implementation.
+ 3. If needed, add $(TARGET_NLS_LIBS) to the linker flags, so that
+    the package gets linked with libintl. This is generally not
+    needed with autotools packages as they usually detect
+    automatically that they should link with libintl. However,
+    packages using other build systems, or problematic
+    autotools-based packages may need this. $(TARGET_NLS_LIBS) should
+    be added unconditionally to the linker flags, as the core
+    automatically makes it empty or defined to -lintl depending on
+    the configuration.
 
-Packages that unconditionally need gettext (which should be very
-rare) should:
+No changes should be made to the Config.in file to support NLS.
 
-  * use select BR2_PACKAGE_GETTEXT if BR2_NEEDS_GETTEXT in the
-    Config.in file;
-  * use $(if $(BR2_NEEDS_GETTEXT),gettext) in the package
-    DEPENDENCIES variable in the .mk file.
-
-Packages that need the gettext utilities on the target (should be
-rare) should:
+Finally, certain packages need some gettext utilities on the target,
+such as the gettext program itself, which allows to retrieve
+translated strings, from the command line. In such a case, the
+package should:
 
   * use select BR2_PACKAGE_GETTEXT in their Config.in file,
     indicating in a comment above that it’s a runtime dependency
@@ -6006,7 +6034,93 @@ the following rules:
     . and - characters substituted with _ (e.g.:
     FOO_BAR_BOO_VERSION).
 
-17.20.2. How to add a package from GitHub
+17.20.2. How to test your package
+
+Once you have added your new package, it is important that you test
+it under various conditions: does it build for all architectures?
+Does it build with the different C libraries? Does it need threads,
+NPTL? And so on…
+
+Buildroot runs autobuilders [http://autobuild.buildroot.org/] which
+continuously test random configurations. However, these only build
+the master branch of the git tree, and your new fancy package is not
+yet there.
+
+Buildroot provides a script in utils/test-pkg that uses the same base
+configurations as used by the autobuilders so you can test your
+package in the same conditions.
+
+First, create a config snippet that contains all the necessary
+options needed to enable your package, but without any architecture
+or toolchain option. For example, let’s create a config snippet that
+just enables libcurl, without any TLS backend:
+
+$ cat libcurl.config
+BR2_PACKAGE_LIBCURL=y
+
+If your package needs more configuration options, you can add them to
+the config snippet. For example, here’s how you would test libcurl
+with openssl as a TLS backend and the curl program:
+
+$ cat libcurl.config
+BR2_PACKAGE_LIBCURL=y
+BR2_PACKAGE_CURL=y
+BR2_PACKAGE_OPENSSL=y
+
+Then run the test-pkg script, by telling it what config snippet to
+use and what package to test:
+
+$ ./utils/test-pkg -c libcurl.config -p libcurl
+
+This will try to build your package against all the toolchains used
+by the autobuilders (except for the internal toolchains, because it
+takes too long to do so). The output lists all toolchains and the
+corresponding result (excerpt, results are fake):
+
+$ ./utils/test-pkg -c libcurl.config -p libcurl
+                armv5-ctng-linux-gnueabi [ 1/11]: OK
+              armv7-ctng-linux-gnueabihf [ 2/11]: OK
+                        br-aarch64-glibc [ 3/11]: SKIPPED
+                           br-arcle-hs38 [ 4/11]: SKIPPED
+                            br-arm-basic [ 5/11]: FAILED
+                  br-arm-cortex-a9-glibc [ 6/11]: OK
+                   br-arm-cortex-a9-musl [ 7/11]: FAILED
+                   br-arm-cortex-m4-full [ 8/11]: OK
+                             br-arm-full [ 9/11]: OK
+                    br-arm-full-nothread [10/11]: FAILED
+                      br-arm-full-static [11/11]: OK
+11 builds, 2 skipped, 2 build failed, 1 legal-info failed
+
+The results mean:
+
+  * OK: the build was successful.
+  * SKIPPED: one or more configuration options listed in the config
+    snippet were not present in the final configuration. This is due
+    to options having dependencies not satisfied by the toolchain,
+    such as for example a package that depends on BR2_USE_MMU with a
+    noMMU toolchain. The missing options are reported in
+    missing.config in the output build directory (~/br-test-pkg/
+    TOOLCHAIN_NAME/ by default).
+  * FAILED: the build failed. Inspect the logfile file in the output
+    build directory to see what went wrong:
+
+      + the actual build failed,
+      + the legal-info failed,
+      + one of the preliminary steps (downloading the config file,
+        applying the configuration, running dirclean for the package)
+        failed.
+
+When there are failures, you can just re-run the script with the same
+options (after you fixed your package); the script will attempt to
+re-build the package specified with -p for all toolchains, without
+the need to re-build all the dependencies of that package.
+
+The test-pkg script accepts a few options, for which you can get some
+help by running:
+
+$ ./utils/test-pkg -h
+
+17.20.3. How to add a package from GitHub
 
 Packages on GitHub often don’t have a download area with release
 tarballs. However, it is possible to download tarballs directly from
@@ -6137,7 +6251,7 @@ If something goes wrong in the steps 3 or 4, then the build fails.
 18.3. Format and licensing of the package patches
 
 Patches are released under the same license as the software they
-apply to (see Section 12.3, “Complying with the Buildroot license”).
+apply to (see Section 12.2, “Complying with the Buildroot license”).
 
 A message explaining what the patch does, and why it is needed,
 should be added in the header commentary of the patch.
@@ -6469,10 +6583,10 @@ Finally, the patch should be signed off. This is done by adding
 Signed-off-by: Your Real Name <> at the end of the commit message.
 git commit -s does that for you, if configured properly. The
 Signed-off-by tag means that you publish the patch under the
-Buildroot license (i.e. GPLv2, except for package patches, which have
-the upstream license), and that you are allowed to do so. See the
-Developer Certificate of Origin [http://developercertificate.org/]
-for details.
+Buildroot license (i.e. GPL-2.0+, except for package patches, which
+have the upstream license), and that you are allowed to do so. See
+the Developer Certificate of Origin [http://developercertificate.org
+/] for details.
 
 When adding new packages, you should submit every package in a
 separate patch. This patch should have the update to package/
@@ -6532,7 +6646,7 @@ be sent, called get-developers (see Chapter 22, DEVELOPERS file and
 get-developers for more information). This tool reads your patches
 and outputs the appropriate git send-email command to use:
 
-$ ./support/scripts/get-developers outgoing/*
+$ ./utils/get-developers outgoing/*
 
 Use the output of get-developers to send your patches:
 
@@ -6700,7 +6814,7 @@ DEVELOPERS file.
 The DEVELOPERS file format is documented in detail inside the file
 itself.
 
-The get-developer tool, located in support/scripts allows to use the
+The get-developer tool, located in utils/ allows to use the
 DEVELOPERS file for various tasks:
 
   * When passing one or several patches as command line argument,

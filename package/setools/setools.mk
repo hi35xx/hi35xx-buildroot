@@ -9,7 +9,7 @@ SETOOLS_SOURCE = setools-$(SETOOLS_VERSION).tar.bz2
 SETOOLS_SITE = https://raw.githubusercontent.com/wiki/TresysTechnology/setools3/files/dists/setools-$(SETOOLS_VERSION)
 SETOOLS_DEPENDENCIES = libselinux libsepol sqlite libxml2 bzip2 host-bison host-flex
 SETOOLS_INSTALL_STAGING = YES
-SETOOLS_LICENSE = GPLv2+, LGPLv2.1+
+SETOOLS_LICENSE = GPL-2.0+, LGPL-2.1+
 SETOOLS_LICENSE_FILES = COPYING COPYING.GPL COPYING.LGPL
 
 # configure.ac is patched by the cross compile patch,
@@ -48,8 +48,8 @@ HOST_SETOOLS_DEPENDENCIES += host-python
 HOST_SETOOLS_CONF_ENV += am_cv_python_version=$(PYTHON_VERSION)
 endif
 
-HOST_SETOOLS_PYTHON_SITE_PACKAGES = $(HOST_DIR)/usr/lib/python$(HOST_SETOOLS_PYTHON_VERSION)/site-packages
-HOST_SETOOLS_PYTHON_INCLUDES = $(HOST_DIR)/usr/include/python$(HOST_SETOOLS_PYTHON_VERSION)
+HOST_SETOOLS_PYTHON_SITE_PACKAGES = $(HOST_DIR)/lib/python$(HOST_SETOOLS_PYTHON_VERSION)/site-packages
+HOST_SETOOLS_PYTHON_INCLUDES = $(HOST_DIR)/include/python$(HOST_SETOOLS_PYTHON_VERSION)
 HOST_SETOOLS_PYTHON_LIB = -lpython$(HOST_SETOOLS_PYTHON_VERSION)
 
 # Notes: Need "disable-selinux-check" so the configure does not check to see
@@ -64,16 +64,16 @@ HOST_SETOOLS_CONF_OPTS = \
 	--disable-swig-java \
 	--disable-swig-python \
 	--disable-swig-tcl \
-	--with-sepol-devel="$(HOST_DIR)/usr" \
-	--with-selinux-devel="$(HOST_DIR)/usr" \
-	PYTHON_LDFLAGS="-L$(HOST_DIR)/usr/lib/" \
+	--with-sepol-devel="$(HOST_DIR)" \
+	--with-selinux-devel="$(HOST_DIR)" \
+	PYTHON_LDFLAGS="-L$(HOST_DIR)/lib/" \
 	PYTHON_CPPFLAGS="-I$(HOST_SETOOLS_PYTHON_INCLUDES)" \
 	PYTHON_SITE_PKG="$(HOST_SETOOLS_PYTHON_SITE_PACKAGES)" \
 	PYTHON_EXTRA_LIBS="-lpthread -ldl -lutil $(HOST_SETOOLS_PYTHON_LIB)"
 
 HOST_SETOOLS_CONF_ENV += \
 	am_cv_pathless_PYTHON=python \
-	ac_cv_path_PYTHON=$(HOST_DIR)/usr/bin/python \
+	ac_cv_path_PYTHON=$(HOST_DIR)/bin/python \
 	am_cv_python_platform=linux2 \
 	am_cv_python_version=$(HOST_SETOOLS_PYTHON_VERSION) \
 	am_cv_python_pythondir=$(HOST_SETOOLS_PYTHON_SITE_PACKAGES) \

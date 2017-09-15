@@ -10,7 +10,7 @@ ACL_SITE = http://download.savannah.gnu.org/releases/acl
 ACL_INSTALL_STAGING = YES
 ACL_DEPENDENCIES = attr
 ACL_CONF_OPTS = --enable-gettext=no
-ACL_LICENSE = GPLv2+ (programs), LGPLv2.1+ (libraries)
+ACL_LICENSE = GPL-2.0+ (programs), LGPL-2.1+ (libraries)
 ACL_LICENSE_FILES = doc/COPYING doc/COPYING.LGPL
 
 # While the configuration system uses autoconf, the Makefiles are
@@ -47,9 +47,9 @@ HOST_ACL_DEPENDENCIES = host-attr
 HOST_ACL_CONF_OPTS = --enable-gettext=no
 HOST_ACL_MAKE_ENV = CFLAGS="$(HOST_CFLAGS)"
 HOST_ACL_INSTALL_OPTS = \
-	prefix=$(HOST_DIR)/usr \
-	exec_prefix=$(HOST_DIR)/usr \
-	PKG_DEVLIB_DIR=$(HOST_DIR)/usr/lib \
+	prefix=$(HOST_DIR) \
+	exec_prefix=$(HOST_DIR) \
+	PKG_DEVLIB_DIR=$(HOST_DIR)/lib \
 	install-dev install-lib
 # For the host, libacl.la is correct, no fixup needed.
 
