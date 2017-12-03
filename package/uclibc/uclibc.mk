@@ -439,7 +439,7 @@ define UCLIBC_INSTALL_UTILS_TARGET
 endef
 endif
 
-define UCLIBC_INSTALL_COMPAT_SYMLINKS
+define UCLIBC_INSTALL_LDSO_SYMLINKS
 	ln -sf libc.so.0 $(TARGET_DIR)/lib/libcrypt.so.0
 	ln -sf libc.so.0 $(TARGET_DIR)/lib/libdl.so.0
 	ln -sf libc.so.0 $(TARGET_DIR)/lib/libm.so.0
@@ -458,7 +458,6 @@ define UCLIBC_INSTALL_TARGET_CMDS
 		install_runtime
 	$(UCLIBC_INSTALL_UTILS_TARGET)
 	$(UCLIBC_INSTALL_LDSO_SYMLINKS)
-	$(UCLIBC_INSTALL_COMPAT_SYMLINKS)
 endef
 
 # STATIC has no ld* tools, only getconf

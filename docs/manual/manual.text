@@ -143,7 +143,10 @@ IV. Appendix
 
     23. Makedev syntax documentation
     24. Makeusers syntax documentation
-    25. Converting old br2-external trees
+    25. Migrating from older Buildroot versions
+
+        25.1. Migrating to 2016.11
+        25.2. Migrating to 2017.08
 
 List of Examples
 
@@ -155,8 +158,8 @@ List of Examples
 
 ---------------------------------------------------------------------
 
-Buildroot 2017.08 manual generated on 2017-09-01 23:20:42 UTC from
-git revision 8ce27bb9fe
+Buildroot 2017.11 manual generated on 2017-11-30 21:37:14 UTC from
+git revision 9dd76697cc
 
 The Buildroot manual is written by the Buildroot developers. It is
 licensed under the GNU General Public License, version 2. Refer to
@@ -1769,7 +1772,7 @@ BUSYBOX_OVERRIDE_SRCDIR = /home/bob/busybox/
 When Buildroot finds that for a given package, an <pkg>
 _OVERRIDE_SRCDIR has been defined, it will no longer attempt to
 download, extract and patch the package. Instead, it will directly
-use the source code available in in the specified directory and make
+use the source code available in the specified directory and make
 clean will not touch this directory. This allows to point Buildroot
 to your own directories, that can be managed by Git, Subversion, or
 any other version control system. To achieve this, Buildroot will use
@@ -1972,8 +1975,8 @@ directory, not to the Buildroot output directory.
 
 Note: If using an br2-external tree from before Buildroot 2016.11,
 you need to convert it before you can use it with Buildroot 2016.11
-onward. See Chapter 25, Converting old br2-external trees for help on
-doing so.
+onward. See Section 25.1, “Migrating to 2016.11” for help on doing
+so.
 
 Some examples:
 
@@ -2125,7 +2128,7 @@ by running make menuconfig and filling in these options):
 
 BR2_GLOBAL_PATCH_DIR=$(BR2_EXTERNAL_BAR_42_PATH)/patches/
 BR2_ROOTFS_OVERLAY=$(BR2_EXTERNAL_BAR_42_PATH)/board/<boardname>/overlay/
-BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE=$(BR2_EXTERNAL_BAR_42_FOO)/board/<boardname>/kernel.config
+BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE=$(BR2_EXTERNAL_BAR_42_PATH)/board/<boardname>/kernel.config
 
 9.2.1.5. Example layout
 
@@ -2187,7 +2190,7 @@ the sake of illustration, of course):
   |     |BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_BAR_42_PATH)/patches/"
   |     |BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_BAR_42_PATH)/board/my-board/overlay/"
   |     |BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_BAR_42_PATH)/board/my-board/post-image.sh"
-  |     |BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="$(BR2_EXTERNAL_BAR_42_FOO)/board/my-board/kernel.config"
+  |     |BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="$(BR2_EXTERNAL_BAR_42_PATH)/board/my-board/kernel.config"
   |     `----
   |
   |- patches/linux/0001-some-change.patch
@@ -3839,7 +3842,8 @@ an md5 hash, then compute at least one strong hash yourself
 above the hashes.
 
 Note. The hashes for license files are used to detect a license
-change when a package version is bumped. For a package with multiple
+change when a package version is bumped. The hashes are checked
+during the make legal-info target run. For a package with multiple
 versions (like Qt5), create the hash file in a subdirectory
 <packageversion> of that package (see also Section 18.2, “How patches
 are applied”).
@@ -6186,9 +6190,14 @@ located in a user-defined global patch directory.
 18.1.1. Downloaded
 
 If it is necessary to apply a patch that is available for download,
-then add it to the <packagename>_PATCH variable. It is downloaded
-from the same site as the package itself. It can be a single patch,
-or a tarball containing a patch series.
+then add it to the <packagename>_PATCH variable. If an entry contains
+://, then Buildroot will assume it is a full URL and download the
+patch from this location. Otherwise, Buildroot will assume that the
+patch should be downloaded from <packagename>_SITE. It can be a
+single patch, or a tarball containing a patch series.
+
+Like for all downloads, a hash should be added to the
+<packagename>.hash file.
 
 This method is typically used for packages from Debian.
 
@@ -6616,9 +6625,9 @@ options that no longer exist or are no longer needed.
 
 If you are interested in getting notified of build failures and of
 further changes in the packages you added or modified, please add
-yourself to the DEVELOPERS file. This should be done in a separate
-patch of the series. See the DEVELOPERS file Chapter 22, DEVELOPERS
-file and get-developers for more information.
+yourself to the DEVELOPERS file. This should be done in the same
+patch creating or modifying the package. See the DEVELOPERS file
+Chapter 22, DEVELOPERS file and get-developers for more information.
 
 21.5.2. Preparing a patch series
 
@@ -6829,6 +6838,9 @@ DEVELOPERS file for various tasks:
     all files under version control in the Buildroot repository, and
     list the ones that are not handled by any developer. The purpose
     of this option is to help completing the DEVELOPERS file.
+  * When using without any arguments, it validates the integrity of
+    the DEVELOPERS file and will note WARNINGS for items that don’t
+    match.
 
 Part IV. Appendix
 
@@ -6836,7 +6848,10 @@ Table of Contents
 
 23. Makedev syntax documentation
 24. Makeusers syntax documentation
-25. Converting old br2-external trees
+25. Migrating from older Buildroot versions
+
+    25.1. Migrating to 2016.11
+    25.2. Migrating to 2017.08
 
 Chapter 23. Makedev syntax documentation
 
@@ -7012,7 +7027,13 @@ This will create this user:
   * test is not a member of any additional groups
   * comment is: Test user
 
-Chapter 25. Converting old br2-external trees
+Chapter 25. Migrating from older Buildroot versions
+
+Some versions have introduced backward incompatibilities. This
+section explains those incompatibilities, and for each explains what
+to do to complete the migration.
+
+25.1. Migrating to 2016.11
 
 Before Buildroot 2016.11, it was possible to use only one
 br2-external tree at once. With Buildroot 2016.11 came the
@@ -7044,4 +7065,16 @@ onward.
 
 Note: This change makes your br2-external tree incompatible with
 Buildroot before 2016.11.
+
+25.2. Migrating to 2017.08
+
+Before Buildroot 2017.08, host packages were installed in $(HOST_DIR)
+/usr (with e.g. the autotools' --prefix=$(HOST_DIR)/usr). With
+Buildroot 2017.08, they are now installed directly in $(HOST_DIR).
+
+Whenever a package installs an executable that is linked with a
+library in $(HOST_DIR)/lib, it must have an RPATH pointing to that
+directory.
+
+An RPATH pointing to $(HOST_DIR)/usr/lib is no longer accepted.
 
