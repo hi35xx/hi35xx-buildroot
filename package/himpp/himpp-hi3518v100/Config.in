@@ -6,6 +6,23 @@ config BR2_PACKAGE_HIMPP_PREFIX
 	help
 	  Prefix to install himpp2 on the target file system.
 
+
+
+choice
+	bool "SDK Version"
+	default BR2_PACKAGE_HIMPP_HI3518V100_SDK_V1_0_A_0
+
+config BR2_PACKAGE_HIMPP_HI3518V100_SDK_V1_0_A_0
+	bool "1.0.A.0"
+
+endchoice
+
+config BR2_PACKAGE_HIMPP_HI3518V100_SDK_VERSION
+	string
+	default "1.0.A.0" if BR2_PACKAGE_HIMPP_HI3518V100_SDK_V1_0_A_0
+
+
+
 menu "Sensor driver libraries"
 
 config BR2_PACKAGE_HIMPP_SNSDRV_APTINA_9M034
@@ -133,7 +150,7 @@ endmenu
 menuconfig BR2_PACKAGE_HIMPP_SAMPLES
 	bool "Build MPP2 samples"
 	default n
-	depends on BR2_PACKAGE_HIMPP_HI3518
+	depends on BR2_PACKAGE_HIMPP_HI3518V100
 	help
 	  Build samples for HiMPP2 for HI3518
 
