@@ -1,0 +1,5 @@
+config BR2_PACKAGE_SNAPSHOTD
+	bool "snapshotd"
+	select BR2_PACKAGE_LIVE555
+	help
+	  utility to take snapshot form RTSP JPEG stream.
