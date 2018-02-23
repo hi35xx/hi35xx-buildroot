@@ -1,0 +1,4 @@
+config BR2_PACKAGE_RTSPD
+	bool "rtspd"
+	help
+	  utility for start RTSP stream.

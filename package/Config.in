@@ -1932,4 +1932,10 @@ menu "Text editors and viewers"
 	source "package/vim/Config.in"
 endmenu
 
+menu "ZFT Lab. experiments"
+	source "package/snapshotd/Config.in"
+	source "package/rtspd/Config.in"
+	source "package/usbgpio/Config.in"
+endmenu
+
 endmenu
