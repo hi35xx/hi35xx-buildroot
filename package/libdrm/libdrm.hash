@@ -1,2 +1,5 @@
-# From https://lists.freedesktop.org/archives/dri-devel/2017-January/131209.html
-sha256 2d5a500eef412cc287d12268eed79d571e262d4957a2ec9258073f305985054f  libdrm-2.4.75.tar.bz2
+# From https://lists.freedesktop.org/archives/dri-devel/2017-July/147750.html
+md5 29867814123c3d23056b1d05aada1b9d  libdrm-2.4.82.tar.bz2
+sha1 c42ff308db6352eaf009a8209c7aaadbc951a89f  libdrm-2.4.82.tar.bz2
+sha256 43fa2dbd422d6d41ac141272cc9855360ce4d08c7cf7f2c7bb55dfe449c4ce1c  libdrm-2.4.82.tar.bz2
+sha512 e69fd8c2b392daabbb3a548179e3a21a555d5174c11d76a288eb2a08850849aa867c7777b67798ec00e026e998a3b128c22698f05a7b44eb24cddc5c8a3a02d0  libdrm-2.4.82.tar.bz2

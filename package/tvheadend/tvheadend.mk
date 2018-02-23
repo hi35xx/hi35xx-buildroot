@@ -4,13 +4,14 @@
 #
 ################################################################################
 
-TVHEADEND_VERSION = e5f5a4278949afc96e26d6cd50cf968e0e92d7b6
+TVHEADEND_VERSION = 54e63e3f9af8fdc0d23f61f3cda7fa7b246c1732
 TVHEADEND_SITE = $(call github,tvheadend,tvheadend,$(TVHEADEND_VERSION))
-TVHEADEND_LICENSE = GPLv3+
+TVHEADEND_LICENSE = GPL-3.0+
 TVHEADEND_LICENSE_FILES = LICENSE.md
 TVHEADEND_DEPENDENCIES = \
 	host-gettext \
 	host-pkgconf \
+	host-pngquant \
 	$(if $(BR2_PACKAGE_PYTHON3),host-python3,host-python) \
 	openssl
 
@@ -56,6 +57,13 @@ TVHEADEND_DEPENDENCIES += liburiparser
 TVHEADEND_CFLAGS += $(if $(BR2_USE_WCHAR),,-DURI_NO_UNICODE)
 endif
 
+ifeq ($(BR2_PACKAGE_PCRE),y)
+TVHEADEND_DEPENDENCIES += pcre
+TVHEADEND_CONF_OPTS += --enable-pcre
+else
+TVHEADEND_CONF_OPTS += --disable-pcre
+endif
+
 TVHEADEND_DEPENDENCIES += dtv-scan-tables
 
 # The tvheadend build system expects the transponder data to be present inside
@@ -69,23 +77,30 @@ endef
 TVHEADEND_PRE_CONFIGURE_HOOKS += TVHEADEND_INSTALL_DTV_SCAN_TABLES
 
 define TVHEADEND_CONFIGURE_CMDS
-	(cd $(@D);						\
-		$(TARGET_CONFIGURE_OPTS)			\
-		$(TARGET_CONFIGURE_ARGS)			\
-		CFLAGS="$(TVHEADEND_CFLAGS)"			\
-		./configure					\
-			--prefix=/usr				\
-			--arch="$(ARCH)"			\
-			--cpu="$(BR2_GCC_TARGET_CPU)"		\
-			--nowerror				\
-			--python="$(HOST_DIR)/usr/bin/python"	\
-			--enable-dvbscan			\
-			--enable-bundle				\
-			--disable-ffmpeg_static			\
-			--disable-hdhomerun_static		\
-			$(TVHEADEND_CONF_OPTS)			\
+	(cd $(@D); \
+		$(TARGET_CONFIGURE_OPTS) \
+		$(TARGET_CONFIGURE_ARGS) \
+		CFLAGS="$(TVHEADEND_CFLAGS)" \
+		./configure \
+			--prefix=/usr \
+			--arch="$(ARCH)" \
+			--cpu="$(BR2_GCC_TARGET_CPU)" \
+			--nowerror \
+			--python="$(HOST_DIR)/bin/python" \
+			--enable-dvbscan \
+			--enable-bundle \
+			--enable-pngquant \
+			--disable-ffmpeg_static \
+			--disable-hdhomerun_static \
+			$(TVHEADEND_CONF_OPTS) \
 	)
 endef
+
+define TVHEADEND_FIX_PNGQUANT_PATH
+	$(SED) "s%^pngquant_bin =.*%pngquant_bin = '$(HOST_DIR)/bin/pngquant'%" \
+		$(@D)/support/mkbundle
+endef
+TVHEADEND_POST_CONFIGURE_HOOKS += TVHEADEND_FIX_PNGQUANT_PATH
 
 define TVHEADEND_BUILD_CMDS
 	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D)

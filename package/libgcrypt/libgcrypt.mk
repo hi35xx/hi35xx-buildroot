@@ -4,9 +4,9 @@
 #
 ################################################################################
 
-LIBGCRYPT_VERSION = 1.7.8
+LIBGCRYPT_VERSION = 1.7.9
 LIBGCRYPT_SOURCE = libgcrypt-$(LIBGCRYPT_VERSION).tar.bz2
-LIBGCRYPT_LICENSE = LGPLv2.1+
+LIBGCRYPT_LICENSE = LGPL-2.1+
 LIBGCRYPT_LICENSE_FILES = COPYING.LIB
 LIBGCRYPT_SITE = https://gnupg.org/ftp/gcrypt/libgcrypt
 LIBGCRYPT_INSTALL_STAGING = YES

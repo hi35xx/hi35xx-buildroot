@@ -7,7 +7,7 @@
 PINENTRY_VERSION = 0.9.4
 PINENTRY_SOURCE = pinentry-$(PINENTRY_VERSION).tar.bz2
 PINENTRY_SITE = ftp://ftp.gnupg.org/gcrypt/pinentry
-PINENTRY_LICENSE = GPLv2+
+PINENTRY_LICENSE = GPL-2.0+
 PINENTRY_LICENSE_FILES = COPYING
 PINENTRY_DEPENDENCIES = \
 	$(if $(BR2_PACKAGE_LIBICONV),libiconv) \
@@ -55,7 +55,7 @@ endif
 ifeq ($(BR2_PACKAGE_PINENTRY_QT4),y)
 # -pthread needs to be passed for certain toolchains
 # http://autobuild.buildroot.net/results/6be/6be109ccedec603a67cebdb31b55865dcce0e128/
-PINENTRY_CONF_OPTS += LIBS=-pthread MOC=$(HOST_DIR)/usr/bin/moc
+PINENTRY_CONF_OPTS += LIBS=-pthread MOC=$(HOST_DIR)/bin/moc
 PINENTRY_CONF_OPTS += --enable-pinentry-qt4
 PINENTRY_DEPENDENCIES += qt
 else
