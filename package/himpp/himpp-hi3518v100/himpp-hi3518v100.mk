@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-HIMPP_HI3518V100_VERSION = 1.0.A.0
+HIMPP_HI3518V100_VERSION = $(call qstrip,$(BR2_PACKAGE_HIMPP_HI3518V100_SDK_VERSION))
 HIMPP_HI3518V100_SITE_METHOD = file
 HIMPP_HI3518V100_SITE = $(TOPDIR)/package/himpp/himpp-hi3518v100
 HIMPP_HI3518V100_SOURCE = hi3518v100-mpp2-$(HIMPP_HI3518V100_VERSION).tgz
