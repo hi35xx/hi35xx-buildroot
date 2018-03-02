@@ -1,0 +1,27 @@
+#!/bin/sh
+
+grep -q '/dev/mmcblk[0-9]\+p[0-9]\+' /proc/mounts || exit 1
+
+MMCMNT=$(sed -nr 's;/dev/mmcblk[0-9]+p[0-9]+\s+(\S*).*;\1;p' /proc/mounts)
+STREAM_URI=rtsp://127.0.0.1/record
+
+[ $# -ge 1 ] || exit 1
+
+case $1 in
+  start)
+    prefix=$(date "+%Y%m%d-%H%M%S")
+    [ -d ${MMCMNT}/video ] || mkdir ${MMCMNT}/video
+    interval=600
+    [ -f /etc/config/record.conf ] && . /etc/config/record.conf
+    start-stop-daemon -b -S -q -m -p /var/run/openRTSP.pid \
+      --exec /usr/bin/openRTSP -- -L 54 -i -P $interval \
+        -F ${MMCMNT}/video/$prefix ${STREAM_URI}
+    ;;
+  stop)
+    start-stop-daemon -K -q -s 1 -p /var/run/openRTSP.pid
+    ;;
+  *)
+    exit 1
+    ;;
+esac
+

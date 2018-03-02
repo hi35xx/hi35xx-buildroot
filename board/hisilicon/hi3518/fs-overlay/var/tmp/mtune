@@ -1,0 +1,35 @@
+#!/usr/bin/env lua
+
+sdbus = require('simpledbus')
+bus = assert(sdbus.SystemBus())
+vs0 = bus:auto_proxy('ipcam.Media', '/ipcam/Media/VideoSource0')
+vs0vs = vs0['ipcam.Media.VideoSource']
+vs0img = vs0['ipcam.Media.VideoSource.Imaging']
+vs0antiflicker = vs0['ipcam.Media.VideoSource.Imaging.AntiFlicker']
+vs0blc = vs0['ipcam.Media.VideoSource.Imaging.BacklightCompensation']
+vs0focus = vs0['ipcam.Media.VideoSource.Imaging.Focus']
+vs0exp = vs0['ipcam.Media.VideoSource.Imaging.Exposure']
+vs0wb = vs0['ipcam.Media.VideoSource.Imaging.WhiteBalance']
+vs0wdr = vs0['ipcam.Media.VideoSource.Imaging.WideDynamicRange']
+vs0ldc = vs0['ipcam.Media.VideoSource.Imaging.LDC']
+vs0gamma = vs0['ipcam.Media.VideoSource.Imaging.Gamma']
+
+ve0 = bus:auto_proxy('ipcam.Media', '/ipcam/Media/VideoEncoder0')
+ve0ve = ve0['ipcam.Media.VideoEncoder']
+ve0rc = ve0['ipcam.Media.VideoEncoder.RateControl']
+ve0h264 = ve0['ipcam.Media.VideoEncoder.H264']
+
+ve1 = bus:auto_proxy('ipcam.Media', '/ipcam/Media/VideoEncoder1')
+ve1ve = ve1['ipcam.Media.VideoEncoder']
+ve1rc = ve1['ipcam.Media.VideoEncoder.RateControl']
+ve1h264 = ve1['ipcam.Media.VideoEncoder.H264']
+
+args = { ... }
+
+if #args < 1 then
+  print([[Usage: mtune <property=value>]])
+  os.exit()
+end
+
+f = loadstring(...)
+f()

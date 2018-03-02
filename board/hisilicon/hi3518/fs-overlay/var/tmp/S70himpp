@@ -1,0 +1,45 @@
+#!/bin/sh
+#
+# Start himpp....
+#
+
+HIMPP_PREFIX=/usr
+SENSOR_TYPE=$(. /lib/scripts/hardware.sh; detect_sensor_type)
+
+start() {
+    (
+      echo -n "Starting himpp: "
+      cd ${HIMPP_PREFIX}/lib/himpp-ko
+      osmem=$(cat /proc/cmdline 2>/dev/null | \
+              sed -nr 's/mem=([^[:space:]]+).*/\1/p')
+      ./load3518e.sh -i -sensor ${SENSOR_TYPE} -online
+      [ $? = 0 ] && echo "OK" || echo "FAIL"
+    )
+}
+
+stop() {
+    (
+      echo -n "Stopping himpp: "
+      cd ${HIMPP_PREFIX}/lib/himpp-ko
+      ./load3518e.sh -r
+      [ $? = 0 ] && echo "OK" || echo "FAIL"
+    )
+}
+
+case "$1" in
+    start)
+	start
+	;;
+    stop)
+	stop
+	;;
+    restart|reload)
+	stop
+	start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
