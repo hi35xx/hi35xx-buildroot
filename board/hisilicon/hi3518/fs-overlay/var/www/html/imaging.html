@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN" >
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>HD IP Camera</title>
+    <link href="css/main.css" rel="stylesheet" type="text/css" />
+    <script src="js/script.js"></script>
+  </head>
+  <body>
+    <header>
+      <h2>HD IP Camera</h2>
+    </header>
+    <div class="container">
+      <div class="contr"><h2>Imaging Settings</h2></div>
+
+      <div class="upload_form_cont">
+        <form id="upload_form" enctype="multipart/form-data" method="post" action="/cgi-bin/upload.cgi">
+          <div>
+            <div><label for="brightness">Brightness:</label></div>
+            <div><input type="range" name="brightness" id="brightness" min="0" max="100" onchange="alert('brightness=' + getElementById('brightness').value);" /></div>
+            <div><label for="contrast">Contrast:</label></div>
+            <div><input type="range" name="contrast" id="contrast" min="0" max="100" onchange="alert('contrast=');" /></div>
+            <div><label for="chroma">Chroma:</label></div>
+            <div><input type="range" name="chroma" id="chroma" min="0" max="100" onchange="alert('chroma=');" /></div>
+            <div><label for="saturation">Saturation:</label></div>
+            <div><input type="range" name="saturation" id="saturation" min="0" max="100" onchange="alert('saturation=');" /></div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>

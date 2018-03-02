@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN" >
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title>HD IP Camera</title>
+    <link href="css/main.css" rel="stylesheet" type="text/css" />
+    <script src="js/script.js"></script>
+  </head>
+  <body>
+    <header>
+      <h2>HD IP Camera</h2>
+    </header>
+    <div class="container">
+      <div class="contr"><h2>Firmware Upgrade</h2></div>
+
+      <div class="upload_form_cont">
+        <form id="upload_form" enctype="multipart/form-data" method="post" action="/cgi-bin/upload.cgi">
+          <div>
+            <div><label for="file">Firmware:</label></div>
+            <div><input type="file" name="file" id="file" onchange="fileSelected();" /></div>
+          </div>
+          <div>
+            <input id="upload_btn" type="button" value="Upgrade" disabled="disabled" onclick="startUploading()" />
+          </div>
+          <div id="fileinfo">
+            <div id="filename"></div>
+            <div id="filesize"></div>
+            <div id="filetype"></div>
+          </div>
+          <div id="error">&nbsp;</div>
+          <div id="progress_info">
+            <span>
+              <progress id="progress" value="0" max="100"></progress>
+              <div id="progress_percent">&nbsp;</div>
+              <div class="clear_both"></div>
+            </span>
+            <div>
+              <div id="speed">&nbsp;</div>
+              <div id="remaining">&nbsp;</div>
+              <div id="b_transfered">&nbsp;</div>
+              <div class="clear_both"></div>
+            </div>
+          </div>
+          <div id="log_output"></div>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>
