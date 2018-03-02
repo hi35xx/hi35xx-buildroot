@@ -1,0 +1,23 @@
+config BR2_PACKAGE_LIVE_STREAMER2
+	bool "live-streamer2"
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	depends on BR2_USE_MMU # fork()
+	depends on !BR2_STATIC_LIBS
+	depends on BR2_INSTALL_LIBSTDCPP
+	select BR2_PACKAGE_LIBEV
+	select BR2_PACKAGE_DBUS
+	select BR2_PACKAGE_DBUS_CPP
+	select BR2_PACKAGE_LIVE555
+	select BR2_PACKAGE_FONTCONFIG
+	select BR2_PACKAGE_SDL
+	select BR2_PACKAGE_SDL_TTF
+	select BR2_PACKAGE_SDL_IMAGE
+	help
+	  The live-streamer is a RTP/RTSP stream server, provide D-Bus
+	  control interface. Support hi3518/hi3518 SoC's.
+
+	  https://github.com/hi35xx/live-streamer
+
+comment "live-streamer needs a toolchain w/ threads, dynamic library"
+	depends on !BR2_TOOLCHAIN_HAS_THREADS || BR2_STATIC_LIBS
+	depends on BR2_USE_MMU
