@@ -59,30 +59,30 @@ fi
 
 case $build in
 
-all)
-  echo "Start building all firmware";
-  hi3518v1;
-  hi3518v2;
-  ;;
+  all)
+    echo "Start building all firmware";
+    hi3518v1;
+    hi3518v2;
+    ;;
 
-hi3518v1)
-  echo "Start building hi3518v1 firmware";
-  hi3518v1;
-  ;;
+  hi3518v1)
+    echo "Start building hi3518v1 firmware";
+    hi3518v1;
+    ;;
 
-hi3518v2)
-  echo "Start building hi3518v2 firmware";
-  hi3518v2;
-  ;;
+  hi3518v2)
+    echo "Start building hi3518v2 firmware";
+    hi3518v2;
+    ;;
 
-upload)
-  echo "Start uploading firmware";
-  upload;
-  ;;
+  upload)
+    echo "Start uploading firmware";
+    upload;
+    ;;
 
-*)
-  echo "Please select: all, hi3518v1, hi3518v2 or upload";
-  ;;
+  *)
+    echo "Please select: all, hi3518v1, hi3518v2 or upload";
+    ;;
 
 esac
 
