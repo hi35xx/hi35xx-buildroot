@@ -15,7 +15,7 @@ VENC2OPT="-venc vpchn0|vechn2:encoding=MJPEG,framerate=5"
 #ASRC0OPT="-asrc acodec0|aidev0|aichn0"
 #AENC0OPT="-aenc aichn0|aechn0:encoding=G711A"
 #STREAMOPT="-stream 0:vechn0 -stream record:vechn1 -stream snapshot:vechn2"
-STREAMOPT="-stream 0:vechn1 -stream snapshot:venchn2"
+STREAMOPT="-stream 0:vechn1 -stream snapshot:vechn2"
 #MEDIA_OPTIONS="$VSRC0OPT $VENC0OPT $VENC1OPT $VENC2OPT $STREAMOPT"
 MEDIA_OPTIONS="$VSRC0OPT $VENC1OPT $VENC2OPT $STREAMOPT"
 

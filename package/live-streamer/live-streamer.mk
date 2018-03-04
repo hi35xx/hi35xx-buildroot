@@ -34,9 +34,9 @@ LIVE_STREAMER_DEPENDENCIES += himpp-hi3520dv200
 LIVE_STREAMER_CONF_OPTS += --with-hi3520dv200mpp
 endif
 
-define LIVE_STREAMER_INSTALL_INIT_SYSV
-	$(INSTALL) -m 0755 -D package/live-streamer/S80streamer \
-		$(TARGET_DIR)/etc/init.d/S80streamer
-endef
+#define LIVE_STREAMER_INSTALL_INIT_SYSV
+#	$(INSTALL) -m 0755 -D package/live-streamer/S80streamer \
+#		$(TARGET_DIR)/etc/init.d/S80streamer
+#endef
 
 $(eval $(autotools-package))

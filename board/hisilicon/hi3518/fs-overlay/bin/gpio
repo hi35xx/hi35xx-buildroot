@@ -4,6 +4,8 @@
 # Hisilicon HI35xx simple GPIO monitor
 
 
+cmd="$1"
+per="$2"
 ircut1="38"
 ircut2="39"
 ctl="/sys/class/gpio/gpio"
@@ -55,7 +57,7 @@ search() {
   clear
   echo "Start blink (output) on all gpio"
   echo ""
-  for pin in $(seq 0 88); do
+  for pin in $(seq 0 95); do
     echo "================================="
     [ ! -f /sys/class/gpio/export ] && exit
     [ ! -d ${ctl}${pin} ] && echo ${pin} >/sys/class/gpio/export && echo "Activate in system GPIO-${pin}"
@@ -69,16 +71,21 @@ search() {
 
 blink() {
   echo "Start blink (output) on selected gpio"
-  [ ! -f ${sys}${2}/value ] && exit
+  [ ! -f /sys/class/gpio/export ] && exit
   while [ true ]; do
-    echo 0 > ${sys}${2}/value ; sleep 1
-    echo 1 > ${sys}${2}/value ; sleep 1
+    echo "================================="
+    [ ! -d ${ctl}${per} ] && echo ${per} >/sys/class/gpio/export && echo "Activate in system GPIO-${per}"
+    [ -f ${ctl}${per}/direction ] && echo out >${ctl}${per}/direction && echo "  Set GPIO-${per} to OUTPUT mode"
+    [ -f ${ctl}${per}/value ] && echo 0 >${ctl}${per}/value && echo "    Set GPIO-${per} to LO level" ; sleep 1
+    [ -f ${ctl}${per}/value ] && echo 1 >${ctl}${per}/value && echo "    Set GPIO-${per} to HI level" ; sleep 1
+    [ -f ${ctl}${per}/direction ] && echo in >${ctl}${per}/direction && echo "  Set GPIO-${per} to INPUT mode"
+    [ -d ${ctl}${per} ] && echo ${per} >/sys/class/gpio/unexport && echo "Remove from system GPIO-${per}"
   done
 }
 
 
 if [ $# -ge 1 ]; then
-  ${1}
+  ${cmd}
 else
   help
 fi
