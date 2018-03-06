@@ -1,0 +1,11 @@
+echo "Running update from mmc..."
+sf probe 0
+if fatload mmc 0 ${loadaddr} uImage; then
+  sf erase 80000 180000
+  sf write ${loadaddr} 80000 ${filesize}
+fi
+if fatload mmc 0 ${loadaddr} rootfs.squashfs; then
+  sf erase 200000 600000
+  sf write ${loadaddr} 200000 ${filesize}
+fi
+echo "Update complete!"
