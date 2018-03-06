@@ -1,0 +1,13 @@
+#!/bin/sh
+
+if [ -z $1 ]; then
+  echo "Supported sensors list:"
+  ls /usr/lib/libsns_* | tr '/_' '.' | awk -F '.' '{print $5}'
+else
+  cd /usr/lib/himpp-ko
+  [ -f ./load3518.sh ] && ./load3518.sh -a $1
+  [ -f ./load3518e.sh ] && ./load3518e.sh -a -sensor $1
+  #
+  #live-streamer -vsrc "isp0:sensor=imx222|videv0|vichn0|vpgrp0|vpchn0" -venc "vpchn0|vechn0:encoding=MJPEG" -asrc "acodec0|aidev0|aichn0" -aenc "aichn0|aechn0:encoding=G711A" -stream 0:vechn0,aechn0
+  #live-streamer -S $1
+fi
