@@ -41,6 +41,23 @@ hi3518v2()
   #
 }
 
+hi3520dv2()
+{
+  # Copy default HI3518v2 config
+  make hi3520dv200_defconfig
+  #
+  # Clean and compile
+  make clean && time make -j 7
+  #
+  # Check time of building
+  DATE=$(date +%Y%m%d)
+  #
+  # Check output dir and move firmware
+  #[ -d zft_lab ] || mkdir -p zft_lab
+  #cp -v output/images/uImage zft_lab/uImage-Buildroot-HI3518Xv2-XM-${DATE}.bin
+  #
+}
+
 
 upload()
 {
@@ -75,13 +92,18 @@ case $build in
     hi3518v2;
     ;;
 
+  hi3520dv2)
+    echo "Start building hi3518v2 firmware";
+    hi3520dv2;
+    ;;
+
   upload)
     echo "Start uploading firmware";
     upload;
     ;;
 
   *)
-    echo "Please select: all, hi3518v1, hi3518v2 or upload";
+    echo "Please select: all, hi3518v1, hi3518v2, hi3520dv2 or upload";
     ;;
 
 esac
