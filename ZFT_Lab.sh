@@ -104,6 +104,7 @@ case $build in
 
   *)
     echo "Please select: all, hi3518v1, hi3518v2, hi3520dv2 or upload";
+    sleep 3
     ;;
 
 esac
