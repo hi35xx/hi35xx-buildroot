@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-BUSYBOX_VERSION = 1.27.2
+BUSYBOX_VERSION = 1.28.4
 BUSYBOX_SITE = http://www.busybox.net/downloads
 BUSYBOX_SOURCE = busybox-$(BUSYBOX_VERSION).tar.bz2
 BUSYBOX_LICENSE = GPL-2.0
@@ -65,7 +65,7 @@ define BUSYBOX_PERMISSIONS
 # Set permissions on all applets with BB_SUID_REQUIRE and BB_SUID_MAYBE.
 # 12 Applets are pulled from applets.h using grep command :
 #  grep -r -e "APPLET.*BB_SUID_REQUIRE\|APPLET.*BB_SUID_MAYBE" \
-#  $(@D)/include/applets.h 
+#  $(@D)/include/applets.h
 # These applets are added to the device table and the makedev file
 # ignores the files with type 'F' ( optional files).
 	/usr/bin/wall 			 F 4755 0  0 - - - - -
@@ -221,7 +221,7 @@ define BUSYBOX_INSTALL_LOGGING_SCRIPT
 	if grep -q CONFIG_SYSLOGD=y $(@D)/.config; then \
 		$(INSTALL) -m 0755 -D package/busybox/S01logging \
 			$(TARGET_DIR)/etc/init.d/S01logging; \
-	else rm -f $(TARGET_DIR)/etc/init.d/S01logging; fi
+	fi
 endef
 
 ifeq ($(BR2_INIT_BUSYBOX),y)
@@ -256,6 +256,10 @@ define BUSYBOX_LINUX_PAM
 	$(call KCONFIG_ENABLE_OPT,CONFIG_PAM,$(BUSYBOX_BUILD_CONFIG))
 endef
 BUSYBOX_DEPENDENCIES += linux-pam
+else
+define BUSYBOX_LINUX_PAM
+	$(call KCONFIG_DISABLE_OPT,CONFIG_PAM,$(BUSYBOX_BUILD_CONFIG))
+endef
 endif
 
 # Telnet support
@@ -271,6 +275,20 @@ define BUSYBOX_INSTALL_TELNET_SCRIPT
 	fi
 endef
 endif
+
+# Add /bin/{a,hu}sh to /etc/shells otherwise some login tools like dropbear
+# can reject the user connection. See man shells.
+define BUSYBOX_INSTALL_ADD_TO_SHELLS
+	if grep -q CONFIG_ASH=y $(@D)/.config; then \
+		grep -qsE '^/bin/ash$$' $(TARGET_DIR)/etc/shells \
+		|| echo "/bin/ash" >> $(TARGET_DIR)/etc/shells; \
+	fi
+	if grep -q CONFIG_HUSH=y $(@D)/.config; then \
+		grep -qsE '^/bin/hush$$' $(TARGET_DIR)/etc/shells \
+		|| echo "/bin/hush" >> $(TARGET_DIR)/etc/shells; \
+	fi
+endef
+BUSYBOX_TARGET_FINALIZE_HOOKS += BUSYBOX_INSTALL_ADD_TO_SHELLS
 
 # Enable "noclobber" in install.sh, to prevent BusyBox from overwriting any
 # full-blown versions of apps installed by other packages with sym/hard links.

@@ -104,11 +104,15 @@ config BR2_PACKAGE_BOOST_FIBER
 	# mips support uses the "pause" instruction, only available
 	# since mips32r2/mips64r2.
 	depends on !BR2_MIPS_CPU_MIPS32 && !BR2_MIPS_CPU_MIPS64
+	depends on !BR2_TOOLCHAIN_HAS_GCC_BUG_85180
 	help
 	  C++11 userland threads library.
 
 comment "boost-fiber needs a toolchain w/ NPTL"
 	depends on !BR2_TOOLCHAIN_HAS_THREADS_NPTL
+
+comment "boost-fiber needs a toolchain not affected by GCC bug 85180"
+	depends on BR2_TOOLCHAIN_HAS_GCC_BUG_85180
 
 config BR2_PACKAGE_BOOST_FILESYSTEM
 	bool "boost-filesystem"
@@ -191,14 +195,6 @@ config BR2_PACKAGE_BOOST_MATH
 
 	  Octonions, like quaternions, are a relative of complex
 	  numbers.
-
-config BR2_PACKAGE_BOOST_METAPARSE
-	bool "boost-metaparse"
-	depends on BR2_USE_MMU # boost-test
-	select BR2_PACKAGE_BOOST_TEST
-	help
-	  A library for generating compile time parsers parsing embedded
-	  DSL code as part of the C++ compilation process
 
 config BR2_PACKAGE_BOOST_MPI
 	bool "boost-mpi"
