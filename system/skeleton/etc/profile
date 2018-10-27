@@ -1,5 +1,7 @@
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 
+[ -f /etc/banner ] && cat /etc/banner
+
 if [ "$PS1" ]; then
 	if [ "`id -u`" -eq 0 ]; then
 		export PS1='# '

@@ -128,4 +128,11 @@ config BR2_LINUX_KERNEL_EXT_AUFS_VERSION
 
 endif # aufs
 
+#-------------------------------------------------------------------------------
+# enable WiFi
+config BR2_LINUX_KERNEL_EXT_WIFI
+	bool "enable WiFi support in kernel"
+	help
+	  Enable WiFi support in kernel
+
 endmenu
