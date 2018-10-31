@@ -5,7 +5,7 @@
 ################################################################################
 
 CRYPTSETUP_VERSION_MAJOR = 2.0
-CRYPTSETUP_VERSION = $(CRYPTSETUP_VERSION_MAJOR).2
+CRYPTSETUP_VERSION = $(CRYPTSETUP_VERSION_MAJOR).3
 CRYPTSETUP_SOURCE = cryptsetup-$(CRYPTSETUP_VERSION).tar.xz
 CRYPTSETUP_SITE = $(BR2_KERNEL_MIRROR)/linux/utils/cryptsetup/v$(CRYPTSETUP_VERSION_MAJOR)
 CRYPTSETUP_DEPENDENCIES = lvm2 popt util-linux host-pkgconf json-c \
@@ -36,7 +36,8 @@ HOST_CRYPTSETUP_DEPENDENCIES = \
 	host-json-c \
 	host-openssl
 
-HOST_CRYPTSETUP_CONF_OPTS = --with-crypto-backend=openssl
+HOST_CRYPTSETUP_CONF_OPTS = --with-crypto_backend=openssl \
+	--disable-kernel_crypto
 
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))

@@ -4,18 +4,15 @@
 #
 ################################################################################
 
-LIBCURL_VERSION = 7.60.0
+LIBCURL_VERSION = 7.61.1
 LIBCURL_SOURCE = curl-$(LIBCURL_VERSION).tar.xz
 LIBCURL_SITE = https://curl.haxx.se/download
 LIBCURL_DEPENDENCIES = host-pkgconf \
 	$(if $(BR2_PACKAGE_ZLIB),zlib) \
-	$(if $(BR2_PACKAGE_LIBIDN),libidn) \
 	$(if $(BR2_PACKAGE_RTMPDUMP),rtmpdump)
 LIBCURL_LICENSE = curl
 LIBCURL_LICENSE_FILES = COPYING
 LIBCURL_INSTALL_STAGING = YES
-# We're patching configure.ac
-LIBCURL_AUTORECONF = YES
 
 # We disable NTLM support because it uses fork(), which doesn't work
 # on non-MMU platforms. Moreover, this authentication method is
@@ -40,7 +37,6 @@ LIBCURL_CONFIG_SCRIPTS = curl-config
 
 ifeq ($(BR2_PACKAGE_OPENSSL),y)
 LIBCURL_DEPENDENCIES += openssl
-LIBCURL_CONF_ENV += ac_cv_lib_crypto_CRYPTO_lock=yes
 # configure adds the cross openssl dir to LD_LIBRARY_PATH which screws up
 # native stuff during the rest of configure when target == host.
 # Fix it by setting LD_LIBRARY_PATH to something sensible so those libs
@@ -70,6 +66,13 @@ else
 LIBCURL_CONF_OPTS += --disable-ares
 endif
 
+ifeq ($(BR2_PACKAGE_LIBIDN2),y)
+LIBCURL_DEPENDENCIES += libidn2
+LIBCURL_CONF_OPTS += --with-libidn2
+else
+LIBCURL_CONF_OPTS += --without-libidn2
+endif
+
 # Configure curl to support libssh2
 ifeq ($(BR2_PACKAGE_LIBSSH2),y)
 LIBCURL_DEPENDENCIES += libssh2
@@ -83,6 +86,13 @@ LIBCURL_DEPENDENCIES += brotli
 LIBCURL_CONF_OPTS += --with-brotli
 else
 LIBCURL_CONF_OPTS += --without-brotli
+endif
+
+ifeq ($(BR2_PACKAGE_NGHTTP2),y)
+LIBCURL_DEPENDENCIES += nghttp2
+LIBCURL_CONF_OPTS += --with-nghttp2
+else
+LIBCURL_CONF_OPTS += --without-nghttp2
 endif
 
 define LIBCURL_FIX_DOT_PC

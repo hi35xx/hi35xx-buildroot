@@ -1,5 +1,5 @@
-# From https://lists.x.org/archives/xorg-announce/2018-March/002853.html
-md5 23d87cda92700b710a37d9b8edaa9f54  libdrm-2.4.91.tar.bz2
-sha1 44e42ce3cd41666e343ba393c73f6f1ad9fe1e74  libdrm-2.4.91.tar.bz2
-sha256 634a0ed0cc1eff06f48674b1da81aafa661a9f001e7a4f43dde81076886dc800  libdrm-2.4.91.tar.bz2
-sha512 07578c00c121ba37033db7172590e26d1545f81c242bbce2cfb7fb904bde504822c275d6468e5c5d20360d0046ae73d9b058aa0459ba35eb11927141cc998772  libdrm-2.4.91.tar.bz2
+# From https://lists.freedesktop.org/archives/dri-devel/2018-August/185041.html
+md5 0ba45ad1551b2c1b6df0797a3e65f827  libdrm-2.4.93.tar.bz2
+sha1 550ba4bb50236fc2e9138cbeadcb4942ce09410e  libdrm-2.4.93.tar.bz2
+sha256 6e84d1dc9548a76f20b59a85cf80a0b230cd8196084f5243469d9e65354fcd3c  libdrm-2.4.93.tar.bz2
+sha512 ba4221e8d6a3a9872fb6d30a0ea391e30ea0e17f249c66f067bed9c2161ed1ad8083959cb2c212834c6566c3e025f4daae31e9533d77aae19bbbbb9de6c2ab3d  libdrm-2.4.93.tar.bz2

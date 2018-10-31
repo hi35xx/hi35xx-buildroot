@@ -219,8 +219,6 @@ TARGET_STRIP = /bin/true
 STRIPCMD = $(TARGET_STRIP)
 endif
 INSTALL := $(shell which install || type -p install)
-FLEX := $(shell which flex || type -p flex)
-BISON := $(shell which bison || type -p bison)
 UNZIP := $(shell which unzip || type -p unzip) -q
 
 APPLY_PATCHES = PATH=$(HOST_DIR)/bin:$$PATH support/scripts/apply-patches.sh $(if $(QUIET),-s)
@@ -239,7 +237,7 @@ HOST_LDFLAGS  += -L$(HOST_DIR)/lib -Wl,-rpath,$(HOST_DIR)/lib
 # Exit code chooses option. "$$TMP" is can be used as temporary file and
 # is automatically cleaned up.
 try-run = $(shell set -e;               \
-	TMP="$$(tempfile)";             \
+	TMP="$$(mktemp)";               \
 	if ($(1)) >/dev/null 2>&1;      \
 	then echo "$(2)";               \
 	else echo "$(3)";               \
@@ -447,3 +445,4 @@ include package/pkg-rebar.mk
 include package/pkg-kernel-module.mk
 include package/pkg-waf.mk
 include package/pkg-golang.mk
+include package/pkg-meson.mk
