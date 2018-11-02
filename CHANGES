@@ -1,3 +1,1021 @@
+2018.08.2, Released October 25th, 2018
+
+	Important / security related fixes.
+
+	Workaround added for incompatibility issues between host-dtc
+	and older U-Boot and Linux kernel versions.
+
+	Detect and reject build paths containing '@', as this confuses
+	a number of packages, including GCC.
+
+	utils/get-developers: Add -e option for use with git
+	send-email.
+
+	utils/diffconfig: Make it work for (non-Buildroot) config
+	files not using the BR2_ prefix.
+
+	u-boot: Fix for environment image handling on big endian
+	systems.
+
+	Updated/fixed packages: binutils, ca-certificates,
+	cups-filters, dtc, erlang, file, freetype, gcc, git, gvfs,
+	jasper, leveldb, libarchive, libssh, live555, ljlinenoise,
+	mariadb, mongoose, netsnmp, nmap, nodejs, ntp, open-plc-utils,
+	poco, psmisc, ptpd2, python-enum34, qemu, qt, qt5base,
+	setools, spice, spice-protocol, tinc, ustr, wireshark,
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#11396: uboot environment image checksum invalid if target is big endian
+
+2018.08.1, Released October 7th, 2018
+
+	Important / security related fixes.
+
+	Add a number of patches to fix build errors for host utilities
+	on modern distributions using glibc-2.28.
+
+	mkusers: Ensure existing group members are preserved when a
+	group is reprocessed.
+
+	printvars: Fix issue with exceeding shell command line length
+	limits for certain setups.
+
+	Updated/fixed packages: acpid, android-tools, apache,
+	arp-scan, bandwidthd, bind, brltty, clamav, connman, cppcms,
+	domoticz, dtc, fio, gcc, gdb, ghostscript, gnupg, httpping,
+	igmpproxy, imlib2, ipsec-tools, libesmtp, libnfs, libxslt,
+	links, lua, mosquitto, nilfs-utils, ocrad, parted, php,
+	python-django, screen, shairport-sync, strongswan,
+	vboot-utils, webkitgtk, wireguard, x265 xen, xlib_libXdmcp,
+	xlib_libXfont, xlib_libXft, xlib_libxshmfence,
+	xutil_makedepend, zeromq
+
+2018.08, Released September 6th, 2018
+
+	Minor fixes.
+
+	Known issues:
+
+	- Glibc 2.28 on the build host breaks compilation of a number
+	  of host packages. 2018.08 contains fixes for some of these
+	  packages, but not all. Consider building on hosts (or in
+	  containers) using older Glibc versions.
+
+	- host-dtc 1.4.7 breaks compilation of older U-Boot and Linux
+          kernel configurations using FDT/DTC. Consider updating the
+          Linux kernel to >= 4.17 and U-Boot to >= 2018.07 or
+          backporting commit 9130ba8846 (scripts/dtc: Update to
+          upstream version v1.4.6-9-gaadd0b65c987) for the Linux
+          kernel / commit db405d1980 for U-Boot.
+	  Alternatively revert commit 7b929ddcf0 (dtc: bump version to
+          1.4.7) and ensure your build host does not have the libfdt
+          development headers installed.
+
+	Updated/fixed packages: busybox, chipmunk, cutelyst,
+	domoticz, gcc, imagemagick, lcms2, libcurl, mediastreamer,
+	moarvm, php, qt, qt5virtualkeyboard, qt5webengine, screen,
+	sdl2, squashfs, uboot, xen
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#11261: ccache using wrong cached objects
+	#11276: Understanding the patch for kernel-4.9 and other..
+
+2018.08-rc3, Released August 31th, 2018
+
+	Fixes all over the tree.
+
+	linux: additional improvements to the flex / bison dependency
+	handling, use system provided variant if available. Ensure
+	toolchain is available when configuring for 4.18+ support.
+
+	Download: Fix handling of primary sites using file://
+
+	Toolchain: Correct external toolchain musl detection for
+	static toolchains.
+
+	Updated/fixed packages: aircrack-ng, bison, brltty, busybox,
+	cutelyst, dropbear, gr-osmosdr, i2c-tools, json-c, libconfuse,
+	libkcapi, libsoup, libssh, liburiparser, mbedtls, mender,
+	mesa3d, minicom, mjpegtools, mutt, openpowerlink, openssh,
+	oracle-mysql, php, postgresql, pv, qt5base, qt5quickcontrols,
+	rauc, shairport-sync, systemd, xlib_libX11, zeromq,
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#11091: BR2_PRIMARY_SITE doesn't work (wget is selected...
+	#11141: WF111 package no longer available
+	#11211: Internal compiler error: Killed (program cc1plus)..
+	#11236: util-linux fails to build on Travis CI when python..
+	#11246: Glibc 2.28 - fails to build host-bison and host-m4
+	#11256: Add python-falcon and python-mimeparse packages
+
+2018.08-rc2, Released August 20th, 2018
+
+	Fixes all over the tree.
+
+	pkg-kconfig: Support dependencies needed to run the
+	configurator, E.G. recent Linux kernel versions needing flex
+	and bison.
+
+	Defconfigs: ARM Juno: Bump ATF to fix a build
+	issue. Raspberrypi2: Bump rootfs size. Snps_archs38_vdk:
+	Correct /etc/inittab. Technologic ts7680: Correct genimage
+	configuration. Orange PI PC / Zero, Sheevaplug: Bump U-boot to
+	2018.07 to fix build issue. Ensure host-openssl is pulled in
+	for kernel builds where needed.
+
+	Updated/fixed packages: aircrack-ng, bind, boost,
+	boot-wrapper-aarch64, bzip2, busybox, chrony, cryptsetup,
+	dahdi-tools, dbus, domoticz, eigen, ipsec-tools, libarchive,
+	libfuse, libgit2, libopenssl, libselinux, lighttpd, lvm2, m4,
+	makedevs, mariadb, mesa3d-headers, mono, ncmpc, ncurses,
+	nodejs, php, python-django, python-pyqt5, qt5base,
+	qt5serialbus, ruby, samba4, uboot-tools, uclibc, vlc,
+	waylandpp, wireless_tools, wireshark, wpa_supplicant, mtd,
+	xdriver_xf86-video-ati, xserver_xorg-server
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#10781: cryptsetup luksOpen container_file container causes..
+	#10996: bogus musl ARM toolchain
+	#11191: xattr and check-package issue
+
+2018.08-rc1, Released August 5th, 2018
+
+	Toolchain:
+
+	- add support for gcc 8.x, switch to gcc 7.x as the default
+	  version
+	- add support for gdb 8.1, switch to gdb 8.0 as the default
+	  and remove gdb 7.10/7.11
+	- add support for binutils 2.31
+	- NIOSII CodeSourcery toolchain updated
+	- Linaro AArch64 BE toolchain added, and other Linaro
+	  toolchains updated
+	- Synopsys ARC pre-built toolchain updated
+
+	Architecture: add support for ARM Cortex-M7
+
+	Major updates:
+
+	- systemd bumped to 239
+	- Qt5 bumped to 5.11.1
+	- Rust bumped to 1.27
+	- GStreamer stack bumped to 1.14.2
+	- X.org server bumped to 1.20, and all X.org proto packages
+	  replaced by the single xorgproto package
+	- i.MX6 support packages bumped to 6.2.4
+	- i.MX Vivante graphics version bumped to 6.2.4.p1.2,
+	  adding support for Wayland and i.MX8MQ platforms
+
+	Linux: bumped to 4.17 by default.
+
+	Infrastructure: new package infrastructure added for packages
+	using the Meson build system
+
+	New packages: at-spi2-atk, at-spi2-core, capnproto, cmocka,
+	corkscrew, cutelyst, davfs2, flatcc, libidn2, libgit2,
+	libopusenc, mender, nghttp2, perl-convert-asn1, perl-crypt-blowfish,
+	perl-crypt-cbc, perl-digest-md5, perl-mime-base64-urlsafe,
+	perl-mojolicious-plugin-authentication, perl-net-ping,
+	perl-net-snmp, perl-net-ssh2, perl-net-telnet, pigz,
+	python-reentry, python-request-id, python-validators,
+	python-webob, shadowsocks-libev, speexdsp, xorgproto, wampcc
+
+	New defconfigs: NXP i.MX7D SDB, Boundary Devices Nitrogen 8M,
+	Olimex A10 OLinuxino, ZynqMP ZCU106
+
+	Removed packages: all xproto_* have been removed and replaced
+	by xorgproto
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#9411:	MUSL build with RT Error relocating /lib/libgcc_s.so.1:
+		__cpu_indicator_init: symbol not found
+	#9921: lockfile module within python-daemon not	 available
+	#10341: gdb install of py files when using buildroot toolchain
+		includes build path
+	#10661: /etc/init.d/S29netplug starts multiple	instances of netplugd
+	#10751: Missing dependency in pulseaudio package
+	#10811: kodi-17.6-Krypton does not compile for	freescale_* devices
+	#10856: openblas on qemu_x86_64_defconfig fails with
+		"sgemm_kernel.o: No such file or directory"
+	#11056: Compiling a file that uses libdrm headers fails with:
+		fatal error: drm.h: No such file or directory
+	#11061: support/download: git version=master broken
+	#11071: Building postgresql package on Debian 9.4  x64 for armel target fails
+	#11076: Docker containerd installed to incorrect  path
+	#11101: host-patchelf Endian Issue with relative  RPATH
+	#11111: raspberry pi 3 b+: missing BSP for 64-bit  kernel
+	#11121: statfs call corrupts memory struct statfs  too small
+	#11181: Switching toolchain does not work
+
+2018.05.2, Released August 28th, 2018
+
+	Important / security related fixes.
+
+	Defconfigs: Raspberrypi2: Bump rootfs size, T7680: Fix
+	genimage.cfg issue, ARM Juno: Bump ATF to v1.3 to fix build
+	issue.
+
+	Updated/fixed packages: acl, attr, apache, bind,
+	boot-wrapper-aarch64, brltty, bzip2, chrony, crda, cryptsetup,
+	dahdi-tools, dmidecode, dropbear, eigen, ffmpeg, gawk, gcc,
+	ghostscript, gnutls, imx-gpu-viv, ipsec-tools, libarchive,
+	libfuse, libglib2, libopenssl, libselinux, libsoup, lighttpd,
+	linuxptp, lttng-modules, lttng-tools, lua-flu, lvm2, m4,
+	makedevs, mariadb, mbedtls, mesa3d-heders, mtd, ncurses,
+	nodejs, openssh, php, python-django, rauc, ruby, samba4,
+	stress-ng, ti-utils, uboot-tools, uclibc, vim, waylandpp,
+	wireless_tools, wireless-regdb, wireshark, wpa_supplicant,
+	xorriso, znc
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#10781: cryptsetup luksOpen container_file container causes..
+	#10986: Installing package attr when already supplied by..
+	#11191: xattr and check-package issue
+
+2018.05.1, Released July 20th, 2018
+
+	Important / security related fixes.
+
+	U-Boot: Ensure host version of ncurses is picked up and not
+	host-ncurses built by buildroot, as that otherwise causes
+	widechar/non-widechar conflicts and corrupted menuconfig
+	menus.
+
+	Linux: Enable CONFIG_PERF_EVENTS when perf is enabled.
+
+	Toolchain: ARC tools updated to arc-2018.03.
+
+	pkg-stats: Fix python 3.x compatibility.
+
+	dl-wrapper: Fix support for URIs containing '+', fix
+	no-check-hash for inferred site method.
+
+	Defconfigs: Raspberrypi3: Bump rootfs size, Minnowboard-max:
+	Support ethernet on Turbot variant.
+
+	Updated/fixed packages: audit, bind, btrfs-progs, cifs-utils,
+	clamav, collectd, coreutils, docker-containerd, dos2unix,
+	edid-decode, file, gcc, gdb, gnupg, gnupg2, heimdal, hidapi,
+	imagemagick, libcurl, libgcrypt, libglib2, liblogging,
+	libostree, libressl, libsoup, libv4l, libvncserver, libvorbis,
+	libwebsockets, libxslt, lm-sensors, mariadb, mpg123, ncurses,
+	network-manager, nodejs, patchelf, perl, php-amqp, pinentry,
+	pixiewps, qpdf, qt53d, qt5base, qt5charts, qt5script, redis,
+	systemd, triggerhappy, uboot, wireguard, wireless-regdb,
+	wireshark
+
+2018.05, Released June 1st, 2018
+
+	Minor fixes.
+
+	Download: Work around for hanging connections for packages
+	from CVS, by adding a 10 minute max timeout.
+
+	Updated/fixed packages: binutils, clang, dash, expect, git,
+	glibc, jpeg-turbo, libjpeg, log4cplus, openvmtools, xen,
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#11051: runtime issue on STM32 with usage of binutils 2.29.x
+
+2018.05-rc3, Released May 28th, 2018
+
+	Fixes all over the tree.
+
+	Toolchain: ARC tools updated to arc-2018.03-rc2.
+
+	Fs: Ensure hard links in TARGET_DIR are correctly copied for
+	filesystem input. With the recent changes to the file system
+	generation logic, hard links were "expanded" in file system
+	images leading to bloated rootfs images for setups with hard
+	links.
+
+	Infrastructure: Error out for packages using the 'local'
+	method but forgetting to specify <pkg>_SITE.
+
+	Build rpcgen for the host when needed to support distributions
+	no longer shipping rpcgen with glibc (E.G. recent Fedora).
+
+	Updated/fixed packages: autofs, bash-completion, binutils,
+	busybox, cjson, elf2flt, libcoap, libcurl, libtirpc, lrzsz,
+	poppler, procps-ng, qt-webkit-kiosk, quota, samba4, xfsprogs
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#11031: ld-elf2flt: host/bin/ld.real': execvp: No such file..
+	#11036: C compiler cannot create executables
+	#11046: Git package binaries are ~180MB (compared to ~20MB in..
+
+2018.05-rc2, Released May 22nd, 2018
+
+	Fixes all over the tree.
+
+	Dependencies: Check that the current working directory (.)
+	isn't listed in PATH as that causes various build issues.
+
+	Manual: Clarify that git branch names may not be used as
+	version identifiers. This has never been supported, but was
+	kind of working (with some limitations) before the git
+	download rework - Now it does not work at all.
+
+	Linux: Ensure host version of ncurses is picked up and not
+	host-ncurses built by buildroot, as that otherwise causes
+	widechar/non-widechar conflicts and corrupted menuconfig
+	menus.
+
+	Packages: Renamed a number of package options not prefixed
+	with BR2_PACKAGE_<pkg> for consstency.
+
+	Download infrastructure: Fix file:// protocol handling after
+	download rework.
+
+	Updated/fixed packages: acl, apr-util, asterisk, attr,
+	bluez5_utils, cifs-utils, clamav, clang, cups-filters,
+	dahdi-linux, exim, faketime, gdb, go, gst1-plugins-bad,
+	imx-mkimage, ipsec-tools, jamvm, janus-gateway,
+	jquery-ui-themes, libcap, libcurl, libftdi, libkcapi, libkrb5,
+	libmediaart, libmodbus, libmodplug, libmpd,
+	libnetfilter_cthelper, libnetfilter_cttimeout, libnfc,
+	libnfnetlink, libnss, liboauth, libogg, libosip2,
+	libpam-radius-auth, libpcap, libpciaccess, llvm, log4cplus,
+	ltrace, lynx, mbedtls, modem-manager, nfs-utils,
+	python-cython, python-websockets, qt5cinex, qt5wayland, rauc,
+	snort, strace, ti-sgx-km, transmission, wavpack, wget, woff2,
+	xen, zmqpp, znc, zstd
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#10986: Installing package attr when already supplied by...
+	#11011: BUildroot for Raspberry Pi 2
+	#11016: Wrong compiler used for external user host packages
+
+2018.05-rc1, Released May 9th, 2018
+
+	Toolchain: glibc bumped to 2.27, musl bumped to 1.1.19,
+	uClibc-ng 1.0.30, Linux kernel headers bumped to 4.16.x.
+
+	Architecture: support for the Blackfin architecture has been
+	removed, as it was removed from Linux upstream, poorly
+	maintained in binutils/gdb, and abandoned by Analog Devices.
+
+	Numerous packages updated to have hashes for their license
+	files.
+
+	Systemd can now be built with uClibc toolchains.
+
+	Linux: addition of BR2_LINUX_KERNEL_NEEDS_HOST_LIBELF and
+	BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL to support building Linux
+	kernel configurations that need libelf on the host or openssl
+	on the host.
+
+	Coding style:
+	- all Python scripts are now verified with flake8
+	- check-package extended to check all Config.in and .mk files
+	  in tree, not only the ones in package/
+
+	Infrastructure:
+
+	- The download infrastructure has seen a major overhaul, with
+	  the main visible new feature being Git caching: a package
+	  fetched from Git no longer needs to be re-cloned entirely
+	  everytime its version is changed. Anoter visible change is
+	  that the download folder now has subfolders per package. See
+	  http://lists.busybox.net/pipermail/buildroot/2018-April/217923.html
+	  for more details about those changes.
+
+	- The logic that generates the root filesystem images has been
+	  reworked, with the main goal of allowing several filesystem
+	  images to be produced in parallel, also a requirement for
+	  top-level parallel build. Now, a .tar filesystem image is
+	  always created, and re-extracted in a private directory to
+	  create each format-specific filesystem image.
+
+	- A new package infrastructure was introduced for Go-based
+	  packages: golang-package.
+
+	- Dependencies on extraction tools are now handled as proper
+	  per-package dependencies, using
+	  <pkg>_EXTRACT_DEPENDENCIES. Beyond a cleanup, this is also a
+	  preparation step for top-level parallel build support.
+
+	- When a file being downloaded is part of a package with a
+	  .hash file, but there is no hash listed for this file, the
+	  file is now preserved in the download directory rather than
+	  removed. This helps when updating a package, as it gives the
+	  ability to easily calculate the hash of the file.
+
+	- Addition of '<pkg>-show-recursive-depends' and
+	  '<pkg>-show-recursive-rdepends' make targets, to
+	  respectively display the recursive list of dependencies and
+	  the recursive list of reverse dependencies of a given
+	  package.
+
+	- The /etc/shells file is now automatically generated with the
+	  list of shell programs installed on the system.
+
+	- Addition of -Ofast optimization level as an available
+	  option.
+
+	Major updates: Go updated to 1.10, Erlang bumped to 20.3, Qt5
+	bumped to 5.10.1.
+
+	New packages: 18xx-ti-utils, abootimg, bluez-alsa, brotli,
+	chipmunk, clang, docker-compose, docker-proxy, flare-engine,
+	flare-game, gst1-interpipe, gstreamer1-editing-services,
+	hackrf, i2pd, imx-alsa-plugins, imx-mkimage, libcdio-paranoia,
+	libkrb5, llvm, pixiewps, python-backports-ssl-match-hostname,
+	python-cached-property, python-cython, python-docker,
+	python-dockerpty, python-docker-pycreds,
+	python-flask-sqlalchemy, python-functools32, python-influxdb,
+	python-json-models, python-libusb1, python-networkx,
+	python-psycopg2, python-pymodbus, python-sqlalchemy,
+	python-subprocess32, python-texttable,
+	python-websocket-client, python-yieldfrom, quotatool, reaver,
+	snort, sunxi-mali-mainline, sunxi-mali-mainline-driver, tk,
+	tpm2-abrmd, tpm2-tools, tpm2-tss, udftools, vte, woff2.
+
+	New defconfigs: ARC HS Development Kit, Arcturus ucls1012a,
+	Freescale i.MX6UL EVK (with vendor kernel), Freescale i.MX6
+	SoloLite EVK (with vendor kernel), Freescale i.MX31 3Stack,
+	Freescale i.MX8Q EVK Freescale p1025twr, Freescale t1040d4rdb,
+	Qemu PPC64 E5500, SolidRun ClearFog Base, Tinker RK3288, Vyasa
+	RK3288,
+
+	Removed packages: iqvlinux, kodi-adsp-*, mplayer
+
+	Removed defconfigs: ci40, firefly_rk3288,
+	freescale_p1010rdb_pa, freescale_mpc8315erdb, riotboard,
+	teliv_evk_pro3
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#10151: toolchain eclipse register : fails with a custom
+		BR2_HOST_DIR
+	#10511: Packages get downloaded uncompressed with wget
+	#10531: QtWebengine doesn't build if the host hasn't a 32 bits
+		C++ compiler working
+	#10846: error in compiling gnutls
+	#10886: openssl-1.0.2n fails to build
+	#10896: /bin/sh not in /etc/shells
+	#10961: Grub2 fails to build for x86_64 when BR2_SSP_ALL is
+		enabled
+
+2018.02.5, Released August 29th, 2018
+
+	Important / security related fixes.
+
+	Defconfigs: Raspberrypi2: Bump rootfs size, T7680: Fix
+	genimage.cfg issue, ARM Juno: Bump ATF to v1.3 to fix build
+	issue.
+
+	Updated/fixed packages: acl, apache, attr, bind,
+	boot-wrapper-aarch64, brltty, bzip2, chrony, crda, cryptsetup,
+	dahdi-tools, dmidecode, dropbear, eigen, erlang, ffmpeg, gawk,
+	gcc, ghostscript, gnutls, ipsec-tools, libarchive, libfuse,
+	libopenssl, libselinux, libsoup, lighttpd, linuxptp,
+	lttng-modules, lttng-tools, lua-flu, lvm2, m4, makedevs,
+	mariadb, mbedtls, mesa3d-headers, mtd, ncurses, nodejs,
+	openssh, php, postgresql, python-django, qt5xmlpatterns, ruby,
+	samba4, shairport-sync, stress-ng, ti-utils, uboot-tools, vim,
+	waylandpp, wireless_tools, wireshark, wpa_supplicant, xorriso,
+	znc
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#10781: cryptsetup luksOpen container_file container causes..
+	#10986: Installing package attr when already supplied by..
+	#11191: xattr and check-package issue
+
+2018.02.4, Released July 21th, 2018
+
+	Important / security related fixes.
+
+	U-Boot: Ensure host version of ncurses is picked up and not
+	host-ncurses built by buildroot, as that otherwise causes
+	widechar/non-widechar conflicts and corrupted menuconfig
+	menus.
+
+	Linux: Enable CONFIG_PERF_EVENTS when perf is enabled.
+
+	Defconfigs: Raspberrypi3: Bump rootfs size, Minnowboard-max:
+	Support ethernet on Turbot variant.
+
+	Updated/fixed packages: bind, clamav, collectd, dos2unix,
+	edid-decode, gcc, gdb, heimdal, hidapi, imx-gpu-viv, libcurl,
+	libglib2, liblogging, libostree, libsoup, libv4l, lm-sensors,
+	ncurses, network-manager, patchelf, pinentry, procps-ng, qpdf,
+	qt5, qt53d, qt5base, qt5charts, qt5script, qt5serialport,
+	systemd, wireguard, wireless-regdb
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#11101: host-patchelf Endian Issue with relative RPATH
+
+2018.02.3, Released June 18th, 2018
+
+	Important / security related fixes.
+
+	Various fixes for building on modern distributions (GCC 8.x,
+	no rpcgen utility).
+
+	ARM: Default to binutils 2.28 and warn about newer binutils
+	versions, which are known to cause boot failures for Linux
+	kernels built in thumb mode.
+
+	Busybox/mdev: Fix module autoloading.
+
+	Busybox/sysvinit: inittab: Add /dev/{stdin,stdout,stderr}
+	symlinks, call swapon -a to activate any configured swap
+	devices.
+
+	Dependencies: Check that PATH does not contain current working
+	directory, which triggers a number of build failures.
+
+	Infrastructure: Error out for packages erroneously using the
+	'local' site method but not defining a _SITE.
+
+	Linux: Fix cuImage.<dtb> / simpleImage.<dtb> handling.  Ensure
+	kconfig uses ncurses from the host to fix a ncurses/ncursesw
+	mixup, causing menuconfig display corruption.
+
+	Toolchain: Workarounds for fix-rpath issues with binutils and
+	elf2flt.
+
+	Util-linux: Fix blocking on getrandom() issue with recent
+	kernels.
+
+	Remove broken freescale_imx31_3stack,
+	freescale_imx6sololiteevk and freescale_imx6ulevk defconfigs.
+
+	Updated/fixed packages: apr-util, asterisk, attr, audit,
+	autofs, binutils, busybox, cifs-utils, cups-filters, dash,
+	ebtables, exim, expect, f2fs-tools, faketime, file, gdb, git,
+	glibc, gnupg, gnupg2, gst1-plugins-bad, imagemagick, jamvm,
+	jpeg-turbo, libcap, libcoap, libcurl, libgcrypt, libjpeg,
+	libnss, libressl, libtirpc, libvncserver, libvorbis, libxslt,
+	log4cplus, lrzsz, ltrace, lynx, mariadb, mbedtls, mpg123,
+	nasm, netplug, network-manager, nfs-utils, nodejs,
+	openvmtools, patch, perl, php-amqp, poppler, procps-ng,
+	python, python-websockets, quota, redis, samba4, sysvinit,
+	transmission, triggerhappy, util-linux, wavpack, wget,
+	wireshark, xen, zmqpp
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#10986: Installing package attr when already supplied by busybox..
+	#11031: ld-elf2flt: host/bin/ld.real': execvp: No such file or..
+
+2018.02.2, Released May 4th, 2018
+
+	Important / security related fixes.
+
+	Tweak package size/file instrumentation to better handle
+	package rebuilds.
+
+	Revert /etc/shells creation when bash is enabled.
+
+	Exclude /lib/firmware from the rpath fixup logic, as it may
+	contain non-native ELF files.
+
+	Scanpypi: Support the new PyPi infrastructure.
+
+	Handle GCC 8.x on the host.
+
+	Ensure timestamp of /usr is updated to support the systemd
+	ConditionNeedsUpdate option.
+
+	Updated/fixed packages: bluez5_utils, flann, gdb, gnupg2,
+	grub2, libcec, libcgi, libglib2, libgpg-error, libgpgme,
+	libtomcrypt, mbedtls, mkpasswd, php, python, python-requests,
+	python-watchdog, qt53d, qt5websockets, sdl2, sdl2_image,
+	syslog-ng, systemd, tcl, tcllib, uclibc, usb_modeswitch,
+	wireguard, wmctrl
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#10896: /bin/sh not in /etc/shells
+	#10961: Grub2 fails to build for x86_64 when BR2_SSP_ALL is enabled
+
+2018.02.1, Released April 9th, 2018
+
+	Important / security related fixes.
+
+	Removed unmaintained defconfigs: Creator Ci40, Firefly rk3288,
+	Freescale mpc8315erdb / p1010rdb_pa, Riotboard, Teliv EVK
+	Pro3.
+
+	Infrastructure: Speed up instrumentation for package size by
+	comparing timestamps instead of md5 checksums, as doing
+	checksums could lead to up to 25% longer build time for big
+	configurations.
+
+	Rename the internal <pkg>_BASE_NAME variable to <pkg>_NASENAME
+	to avoid name clashes with packages ending on '-base'.
+
+	Add a better fix for build issues for autotools based packages
+	checking for C++ support on toolchains without C++ support.
+
+	Build host-tar if tar is older than 1.27 on the build machine
+	to work around reproducibility issues with git archives
+	containing long paths.
+
+	check-unique-files: Fix for filenames not representable in the
+	users' locale.
+
+	Check-bin-arch: Add support for per-package ignore paths
+	(<pkg>_BIN_ARCH_EXCLUDE).
+
+	Toolchain: Fix SSP support detection for external toolchains.
+
+	linux: Add _NEEDS_HOST_OPENSSL / LIBELF options to ensure
+	these dependencies are available for Linux configurations
+	needed these dependencies, similar to how it is done for
+	U-Boot.
+
+	Support custom (not in tree) device tree files in addition to
+	in-tree ones.
+
+	U-Boot / uboot-tools: Fix header conflict with libfdt-devel
+	installed on host.
+
+	Updated/fixed packages: apache, busybox, c-ares, cmake,
+	docker-engine, enlightenment, eudev, fbgrab, freescale-imx,
+	gtest, imagemagick, intel-microcode, irssi, jimtcl, kmod,
+	kodi, ktap, libcoap, libcurl, libfcgi, libhttpparser,
+	libminiupnpc, libopenssl, libpjsip, libss7, libssh2, libupnp
+	libupnpp, libuv, libvorbis, memcached, motion, musl, nodejs,
+	ntp, openblas, opencv3, openocd, opus-tools, patch, php,
+	pkgconf, postgresql, powerpc-utils, python-jsonschema,
+	python-webpy, qemu, qt5bsae, qt5script, qt5webkit, rapidjson,
+	rauc, sam-ba, samba4, sngrep, systemd, tremor, uboot-tools,
+	uclibc-ng-test, upmpdcli, wireshark, xerces, xterm, zstd
+
+	New packages: docker-proxy, python-functools32
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#10766: upmpdcli: Segmentation fault
+	#10776: ktap fails to build
+	#10846: error in compiling gnutls
+	#10856: openblas on qemu_x86_64_defconfig fails with "sgemm_..
+
+2018.02, Released March 4th, 2018
+
+	Fixes all over the tree.
+
+	Issues with systemd with a readonly rootfs and DBus fixed.
+
+	Instructure:
+	- check-uniq-files: fix Python 2.6 compatibility.
+	- dependencies.sh: check for external argparse module for
+	  Python 2.6.
+	- Add infrastructure to detect and use a UTF-8 locale on the
+	  host, needed by systemd.
+
+	Update/fixed packages: clamav, dash, dhcp, dovecot, efl,
+	ffmpeg, libv4l, mono, mosquitto, php, postgresql, qt,
+	scanpypi, sdl2, systemd, tor, tvheadend, uboot, wavpack
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#10831: qemu_x86_64_defconfig build fails on linux-headers..
+
+2018.02-rc3, Released February 27th, 2018
+
+	Fixes all over the tree.
+
+	check-bin-arch: skip /lib/modules to allow 32-bit userland
+	with 64bit kernel.
+
+	dependencies: Blacklist tar 1.30+ and build our own host-tar
+	if needed as tar 1.30+ changed the --numeric-owner output for
+	long path names. Build host-tar before other host-dependencies
+	as they need it to extract their source tarballs.
+
+	Update/fixed packages: asterisk, azmq, bluez5_utils, domoticz,
+	e2fsprogs, erlang, exim, glibc, gpsd, jq, libglib2, libvorbis,
+	mariadb, mbedtls, mesa3d, mesa3d-headers, mpv, patch, pcre2,
+	php, qt5, qt5multimedia, qt5wayland, qt5webengine, qt5webkit,
+	systemd, quagga, rustc, uboot, wireguard, zic, zlib-ng
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#10726: Current libglib2.mk creates broken libglib2 binary...
+	#10786: Linux fails to build unless make linux-menuconfig...
+	#10796: Cannot generate cpio image without selecting CON...
+
+2018.02-rc2, Released February 15th, 2018
+
+	Fixes all over the tree.
+
+	Dependencies: Ensure C++ support is available like for C
+	support for packages needing 32bit host support.
+
+	utils/genrandconfig: Check host dependencies for config.
+
+	Updated/fixed packages: busybox, dnsmasq, dropbear, ffmpeg,
+	glibc, keepalived, libcpprestsdk, libgpiod, libmaxminddb,
+	librsvg, libtasn1, libv4l, libxml2, lightning, ltp-testsuite,
+	mesa3d, mesa3d-demos, mesa3d-headers, nftables, open-lldp,
+	php, postgresql, python-crossbar, qt5, qt53d, qt5enginio,
+	qt5tools, qt5webengine, qt5webkit, rsync, rust-bin, rustc,
+	systemd
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#9781: ti-sgx-km build on kernel >4.1
+	#10141: Squashfs extended attribute failures
+
+2018.02-rc1, Released February 5th, 2018
+
+	The global source-check and per-package <pkg>-source-check
+	targets have been removed.
+
+	Architecture: Add x86 Silvermont variant. Add several new ARM
+	variants, rework MIPS NaN logic. Support mainline binutils/gcc
+	for ARC.
+
+	Toolchains: Linaro toolchains upgraded to 2017.11 release, ARC
+	external toolchains upgraded to arc-2017.09. Libatomic is now
+	also copied for external musl based toolchains.
+	Add binutils 2.30.x and switch to binutils 2.29.x by default.
+
+	Added hardening options to build with RELRO and FORTITY.
+
+	New defconfigs: Bananapi M64, FriendlyARM Nanopi A64 & NEO2,
+	imx6slevk, imx6sx-sdb, imx6ulevk, Olimex A64-OLinuXino,
+	Orangepi lite / pc plus / pc / prime / win / win plus / zero
+	plus2, Pine64, Solidrun MacchiatoBin. Sopine.
+
+	Add utils/diffconfig, a simple utility for comparing
+	configuration files - Adapted from the version in the
+	Linux kernel.
+
+	Infrastructure: Check that the same file is not touched by
+	multiple packages, as a preparation for toplevel parallel
+	builds.
+
+	Hashes for the license files for a large number of packages
+	have been added, ensuring that license changes will not be
+	missed when packages are bumped.
+
+	Fix build issue for autotools based packages checking for C++
+	support on toolchains without C++ support and on a distro
+	lacking /lib/cpp (E.G. Arch Linux).
+
+	Support for the meson build system.
+
+	Pie charts generated by 'graph-build' or 'graph-size' are now
+	sorted according to the size of each piece.
+
+	System: Only show getty options when busybox init or sysvinit
+	are used.
+
+	ARM-trusted-firmware: Support ATF bundled in U-Boot as
+	well as U-Boot bundled in ATF.
+
+	Zlib is now a virtual package, provided by either libzlib or
+	zlib-ng, similar to openssl.
+
+	Support for the Rust programming language.
+
+	New packages: aoetools, armbian-firmware, binaries-marvell,
+	brltty, cargo, cargo-bin, cups-filters, curlpp, daq,
+	flatbuffers, gconf, glorytun, gstreamer1-mm, imx-m4fwloader,
+	imx-gpu-g2d, json-for-modern-cpp, libcpprestsdk, libgta,
+	libostree, libupnp18, luadbi, luadbi-sqlite3, lua-utf8, lynx,
+	meson, mv-ddr-marvell, nilfs-utils, opentracing-cpp,
+	open-lldp, pimd, proj, python-flask-cors,
+	python-jaraco-classes, python-more-itertools, python-oauthlib,
+	python-raven, python-remi, python-requests-oauthlib,
+	python-schedule, python-secretstorage, python-see,
+	python-tabledata, python-txtorcon, python-xlib, qt5charts,
+	rtl8189fs, rtl8723bu, rust, rustc, rust-bin, rygel, safeclib,
+	solatus, tcf-agent, traceroute, waylandpp, wolfssl,
+	zisofs-tools, zlib-ng
+
+	Removed packages: eeprog
+
+2017.11.2, Released January 21st, 2018
+
+	Important / security related fixes.
+
+	External toolchain: libatomic is now also copied for musl
+	based toolchains.
+
+	nconfig: Fix for ncurses/ncursesw linking issue causing crashes.
+
+	System: Only show getty options when busybox init or sysvinit
+	are used.
+
+	Infrastructure: Fix build issue for autotools based packages
+	checking for C++ support on toolchains without C++ support and
+	on a distro lacking /lib/cpp (E.G. Arch Linux).
+
+	Pie charts generated by 'graph-build' or 'graph-size' are now
+	sorted according to the size of each piece.
+
+	Updated/fixed packages: asterisk, avahi, bind, busybox,
+	coreutils, eeprog, intel-microcode, iputils, irssi, kmsxx,
+	libiio, linux-firmware, lz4, mariadb, matchbox-lib, mcookie,
+	ntp, php, pound, rpcbind, tar, ti-cgt-pru, webkitgtk, xen,
+	xlib_libXpm
+
+	Issues resolved (http://bugs.buildroot.org):
+
+	#9996: lz4 package does not install lz4 binaries in target
+	#10176: Rsyslog's S01logging is deleted by Busybox.mk from...
+	#10216: package/x11r7/mcookie/mcookie.c:207: bad size ?
+	#10301: systemd/getty unused options
+	#10331: kmsxx, host installation fails with BR2_SHARED_...
+	#10556: Building ntp package with SSL library libressl...
+	#10641: avahi-autoipd not starting when using systemd-tmpfiles
+
+2017.11.1, Released December 31th, 2017
+
+	Important / security related fixes.
+
+	Updated/fixed packages: asterisk, checkpolicy, dhcp, flann,
+	gdb, glibc, heimdal, kodi-pvr-mediaportal-tvserver,
+	kodi-pvr-stalker, libcue, libopenssl, libpqxx, libsoxr,
+	linknx, linux-tools, lldpd, ltp-testsuite, mariadb, mfgtools,
+	nodejs, nut, pulseaudio, python-cffi, qemu, rsync, tor, uboot,
+	uboot-tools, vlc, webkitgtk, weston, wireguard, wireshark,
+	xenomai, xfsprogs
+
+2017.11, Released November 30, 2017
+
+	Fixes all over the tree.
+
+	Toolchain: Use github mirror for Glibc.
+
+	Defconfigs: Correct boot.cmd for bananapi-m1.
+
+	Makefiles: Workaround include order issues for certain make
+	versions by explicitly sorting the result of wildcard where it
+	matters.
+
+	Download: Ensure subversion runs in non-interactive mode.
+
+	Updated/fixed packages: asterisk, boost, chrony, dovecot,
+	dvb-apps, exim, feh, freerdp, fwup, google-breakpad, jose,
+	kvm-unit-test, lftp, libcurl, libevent, libfastjson, libpjsip,
+	libupnp, linphone, localedef, lttng-tools, mp4v2, mtools,
+	ndisc6, oracle-mysql, parted, pdbg, qt, qt5connectivity,
+	qt5declarative, qt5webkit, rauc, runc, samba4, shairport-sync,
+	systemd-bootchart, webkitgtk, wireguard, xlib_libXcursor,
+	xlib_libXfont, xlib_libXfont2,
+
+	Issues resolved (http://bugs.buildroot.org):
+
+	10501: host-localedef fails to compile on Ubuntu 17.10
+	10506: Changed kernel image type (e.g. zImage to uImage)...
+
+2017.11-rc2, Released November 13th, 2017
+
+	Fixes all over the tree.
+
+	Updated/fixed packages: collectd, ffmpeg, freerdp,
+	go-bootstrap, imagemagick, jimtcl, libpjsip, libplist, libuv,
+	mesa3d, nodejs, ntp, openjpeg, postgresql, python-numpy, ruby,
+	snmp++, usb_modeswitch, util-linux, vboot-utils, webkitgtk,
+	wireshark, wpa_supplicant, xapp_xdriinfo
+
+	Issues resolved (http://bugs.buildroot.org):
+
+	#10326: mesa3d package fails to build when BR2_SHARED_STATIC_LIBS=y
+	#10491: Cannot output security warning when compiled with buildroot..
+
+2017.11-rc1, Released November 6th, 2017
+
+	Fixes all over the tree and new features.
+
+	Openssl is now a virtual package, which may be provided by
+	OpenSSL (now renamed to libopenssl) or LibreSSL.
+
+	libssh2: there is now an explicit choice of the backend to use
+	(mbedtls, gnutls or openssl). Previously, the choice was implicit
+	based on the TLS library that was selected. Now, it is possible to
+	choose the backend, which is important if several TLS libraries are
+	selected.
+
+	netsnmp: all MIB files are now installed, making the target filesystem a
+	bit bigger than before. To remove unneeded MIBS, you should use a
+	post-build script.
+
+	Toolchain: Linaro toolchains updated to 2017.08, ARC toolchain
+	updated to 2017.09, Glibc updated to 2.26, Glibc support for
+	ARCv2. The toolchain wrapper now handles SOURCE_DATE_EPOCH for
+	older (pre-gcc7.x) toolchains for BR2_REPRODUCIBLE.
+
+	New defconfigs: Atmel SAM45D27, Bananapi M1 and M2 Plus,
+	Engicam i.CoreM6 Qt5 configuration, i.MX6 sabreauto (mainline
+	kernel/u-boot), i.MX6Q sabresd Qt5 configuration, i.MX7d-pico,
+	QEMU ppc64le, Raspberry pi3 Qt5 webengine configuration,
+	Technologic TS-7680.
+
+	New packages: asterisk, azmq, bcg729, boinc, dahdi-linux,
+	dahdi-tools, freeswitch-mod-bcg729, fscryptctl, libb64,
+	libpri, libss7, lua-basexx, lua-compat53, lua-cqueues,
+	lua-curl, lua-datafile, lua-fifo, lua-httpd,
+	lua-lpeg-patterns, lua-markdown, lua-sailor, lua-value,
+	luksmeta, minetest, minetest-game, pdmenu, prosody,
+	python-aiocoap, python-automat, python-ibmiotf,
+	python-iso8601, python-m2r, python-simplesqlite,
+	python-websockets, python-xmltodict, qt5wayland, qt5webengine,
+	restorecond, selinux-python, semodule-utils, uhubctl,
+	wireguard, wsapi-fcgi, wsapi-xavante
+
+	Removed packages: aiccu, rfkill, sepolgen
+
+	Issues resolved (http://bugs.buildroot.org):
+
+	#10281: lsblk does not compile for util-linux
+	#10336: lttng compilation fails : linking error
+	#10351: glibc missing in rootfs
+	#10356: nfs-utils missing header
+	#10361: python3 python-config script generates invalid includes
+	#10366: dropbear download url has changed
+	#10391: WiringPi retrieves wrong (old) version
+	#10406: Beaglebone black: Buggy SGX driver version, swapped...
+	#10426: uboot-tools' fw_setenv does not update the redundant...
+	#10451: libpcap 1.8.x and 1.7x does not compile on PPC
+
+2017.08.2, Released November 28th, 2017
+
+	Important / security related fixes.
+
+	Qt: 5.6 version updated to 5.6.3.
+
+	Reproducible: Do not override SOURCE_DATE_EPOCH if already set
+	in the environment.
+
+	Makefiles: Workaround include order issues for certain make
+	versions by explicitly sorting the result of wildcard where it
+	matters.
+
+	Updated/fixed packages: apr, apr-util, arqp-standalone,
+	azure-iot-sdk-c, collectd, dvb-apps, ffmpeg, go-bootstrap,
+	google-breakpad, gstreamer, imagemagick, irssi, jimtcl,
+	kvm-unit-test, libcurl, libfastjson, libglib2, libidn,
+	libpjsip, libplist, localedef, lttng-tools, luajit, mesa3d,
+	moarvm, mp4v2, openssh, openssl, oracle-mysql, postgresql,
+	python3, python-pyqt5, qt, qt5base, qt5canvas3d,
+	qt5connectivity, qt5declarative, qt5engineio,
+	qt5graphicaleffects, qt5imageformats, qt5location,
+	qt5multimedia, qt5quickcontrols, qt5quickcontrols2, qt5script,
+	qt5sensors, qt5serialbus, qt5serialport, qt5svg, qt5tools,
+	qt5webchannel, qt5webkit, qt5websockets, qt5x11extras,
+	qt5xmlpatterns, quagga, redis, ruby, samba4, sdl2, snmppp,
+	swupdate, ti-gfx, uboot-tools, usb_modeswitch, vboot-utils,
+	webkitgtk, wget, wireshark, xapp_xdriinfo.
+
+	Issues resolved (http://bugs.buildroot.org):
+
+	10326: mesa3d package fails to build when BR2_SHARED_STATIC_LIBS=y
+	10361: python3 python-config script generates invalid includes
+	10501: host-localedef fails to compile on Ubuntu 17.10
+
+2017.08.1, Released October 23rd, 2017
+
+	Important / security related fixes.
+
+	Webkitgtk bumped to the 2.18.x series, fixing a large number
+	of security issues.
+
+	Defconfigs: galileo: fix ext4 related kernel config, bump
+	kernel for gcc 6.x compatibility, enable wchar support for
+	grub2. wandboard: correct rootfs offset
+
+	support: Ensure gzip compression level 6 is used for git
+	tarballs. check-bin-arch: Correctly handle (ignore) symbolic
+	links. check-rpath: Also handle PIE binaries
+
+	External toolchain: Correctly handle glibc Buildroot
+	toolchains built with merged /usr
+
+	musl: fix ARMv4 build with binutils 2.27.51+, fix for
+	CVE-2017-15650
+
+	Updated/fixed packages: apache, augeas, bind, bluez5_utils,
+	busybox, bzip2, cmake, dnsmasq, ejabberd, gcc, git, go, ffmpeg, file,
+	flashrom, gd, gdk-pixbug, gnupg2, hostapd, ifupdown-scripts,
+	imagemagick, iucode-tool, kernel-module-imx-gpu-viv, lame,
+	libarchive, libcurl, libffi, libidn, libmbim, libnspr, libnss,
+	libressl, librsync, libsoup, libxml2, libzip, mbedtls, musl,
+	netplug, nginx, openvpn, pkgconf, poppler, proxychains-ng,
+	qemu, qt, rpi-userland, syslog, ruby, samba4, softether,
+	sqlite, strongswan, subversion, supertuxkart, supervisor, tcpdump,
+	tor, unrar, urq, vboot-utils, webkitgtk, wpa_supplicant, xen,
+	xmlstarlet, xlib_libXfont, xlib_libXfont2,
+	xserver_xorg-server, zsh
+
 2017.08, Released September 1st, 2017
 
 	Minor fixes.
@@ -492,6 +1510,146 @@
 	#9836: triggerhappy: systemd unit broken
 	#9846: musl libc not installed correctly in target folder
 	#9856: build libubox failed on ubuntu 17.04 64bit
+
+2017.02.11, Released April 11th, 2018
+
+	Important / security related fixes.
+
+	dependencies: Blacklist tar 1.30+ and build our own host-tar
+	if needed as tar 1.30+ changed the --numeric-owner output for
+	long path names. Build host-tar before other host-dependencies
+	as they need it to extract their source tarballs.
+
+	Updated/fixed packages: apache, busybox, clamav, dhcp,
+	dnsmasq, dovecot, exim, imagemagick, irssi, jq, libcurl,
+	libpjsip, librsvg, libtasn1, libvorbis, libxml2, lz4, mariadb,
+	mbedtls, mosquitto, ntp, openblas, opencv3, openssl, patch,
+	postgresql, python-webpy, qt53d, qt5tools, quagga, rsync,
+	samba4, sngrep, tremor, wavpack, wireshark, xerces, xterm
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#10856: openblas on qemu_x86_64_defconfig fails with "sgemm_..
+
+2017.02.10, Released January 31st, 2018
+
+	Important / security related fixes.
+
+	nconfig: Fix for ncurses/ncursesw linking issue causing crashes.
+
+	System: Only show getty options when busybox init or sysvinit
+	are used.
+
+	Infrastructure: Fix build issue for autotools based packages
+	checking for C++ support on toolchains without C++ support and
+	on a distro lacking /lib/cpp (E.G. Arch Linux).
+
+	Updated/fixed packages: avahi, berkeleydb, bind, busybox,
+	ccache, clamav, coreutils, dovecot, eeprog, eudev, fis,
+	intel-microcode, iputils, irssi, kmsxx, libcurl, liberation,
+	libiio, lz4, mariadb, matchbox-lib, mcookie, openocd, php,
+	pound, rpcbind, squid, tar, ti-cgt-pru, transmission,
+	util-linux, webkitgtk, wireshark, xen
+
+	Issues resolved (http://bugs.buildroot.org):
+
+	#9996: lz4 package does not install lz4 binaries in target
+	#10176: Rsyslog's S01logging is deleted by Busybox.mk from...
+	#10216: package/x11r7/mcookie/mcookie.c:207: bad size ?
+	#10301: systemd/getty unused options
+	#10331: kmsxx, host installation fails with BR2_SHARED_...
+	#10536: Finding non-relative paths in the ccache
+	#10641: avahi-autoipd not starting when using systemd-tmpfiles
+
+2017.02.9, Released January 1st, 2018
+
+	Important / security related fixes.
+
+	Fix divide by zero issue in size-stats script.
+
+	Fix makefile include ordering issue with certain make versions
+	in the external toolchain handling.
+
+	Updated/fixed packages: dhcp, exim, flann, gdb, heimdal,
+	libcue, libcurl, libevent, libpqxx, libsoxr, linphone, lldpd,
+	mariadb, mfgtools, mtools, nodejs, nut, openssl, rsync,
+	samba4, tor, vlc, webkitgtk, wireshark, xfsprogs,
+	xlib_libXcursor, xlib_libXfont, xlib_libXfont2
+
+2017.02.8, Released November 27th, 2017
+
+	Important / security related fixes.
+
+	Qt: 5.6 version updated to 5.6.3.
+
+	Reproducible: Do not override SOURCE_DATE_EPOCH if already set
+	in the environment.
+
+	Updated/fixed packages: apr, apr-util, arqp-standalone,
+	collectd, dvb-apps, ffmpeg, google-breakpad, gstreamer,
+	imagemagick, libfastjson, libglib2, libpjsip, libplist,
+	localedef, luajit, mesa3d, openssh, openssl, postgresql,
+	python3, python-pyqt5, qt5base, qt5canvas3d, qt5connectivity,
+	qt5declarative, qt5engineio, qt5graphicaleffects,
+	qt5imageformats, qt5location, qt5multimedia, qt5quickcontrols,
+	qt5quickcontrols2, qt5script, qt5sensors, qt5serialbus,
+	qt5serialport, qt5svg, qt5tools, qt5webchannel, qt5webkit,
+	qt5websockets, qt5x11extras, qt5xmlpatterns, quagga, ruby,
+	samba4, snmppp, ti-gfx, vboot-utils, webkitgtk, wireshark,
+	xapp_xdriinfo.
+
+	Issues resolved (http://bugs.buildroot.org):
+
+	10326: mesa3d package fails to build when BR2_SHARED_STATIC_LIBS=y
+	10361: python3 python-config script generates invalid includes
+	10501: host-localedef fails to compile on Ubuntu 17.10
+
+2017.02.7, Released October 28th, 2017
+
+	Important / security related fixes.
+
+	Webkitgtk bumped to the 2.18.x series, fixing a large number
+	of security issues.
+
+	Defconfigs: wandboard: Correct rootfs offset
+
+	Toolchain: Linaro toolchains updated to 2017.08 release,
+	fixing a number of issues. Musl: fix for CVE-2017-15650.
+
+	Updated/fixed packages: busybox, bzip2, dnsmasq, git, go,
+	hostapd, irssi, iucode-tool, lame, libcurl, libffi, libnspr,
+	libnss, nodejs, openssh, openvpn, qemu, qt, redis, sdl2,
+	webkitgtk, wget, wpa_supplicant, xen, xlib_libXfont,
+	xlib_libXfont2, xserver_xorg-server
+
+2017.02.6, Released September 24th, 2017
+
+	Important / security related fixes.
+
+	Cmake: Ensure correct pkg-config is used when building host
+	packages
+
+	fs/iso9660: Ensure files from earlier builds are not included.
+
+	Updated/fixed packages: apache, bcusdk, bind, binutils,
+	bluez5_utils, botan, cmake, connman, dbus, dialog, e2fsprogs,
+	faad2, fakeroot, ffmpeg, file, flashrom, gcc, gd, gdb,
+	gdk-pixbuf, git, gnupg, gpsd, grub2, gst1-plugins-bad,
+	imagemagick, iostat, iucode-tool, jack2, libarchive, libcurl,
+	libgcrypt, libidn, libphidget, librsync, librsvg, libsoup,
+	libxml2, linux-tools, lua, mariadb, mbedtls, mediastreamer,
+	minidlna, netplug, nss-pam-ldapd, nvidia-driver, openjpeg,
+	postgresql, proxychains-ng, python-libconfig,
+	python-service-identity, qt, rpcbind, ruby, samba4, squashfs,
+	squid, strongswan, subversion, supervisor, sysvinit, tcpdump,
+	tor, transmission, unrar, valgrind, vim, webkitgtk, whois,
+	xen, zmqpp
+
+	Issues resolved (http://bugs.buildroot.org):
+
+	#10141: Squashfs extended attribute failures
+	#10261: Grub2 fails to build for x86_64
+	#10276: BR2_PACKAGE_LINUX_TOOLS_GPIO fails for MIPS with...
 
 2017.02.5, Released July 27th, 2017
 

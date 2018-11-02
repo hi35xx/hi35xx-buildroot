@@ -1,3 +1,2 @@
-# md5 from https://pypi.python.org/pypi/pydal/json, sha256 locally computed
-md5 f544da78cd4980d3a13024bc79065cf0 pyDAL-17.1.tar.gz
-sha256 ae33e903725133c051df3cd0712cc1967997f56fc480a90ab6a7c50df265f9d1 pyDAL-17.1.tar.gz
+# sha256 from https://pypi.org/project/pyDAL/#files
+sha256 59b28cbad92743c76134fc078b62f49d5c02b86c55cbdee527f75995d2681735  pyDAL-17.11.tar.gz

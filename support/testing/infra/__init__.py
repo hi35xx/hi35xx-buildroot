@@ -1,4 +1,3 @@
-import contextlib
 import os
 import re
 import sys
@@ -7,6 +6,7 @@ import subprocess
 from urllib2 import urlopen, HTTPError, URLError
 
 ARTIFACTS_URL = "http://autobuild.buildroot.net/artefacts/"
+
 
 def open_log_file(builddir, stage, logtofile=True):
     """
@@ -20,8 +20,10 @@ def open_log_file(builddir, stage, logtofile=True):
         fhandle = sys.stdout
     return fhandle
 
+
 def filepath(relpath):
     return os.path.join(os.getcwd(), "support/testing", relpath)
+
 
 def download(dldir, filename):
     finalpath = os.path.join(dldir, filename)
@@ -32,19 +34,20 @@ def download(dldir, filename):
         os.makedirs(dldir)
 
     tmpfile = tempfile.mktemp(dir=dldir)
-    print "Downloading to {}".format(tmpfile)
+    print("Downloading to {}".format(tmpfile))
 
     try:
         url_fh = urlopen(os.path.join(ARTIFACTS_URL, filename))
         with open(tmpfile, "w+") as tmpfile_fh:
             tmpfile_fh.write(url_fh.read())
-    except (HTTPError, URLError), err:
+    except (HTTPError, URLError) as err:
         os.unlink(tmpfile)
         raise err
 
-    print "Renaming from %s to %s" % (tmpfile, finalpath)
+    print("Renaming from {} to {}".format(tmpfile, finalpath))
     os.rename(tmpfile, finalpath)
     return finalpath
+
 
 def get_elf_arch_tag(builddir, prefix, fpath, tag):
     """
@@ -66,8 +69,10 @@ def get_elf_arch_tag(builddir, prefix, fpath, tag):
         return m.group(1)
     return None
 
+
 def get_file_arch(builddir, prefix, fpath):
     return get_elf_arch_tag(builddir, prefix, fpath, "Tag_CPU_arch")
+
 
 def get_elf_prog_interpreter(builddir, prefix, fpath):
     """

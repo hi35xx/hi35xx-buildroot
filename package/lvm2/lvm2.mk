@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LVM2_VERSION = 2.02.171
+LVM2_VERSION = 2.02.173
 LVM2_SOURCE = LVM2.$(LVM2_VERSION).tgz
 LVM2_SITE = ftp://sources.redhat.com/pub/lvm2/releases
 LVM2_INSTALL_STAGING = YES
@@ -19,7 +19,10 @@ LVM2_CONF_OPTS += \
 	--enable-pkgconfig \
 	--enable-cmdlib \
 	--enable-dmeventd \
-	--disable-nls
+	--disable-nls \
+	--disable-symvers
+
+LVM2_DEPENDENCIES += host-pkgconf
 
 # LVM2 uses autoconf, but not automake, and the build system does not
 # take into account the toolchain passed at configure time.
@@ -31,6 +34,13 @@ else
 # v2.02.44: disable readline usage, or binaries are linked against provider
 # of "tgetent" (=> ncurses) even if it's not used..
 LVM2_CONF_OPTS += --disable-readline
+endif
+
+ifeq ($(BR2_PACKAGE_LIBSELINUX),y)
+LVM2_CONF_OPTS += --enable-selinux
+LVM2_DEPENDENCIES += libselinux
+else
+LVM2_CONF_OPTS += --disable-selinux
 endif
 
 ifeq ($(BR2_PACKAGE_LVM2_STANDARD_INSTALL),)
@@ -49,4 +59,18 @@ ifeq ($(BR2_TOOLCHAIN_SUPPORTS_PIE),)
 LVM2_CONF_ENV += ac_cv_flag_HAVE_PIE=no
 endif
 
+HOST_LVM2_DEPENDENCIES = host-pkgconf
+HOST_LVM2_CONF_OPTS = \
+	--enable-write_install \
+	--enable-pkgconfig \
+	--disable-cmdlib \
+	--disable-dmeventd \
+	--disable-applib \
+	--disable-fsadm \
+	--disable-readline \
+	--disable-selinux
+HOST_LVM2_MAKE_OPTS = device-mapper
+HOST_LVM2_INSTALL_OPTS = install_device-mapper
+
 $(eval $(autotools-package))
+$(eval $(host-autotools-package))

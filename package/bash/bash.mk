@@ -4,11 +4,9 @@
 #
 ################################################################################
 
-BASH_VERSION = 4.4
+BASH_VERSION = 4.4.18
 BASH_SITE = $(BR2_GNU_MIRROR)/bash
-# Build after since bash is better than busybox shells
-BASH_DEPENDENCIES = ncurses readline host-bison \
-	$(if $(BR2_PACKAGE_BUSYBOX),busybox)
+BASH_DEPENDENCIES = ncurses readline host-bison
 BASH_CONF_OPTS = --with-installed-readline --without-bash-malloc
 BASH_LICENSE = GPL-3.0+
 BASH_LICENSE_FILES = COPYING
@@ -25,6 +23,7 @@ BASH_CONF_ENV += \
 # The static build needs some trickery
 ifeq ($(BR2_STATIC_LIBS),y)
 BASH_CONF_OPTS += --enable-static-link
+BASH_CONF_ENV += SHOBJ_STATUS=unsupported
 # bash wants to redefine the getenv() function. To check whether this is
 # possible, AC_TRY_RUN is used which is not possible in
 # cross-compilation.
@@ -38,11 +37,18 @@ BASH_CONF_ENV += bash_cv_getenv_redef=yes
 endif
 endif
 
-# Make /bin/sh -> bash (no other shell, better than busybox shells)
 define BASH_INSTALL_TARGET_CMDS
 	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) \
 		DESTDIR=$(TARGET_DIR) exec_prefix=/ install
 	rm -f $(TARGET_DIR)/bin/bashbug
 endef
+
+# Add /bin/bash to /etc/shells otherwise some login tools like dropbear
+# can reject the user connection. See man shells.
+define BASH_ADD_MKSH_TO_SHELLS
+	grep -qsE '^/bin/bash$$' $(TARGET_DIR)/etc/shells \
+		|| echo "/bin/bash" >> $(TARGET_DIR)/etc/shells
+endef
+BASH_TARGET_FINALIZE_HOOKS += BASH_ADD_MKSH_TO_SHELLS
 
 $(eval $(autotools-package))

@@ -4,22 +4,14 @@
 #
 ################################################################################
 
-MPD_VERSION_MAJOR = $(call qstrip,$(BR2_PACKAGE_MPD_VERSION_STRING))
-ifeq ($(BR2_PACKAGE_MPD_VERSION_0_20),y)
-MPD_VERSION = $(MPD_VERSION_MAJOR).9
-else
-MPD_VERSION = $(MPD_VERSION_MAJOR).21
-endif
+MPD_VERSION_MAJOR = 0.20
+MPD_VERSION = $(MPD_VERSION_MAJOR).20
 MPD_SOURCE = mpd-$(MPD_VERSION).tar.xz
 MPD_SITE = http://www.musicpd.org/download/mpd/$(MPD_VERSION_MAJOR)
 MPD_DEPENDENCIES = host-pkgconf boost
 MPD_LICENSE = GPL-2.0+
 MPD_LICENSE_FILES = COPYING
 MPD_AUTORECONF = YES
-
-ifeq ($(BR2_PACKAGE_MPD_VERSION_0_19),y)
-MPD_DEPENDENCIES += libglib2
-endif
 
 # Some options need an explicit --disable or --enable
 
@@ -65,6 +57,13 @@ MPD_DEPENDENCIES += bzip2
 MPD_CONF_OPTS += --enable-bzip2
 else
 MPD_CONF_OPTS += --disable-bzip2
+endif
+
+ifeq ($(BR2_PACKAGE_MPD_CDIO_PARANOIA),y)
+MPD_DEPENDENCIES += libcdio-paranoia
+MPD_CONF_OPTS += --enable-cdio-paranoia
+else
+MPD_CONF_OPTS += --disable-cdio-paranoia
 endif
 
 ifeq ($(BR2_PACKAGE_MPD_CURL),y)
@@ -119,6 +118,20 @@ MPD_DEPENDENCIES += lame
 MPD_CONF_OPTS += --enable-lame-encoder
 else
 MPD_CONF_OPTS += --disable-lame-encoder
+endif
+
+ifeq ($(BR2_PACKAGE_MPD_LIBMPDCLIENT),y)
+MPD_DEPENDENCIES += libmpdclient
+MPD_CONF_OPTS += --enable-libmpdclient
+else
+MPD_CONF_OPTS += --disable-libmpdclient
+endif
+
+ifeq ($(BR2_PACKAGE_MPD_LIBMMS),y)
+MPD_DEPENDENCIES += libmms
+MPD_CONF_OPTS += --enable-mms
+else
+MPD_CONF_OPTS += --disable-mms
 endif
 
 ifeq ($(BR2_PACKAGE_MPD_LIBNFS),y)
@@ -244,7 +257,9 @@ MPD_CONF_OPTS += --disable-twolame-encoder
 endif
 
 ifeq ($(BR2_PACKAGE_MPD_UPNP),y)
-MPD_DEPENDENCIES += expat libupnp
+MPD_DEPENDENCIES += \
+	expat \
+	$(if $(BR2_PACKAGE_LIBUPNP),libupnp,libupnp18)
 MPD_CONF_OPTS += --enable-upnp
 else
 MPD_CONF_OPTS += --disable-upnp

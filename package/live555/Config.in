@@ -15,13 +15,11 @@ if BR2_PACKAGE_LIVE555
 
 config BR2_PACKAGE_LIVE555_MEDIA_SERVER
 	bool "live555MediaServer"
-	default y
 	help
 	  Install live555MediaServer
 
 config BR2_PACKAGE_LIVE555_PROXY_SERVER
 	bool "live555ProxyServer"
-	default y
 	help
 	  Install live555ProxyServer
 

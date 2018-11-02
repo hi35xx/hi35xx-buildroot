@@ -9,8 +9,8 @@ COLLECTD_SITE = http://collectd.org/files
 COLLECTD_SOURCE = collectd-$(COLLECTD_VERSION).tar.bz2
 COLLECTD_CONF_ENV = ac_cv_lib_yajl_yajl_alloc=yes
 COLLECTD_INSTALL_STAGING = YES
-COLLECTD_LICENSE = GPL-2.0, LGPL-2.1
-COLLECTD_LICENSE_FILES = COPYING
+COLLECTD_LICENSE = MIT (daemon, plugins), GPL-2.0 (plugins), LGPL-2.1 (plugins)
+COLLECTD_LICENSE_FILES = COPYING libltdl/COPYING.LIB
 
 # These require unmet dependencies, are fringe, pointless or deprecated
 COLLECTD_PLUGINS_DISABLE = \
@@ -24,10 +24,25 @@ COLLECTD_PLUGINS_DISABLE = \
 
 COLLECTD_CONF_ENV += LIBS="-lm"
 
+#
+# NOTE: There's also a third availible setting "intswap", which might
+# be needed on some old ARM hardware (see [2]), but is not being
+# accounted for as per discussion [1]
+#
+# [1] http://lists.busybox.net/pipermail/buildroot/2017-November/206100.html
+# [2] http://lists.busybox.net/pipermail/buildroot/2017-November/206251.html
+#
+ifeq ($(BR2_ENDIAN),"BIG")
+COLLECTD_FP_LAYOUT=endianflip
+else
+COLLECTD_FP_LAYOUT=nothing
+endif
+
 COLLECTD_CONF_OPTS += \
 	--with-nan-emulation \
-	--with-fp-layout=nothing \
+	--with-fp-layout=$(COLLECTD_FP_LAYOUT) \
 	--with-perl-bindings=no \
+	--disable-werror \
 	$(foreach p, $(COLLECTD_PLUGINS_DISABLE), --disable-$(p)) \
 	$(if $(BR2_PACKAGE_COLLECTD_AGGREGATION),--enable-aggregation,--disable-aggregation) \
 	$(if $(BR2_PACKAGE_COLLECTD_APACHE),--enable-apache,--disable-apache) \
@@ -179,14 +194,6 @@ COLLECTD_CONF_OPTS += --with-libgcrypt=$(STAGING_DIR)/usr/bin/libgcrypt-config
 else
 COLLECTD_CONF_OPTS += --with-libgcrypt=no
 endif
-
-# released software should not break on minor warnings
-define COLLECTD_DROP_WERROR
-	$(SED) 's/-Werror//' \
-		$(@D)/src/Makefile.in $(@D)/src/libcollectdclient/Makefile.in
-endef
-
-COLLECTD_POST_PATCH_HOOKS += COLLECTD_DROP_WERROR
 
 define COLLECTD_INSTALL_TARGET_CMDS
 	$(TARGET_MAKE_ENV) $(MAKE) DESTDIR=$(TARGET_DIR) -C $(@D) install

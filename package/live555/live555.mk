@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LIVE555_VERSION = 2017.07.18
+LIVE555_VERSION = 2018.10.17
 LIVE555_SOURCE = live.$(LIVE555_VERSION).tar.gz
 LIVE555_SITE = http://www.live555.com/liveMedia/public
 LIVE555_LICENSE = LGPL-2.1+
@@ -27,8 +27,7 @@ LIVE555_CFLAGS += -DLOCALE_NOT_USED
 endif
 
 define LIVE555_CONFIGURE_CMDS
-	echo "" >> $(@D)/config.$(LIVE555_CONFIG_TARGET)
-	echo 'COMPILE_OPTS = $$(INCLUDES) -I. -DSOCKLEN_T=socklen_t -DALLOW_SERVER_PORT_REUSE=1 $(LIVE555_CFLAGS)' >> $(@D)/config.$(LIVE555_CONFIG_TARGET)
+	echo 'COMPILE_OPTS = $$(INCLUDES) -I. -DSOCKLEN_T=socklen_t $(LIVE555_CFLAGS)' >> $(@D)/config.$(LIVE555_CONFIG_TARGET)
 	echo 'C_COMPILER = $(TARGET_CC)' >> $(@D)/config.$(LIVE555_CONFIG_TARGET)
 	echo 'CPLUSPLUS_COMPILER = $(TARGET_CXX)' >> $(@D)/config.$(LIVE555_CONFIG_TARGET)
 
@@ -52,13 +51,15 @@ DIRS_TO_INSTALL-$(BR2_PACKAGE_LIVE555_TEST_PROGS)   += testProgs
 
 define LIVE555_INSTALL_STAGING_CMDS
 	for dir in $(DIRS_TO_INSTALL-y); do \
-	  $(TARGET_MAKE_ENV) $(MAKE) DESTDIR=$(STAGING_DIR) PREFIX=/usr -C $(@D)/$$dir install; \
+	  $(TARGET_MAKE_ENV) $(MAKE) DESTDIR=$(STAGING_DIR) \
+	      PREFIX=/usr -C $(@D)/$$dir install; \
 	done
 endef
 
 define LIVE555_INSTALL_TARGET_CMDS
 	for dir in $(DIRS_TO_INSTALL-y); do \
-	  $(TARGET_MAKE_ENV) $(MAKE) DESTDIR=$(TARGET_DIR) PREFIX=/usr -C $(@D)/$$dir install; \
+	  $(TARGET_MAKE_ENV) $(MAKE) DESTDIR=$(TARGET_DIR) \
+	      PREFIX=/usr -C $(@D)/$$dir install; \
 	done
 endef
 

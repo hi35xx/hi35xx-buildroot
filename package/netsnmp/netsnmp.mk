@@ -4,8 +4,8 @@
 #
 ################################################################################
 
-NETSNMP_VERSION = 5.7.3
-NETSNMP_SITE = http://downloads.sourceforge.net/project/net-snmp/net-snmp/$(NETSNMP_VERSION)
+NETSNMP_VERSION = 5.8
+NETSNMP_SITE = https://downloads.sourceforge.net/project/net-snmp/net-snmp/$(NETSNMP_VERSION)
 NETSNMP_SOURCE = net-snmp-$(NETSNMP_VERSION).tar.gz
 NETSNMP_LICENSE = Various BSD-like
 NETSNMP_LICENSE_FILES = COPYING
@@ -37,8 +37,6 @@ NETSNMP_INSTALL_TARGET_OPTS = DESTDIR=$(TARGET_DIR) LIB_LDCONFIG_CMD=true instal
 NETSNMP_MAKE = $(MAKE1)
 NETSNMP_CONFIG_SCRIPTS = net-snmp-config
 NETSNMP_AUTORECONF = YES
-
-NETSNMP_BLOAT_MIBS = BRIDGE DISMAN-EVENT DISMAN-SCHEDULE DISMAN-SCRIPT EtherLike RFC-1215 RFC1155-SMI RFC1213 SCTP SMUX
 
 ifeq ($(BR2_ENDIAN),"BIG")
 NETSNMP_CONF_OPTS += --with-endianness=big
@@ -100,14 +98,6 @@ NETSNMP_CONF_OPTS += --enable-applications
 else
 NETSNMP_CONF_OPTS += --disable-applications
 endif
-
-define NETSNMP_REMOVE_BLOAT_MIBS
-	for mib in $(NETSNMP_BLOAT_MIBS); do \
-		rm -f $(TARGET_DIR)/usr/share/snmp/mibs/$$mib-MIB.txt; \
-	done
-endef
-
-NETSNMP_POST_INSTALL_TARGET_HOOKS += NETSNMP_REMOVE_BLOAT_MIBS
 
 ifeq ($(BR2_PACKAGE_NETSNMP_SERVER),y)
 define NETSNMP_INSTALL_INIT_SYSV

@@ -4,17 +4,36 @@
 #
 ################################################################################
 
-LIBKCAPI_VERSION = 79cb80714ebcbae2b9de9bb5aca9a6a546f2f121
-LIBKCAPI_SITE = $(call github,smuellerDD,libkcapi,$(LIBKCAPI_VERSION))
+LIBKCAPI_VERSION = 1.1.3
+LIBKCAPI_SOURCE = libkcapi-$(LIBKCAPI_VERSION).tar.xz
+LIBKCAPI_SITE = http://www.chronox.de/libkcapi
 LIBKCAPI_AUTORECONF = YES
 LIBKCAPI_INSTALL_STAGING = YES
 LIBKCAPI_LICENSE = BSD-3-Clause (library), BSD-3-Clause or GPL-2.0 (programs)
 LIBKCAPI_LICENSE_FILES = COPYING COPYING.gplv2 COPYING.bsd
 
-ifeq ($(BR2_PACKAGE_LIBKCAPI_APPS),y)
-LIBKCAPI_CONF_OPTS += --enable-kcapi-speed --enable-kcapi-test --enable-apps
+ifeq ($(BR2_PACKAGE_LIBKCAPI_HASHER),y)
+LIBKCAPI_CONF_OPTS += --enable-kcapi-hasher
 else
-LIBKCAPI_CONF_OPTS += --disable-kcapi-speed --disable-kcapi-test --disable-apps
+LIBKCAPI_CONF_OPTS += --disable-kcapi-hasher
+endif
+
+ifeq ($(BR2_PACKAGE_LIBKCAPI_RNGAPP),y)
+LIBKCAPI_CONF_OPTS += --enable-kcapi-rngapp
+else
+LIBKCAPI_CONF_OPTS += --disable-kcapi-rngapp
+endif
+
+ifeq ($(BR2_PACKAGE_LIBKCAPI_SPEED),y)
+LIBKCAPI_CONF_OPTS += --enable-kcapi-speed
+else
+LIBKCAPI_CONF_OPTS += --disable-kcapi-speed
+endif
+
+ifeq ($(BR2_PACKAGE_LIBKCAPI_TEST),y)
+LIBKCAPI_CONF_OPTS += --enable-kcapi-test
+else
+LIBKCAPI_CONF_OPTS += --disable-kcapi-test
 endif
 
 $(eval $(autotools-package))

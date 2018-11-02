@@ -4,16 +4,11 @@
 #
 ################################################################################
 
-NET_TOOLS_VERSION = 3f170bff115303e92319791cbd56371e33dcbf6d
+NET_TOOLS_VERSION = 479bb4a7e11a4084e2935c0a576388f92469225b
 NET_TOOLS_SITE = git://git.code.sf.net/p/net-tools/code
 NET_TOOLS_DEPENDENCIES = $(TARGET_NLS_DEPENDENCIES)
 NET_TOOLS_LICENSE = GPL-2.0+
 NET_TOOLS_LICENSE_FILES = COPYING
-
-# Install after busybox for the full-blown versions
-ifeq ($(BR2_PACKAGE_BUSYBOX),y)
-NET_TOOLS_DEPENDENCIES += busybox
-endif
 
 define NET_TOOLS_CONFIGURE_CMDS
 	(cd $(@D); yes "" | ./configure.sh config.in )
@@ -40,7 +35,8 @@ define NET_TOOLS_BUILD_CMDS
 endef
 
 # install renames conflicting binaries, update does not
-# ifconfig & route reside in /sbin for busybox
+# ifconfig & route reside in /sbin for busybox, so ensure we don't end
+# up with two versions of those.
 define NET_TOOLS_INSTALL_TARGET_CMDS
 	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) DESTDIR=$(TARGET_DIR) update
 	mv -f $(TARGET_DIR)/bin/ifconfig $(TARGET_DIR)/sbin/ifconfig
