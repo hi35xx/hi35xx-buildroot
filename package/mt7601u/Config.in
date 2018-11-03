@@ -1,0 +1,33 @@
+config BR2_PACKAGE_MT7601U
+    bool "mt7601u"
+    select BR2_LINUX_KERNEL_EXT_WIFI
+    select BR2_PACKAGE_WPA_SUPPLICANT
+    select BR2_PACKAGE_WPA_SUPPLICANT_AP_SUPPORT
+    select BR2_PACKAGE_WPA_SUPPLICANT_AUTOSCAN
+    select BR2_PACKAGE_WPA_SUPPLICANT_EAP
+    select BR2_PACKAGE_WPA_SUPPLICANT_HOTSPOT
+    select BR2_PACKAGE_WPA_SUPPLICANT_WPS
+    select BR2_PACKAGE_WPA_SUPPLICANT_CLI
+    select BR2_PACKAGE_WPA_SUPPLICANT_WIFI_DISPLAY
+    select BR2_PACKAGE_WPA_SUPPLICANT_MESH_NETWORKING
+    help
+    	Ralink 802.11n Wireless LAN USB-Card Linux driver.
+
+config BR2_PACKAGE_MT7601U_PREFIX
+    string "Install prefix"
+    default "/usr"
+    help
+      Prefix to install mt7601u on the target file system.
+
+config BR2_PACKAGE_WPA_DEFAULT_SSID
+    string "Default wifi SSID"
+    default "XXXXX"
+    help
+      Define local SSID for connect wpa_supplicant to WIFI AP
+
+
+config BR2_PACKAGE_WPA_DEFAULT_PASSWORD
+    string "Default wifi pass"
+    default "XXXXX"
+    help
+      Define password for connect wpa_supplicant to WIFI AP

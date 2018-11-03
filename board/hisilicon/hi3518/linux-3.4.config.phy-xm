@@ -948,6 +948,8 @@ CONFIG_SMSC_PHY=y
 # CONFIG_USB_USBNET is not set
 # CONFIG_USB_IPHETH is not set
 # CONFIG_WLAN is not set
+CONFIG_HOSTAP=y
+CONFIG_WLAN=y
 
 #
 # Enable WiMAX (Networking options) to see the WiMAX drivers

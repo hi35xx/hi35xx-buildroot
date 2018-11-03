@@ -1,0 +1,43 @@
+#!/bin/sh
+#
+# Start mt7601u....
+#
+
+start() {
+    (
+      echo -e "Starting mt7601u: \n"
+      modprobe mt7601Usta
+      ifconfig eth0 down
+      ifconfig ra0 up
+      wpa_supplicant -B -ira0 -W -Dwext -c /etc/wpa_supplicant.conf
+      wpa_cli -B -ira0 -p /var/run/wpa_supplicant -a /sbin/wpa_action
+      dhcpcd -q -w ra0
+      echo "nameserver 8.8.8.8" > /etc/resolv.conf
+    )
+}
+
+stop() {
+    (
+      echo -e "Stopping mt7601u: \n"
+      ifconfig ra0 down
+      rmmod mt7601Usta
+    )
+}
+
+case "$1" in
+    start)
+    start
+    ;;
+    stop)
+    stop
+    ;;
+    restart|reload)
+    stop
+    start
+    ;;
+  *)
+    echo "Usage: $0 {start|stop|restart}"
+    exit 1
+esac
+
+exit $?
