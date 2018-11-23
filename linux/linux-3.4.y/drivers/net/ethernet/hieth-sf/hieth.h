@@ -247,7 +247,7 @@ struct send_pkt_info {
 
 #define UD_REG_NAME(name)       ((ld->port == UP_PORT) ? U_##name : D_##name)
 #define UD_BIT_NAME(name)       ((ld->port == UP_PORT) ? name##_U : name##_D)
-#define UD_PHY_NAME(name)       ((ld->port == UP_PORT) ? name##_U : name##_D)
+#define UD_PHY_NAME(name)       ((ld->port == UP_PORT) ? get_##name##_U() : get_##name##_D())
 
 #define UD_BIT(port, name)	(((port) == UP_PORT) ? name##_U : name##_D)
 

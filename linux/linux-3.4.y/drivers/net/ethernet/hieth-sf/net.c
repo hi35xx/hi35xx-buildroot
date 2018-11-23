@@ -26,6 +26,50 @@
 #include "mii.h"
 #include "proc.h"
 
+#ifndef CONFIG_HIETH_MII_RMII_MODE_U
+# define CONFIG_HIETH_MII_RMII_MODE_U 1
+#endif
+#ifndef CONFIG_HIETH_MII_RMII_MODE_D
+# define CONFIG_HIETH_MII_RMII_MODE_D 1
+#endif
+#ifndef CONFIG_HIETH_PHYID_U
+# define CONFIG_HIETH_PHYID_U 1
+#endif
+#ifndef CONFIG_HIETH_PHYID_D
+# define CONFIG_HIETH_PHYID_D 3
+#endif
+
+static long var_CONFIG_HIETH_MII_RMII_MODE_U = CONFIG_HIETH_MII_RMII_MODE_U;
+static int get_CONFIG_HIETH_MII_RMII_MODE_U() {
+   printk("CONFIG_HIETH_MII_RMII_MODE_U %lu\n", var_CONFIG_HIETH_MII_RMII_MODE_U);
+   return (int)var_CONFIG_HIETH_MII_RMII_MODE_U;
+}
+static long var_CONFIG_HIETH_MII_RMII_MODE_D = CONFIG_HIETH_MII_RMII_MODE_D;
+static int get_CONFIG_HIETH_MII_RMII_MODE_D() {
+   printk("CONFIG_HIETH_MII_RMII_MODE_D %lu\n", var_CONFIG_HIETH_MII_RMII_MODE_D);
+   return (int)var_CONFIG_HIETH_MII_RMII_MODE_D;
+}
+
+static long var_CONFIG_HIETH_PHYID_U = CONFIG_HIETH_PHYID_U;
+static int get_CONFIG_HIETH_PHYID_U() {
+   printk("CONFIG_HIETH_PHYID_U %lu\n", var_CONFIG_HIETH_PHYID_U);
+   return (int)var_CONFIG_HIETH_PHYID_U;
+}
+static long var_CONFIG_HIETH_PHYID_D = CONFIG_HIETH_PHYID_D;
+static int get_CONFIG_HIETH_PHYID_D() {
+   printk("CONFIG_HIETH_PHYID_D %lu\n", var_CONFIG_HIETH_PHYID_D);
+   return (int)var_CONFIG_HIETH_PHYID_D;
+}
+
+static int mmi_rmmi_mode_u_param_setup(char *str) { kstrtol(str, 10, &var_CONFIG_HIETH_MII_RMII_MODE_U); return 1; }
+__setup("mmi_rmmi_mode_u=", mmi_rmmi_mode_u_param_setup);
+static int mmi_rmmi_mode_d_param_setup(char *str) { kstrtol(str, 10, &var_CONFIG_HIETH_MII_RMII_MODE_D); return 1; }
+__setup("mmi_rmmi_mode_d=", mmi_rmmi_mode_d_param_setup);
+static int phyaddru_param_setup(char *str) { kstrtol(str, 10, &var_CONFIG_HIETH_PHYID_U); return 1; }
+__setup("phyaddru=", phyaddru_param_setup);
+static int phyaddrd_param_setup(char *str) { kstrtol(str, 10, &var_CONFIG_HIETH_PHYID_D); return 1; }
+__setup("phyaddrd=", phyaddrd_param_setup);
+
 struct net_device *hieth_devs_save[2] = {NULL, NULL};
 
 static struct sockaddr macaddr;
@@ -1109,8 +1153,8 @@ static int hieth_plat_driver_probe(struct platform_device *pdev)
 #endif
 	spin_lock_init(&hieth_glb_reg_lock);
 
-	phy_quirk(&hieth_mdio_local_device, CONFIG_HIETH_PHYID_U);
-	phy_quirk(&hieth_mdio_local_device, CONFIG_HIETH_PHYID_D);
+	phy_quirk(&hieth_mdio_local_device, get_CONFIG_HIETH_PHYID_U());
+	phy_quirk(&hieth_mdio_local_device, get_CONFIG_HIETH_PHYID_D());
 
 	if (hieth_devs_save[UP_PORT])
 		ndev = hieth_devs_save[UP_PORT];
@@ -1216,8 +1260,8 @@ static int hieth_plat_driver_resume(struct platform_device *pdev)
 {
 	hieth_sys_resume();
 
-	phy_quirk(&hieth_mdio_local_device, CONFIG_HIETH_PHYID_U);
-	phy_quirk(&hieth_mdio_local_device, CONFIG_HIETH_PHYID_D);
+	phy_quirk(&hieth_mdio_local_device, get_CONFIG_HIETH_PHYID_U());
+    phy_quirk(&hieth_mdio_local_device, get_CONFIG_HIETH_PHYID_D());
 
 	hieth_plat_driver_resume_port(pdev, UP_PORT);
 	hieth_plat_driver_resume_port(pdev, DOWN_PORT);

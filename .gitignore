@@ -14,3 +14,5 @@
 *~
 *.pyc
 /zft_lab
+
+board/hisilicon/hi3518/fs-overlay/root/\.ssh/authorized_keys
