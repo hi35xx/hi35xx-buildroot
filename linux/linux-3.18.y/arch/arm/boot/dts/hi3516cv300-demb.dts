@@ -1,0 +1,636 @@
+/*
+ * Copyright (c) 2016 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+
+/dts-v1/;
+#include "hi3516cv300.dtsi"
+
+/ {
+	model = "Hisilicon Hi3516CV300 DEMO Board";
+	compatible = "hisilicon,hi3516cv300";
+
+	memory {
+		device_type = "memory";
+		reg = <0x80000000 0x10000000>;
+	};
+};
+
+&dual_timer0 {
+	status = "okay";
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&i2c_bus1 {
+	status = "okay";
+	clock-frequency = <100000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2c1_pmux &i2c1_pconf>;
+};
+
+&spi_bus1{
+	status = "disabled";
+	num-cs = <2>;
+	cs-gpios = <&gpio_chip5 3 0>, <&gpio_chip5 4 0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&spi1_pmux &spi1_pconf1 &spi1_pconf2 &spi1_pconf3>;
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <50000000>;
+	};
+
+	spidev@1 {
+		compatible = "rohm,dh2228fv";
+		reg = <1>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <50000000>;
+	};
+};
+
+&pwm {
+	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pwm_pmux>;
+};
+
+&hisfc {
+	assigned-clocks = <&crg_ctrl HI3516CV300_FMC_CLK>;
+	assigned-clock-rates = <24000000>;
+
+	hi_sfc {
+		compatible = "jedec,spi-nor";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+		m25p,fast-read;
+	};
+};
+
+&hisnfc {
+	assigned-clocks = <&crg_ctrl HI3516CV300_FMC_CLK>;
+	assigned-clock-rates = <83300000>;
+
+	hinand {
+		compatible = "jedec,spi-nand";
+		reg = <0>;
+		spi-max-frequency = <160000000>;
+	};
+};
+
+&mmc0 {
+	status = "okay";
+};
+
+&mmc1 {
+	status = "okay";
+};
+
+&mmc2 {
+	status = "okay";
+};
+
+&mdio {
+	phy0: phy@1 {
+		reg = <1>;
+	};
+};
+
+&hisi_femac {
+	mac-address = [00 00 00 00 00 00];
+	phy-mode = "rmii";
+	phy-handle = <&phy0>;
+	hisilicon,phy-reset-delays-us = <10000 10000 150000>;
+};
+
+&usb_phy {
+	status = "okay";
+};
+
+&ehci {
+	status = "okay";
+};
+
+&ohci {
+	status = "okay";
+};
+
+&hiudc {
+	status = "okay";
+};
+
+&hidmac {
+	status = "okay";
+};
+
+&dmac {
+	status = "disabled";
+};
+
+&gpio_chip0 {
+	status = "okay";
+};
+
+&gpio_chip1 {
+	status = "okay";
+};
+
+&gpio_chip2 {
+	status = "okay";
+};
+
+&gpio_chip3 {
+	status = "okay";
+};
+
+&gpio_chip4 {
+	status = "okay";
+};
+
+&gpio_chip5 {
+	status = "okay";
+};
+
+&gpio_chip6 {
+	status = "okay";
+};
+
+&gpio_chip7 {
+	status = "okay";
+};
+
+&gpio_chip8 {
+	status = "okay";
+};
+
+&pmux {
+	i2c0_pmux: i2c0_pmux {
+		pinctrl-single,pins = <
+			0x2c 0x3	/*I2C0_SDA*/
+			0x30 0x3	/*I2C0_SCL*/
+		>;
+	};
+
+	i2c1_pmux: i2c1_pmux {
+		pinctrl-single,pins = <
+			0x20 0x1	/*I2C1_SDA*/
+			0x24 0x1	/*I2C1_SCL*/
+		>;
+	};
+
+	spi0_pmux: spi0_pmux {
+		pinctrl-single,pins = <
+			0x28 0x1	/*SPI0_SDI*/
+			0x2c 0x1	/*SPI0_SDO*/
+			0x30 0x1	/*SPI0_SCLK*/
+			0x34 0x1	/*SPI0_CSN*/
+		>;
+	};
+
+	spi1_pmux: spi1_pmux {
+		pinctrl-single,pins = <
+			0xc4 0x1	/*SPI1_CSN1*/
+			0xc8 0x1	/*SPI1_CSN0*/
+			0xcc 0x1	/*SPI1_SDO*/
+			0xd0 0x1	/*SPI1_SDI*/
+			0xd4 0x1	/*SPI1_SCLK*/
+		>;
+	};
+
+	sensor_pmux: sensor_pmux {
+		pinctrl-single,pins = <
+			0x38 0x1	/*SENSOR_RSTN*/
+			0x3c 0x1	/*SENSOR_CLK*/
+		>;
+	};
+
+	spi_3wire_pmux: spi_3wire_pmux{
+		pinctrl-single,pins = <
+			0x2c 0x2	/*SPI_3LINE_SDATA*/
+			0x30 0x2	/*SPI_3LINE_SCLK*/
+			0x34 0x2	/*SPI_3LINE_CSN*/
+		>;
+	};
+
+	vi_flash_trig_pmux: vi_flash_trig_pmux {
+		pinctrl-single,pins = <
+			0x1c 0x1	/*FLASH_TRIG*/
+		>;
+	};
+
+	vi_shutter_trig_pmux: vi_shutter_trig_pmux {
+		pinctrl-single,pins = <
+			0x18 0x1	/*SHUTTER_TRIG*/
+		>;
+	};
+
+	vi_bt1120_pmux: vi_bt1120_pmux{
+		pinctrl-single,pins = <
+			0x40 0x1	/*VI_DATA13*/
+			0x44 0x1	/*VI_DATA10*/
+			0x48 0x1	/*VI_DATA12*/
+			0x4c 0x1	/*VI_DATA11*/
+			0x50 0x1	/*VI_DATA9*/
+			0x54 0x1	/*VI_DATA14*/
+			0x58 0x1	/*VI_DATA15*/
+			0x5c 0x1	/*VI_VS*/
+			0x60 0x1	/*VI_HS*/
+		>;
+	};
+
+	sensor_dc_pmux: sensor_dc_pmux{
+		pinctrl-single,pins = <
+			0x40 0x1	/*VI_DATA13*/
+			0x44 0x1	/*VI_DATA10*/
+			0x48 0x1	/*VI_DATA12*/
+			0x4c 0x1	/*VI_DATA11*/
+			0x50 0x1	/*VI_DATA9*/
+			0x54 0x1	/*VI_DATA14*/
+			0x58 0x1	/*VI_DATA15*/
+			0x5c 0x1	/*VI_VS*/
+			0x60 0x1	/*VI_HS*/
+		>;
+	};
+
+	vo_bt656_pmux: vo_bt656_pmux{
+		pinctrl-single,pins = <
+			0x40 0x2	/*VOU656_CLK*/
+			0x44 0x2	/*VOU656_DATA3*/
+			0x48 0x2	/*VOU656_DATA7*/
+			0x4c 0x2	/*VOU656_DATA2*/
+			0x50 0x2	/*VOU656_DATA6*/
+			0x54 0x2	/*VOU656_DATA5*/
+			0x58 0x2	/*VOU656_DATA4*/
+			0x5c 0x2	/*VOU656_DATA1*/
+			0x60 0x2	/*VOU656_DATA0*/
+		>;
+	};
+
+	vo_lcd_pmux: vo_lcd_pmux{
+		pinctrl-single,pins = <
+			0x40 0x3	/*LCD_CLK*/
+			0x44 0x3	/*LCD_DATA1*/
+			0x48 0x3	/*LCD_DATA3*/
+			0x4c 0x3	/*LCD_DATA2*/
+			0x50 0x3	/*LCD_DATA4*/
+			0x54 0x3	/*LCD_DATA5*/
+			0x58 0x3	/*LCD_DATA0*/
+			0x5c 0x3	/*LCD_HSYNC*/
+			0x60 0x3	/*LCD_VSYNC*/
+			0x64 0x3	/*LCD_DE*/
+		>;
+	};
+
+	i2s_with_jtag_pmux: i2s_with_jtag_pmux{
+		pinctrl-single,pins = <
+			0xc4 0x4	/*I2S_SD_TX*/
+			0xc8 0x4	/*I2S_WS_TX*/
+			0xcc 0x4	/*I2S_BCLK_TX*/
+			0xd0 0x4	/*I2S_MCLK*/
+			0xd4 0x4	/*I2S_SD_RX*/
+		>;
+	};
+
+	i2s_with_vi_pmux: i2s_with_vi_pmux{
+		pinctrl-single,pins = <
+			0x40 0x4	/*I2S_MCLK*/
+			0x44 0x4	/*I2S_SD_TX*/
+			0x48 0x4	/*I2S_BCLK_TX*/
+			0x4c 0x4	/*I2S_WS_TX*/
+			0x58 0x4	/*I2S_SD_RX*/
+		>;
+	};
+
+	pwm_pmux: pwm_pmux{
+		pinctrl-single,pins = <
+			0x04 0x1
+			0x08 0x1
+			0x0c 0x1
+		>;
+	};
+};
+
+&pconf {
+	i2c0_pconf: i2c0_pconf {
+		pinctrl-single,pins = <
+			0x2c 0
+			0x30 0
+		>;
+		pinctrl-single,drive-strength = <0x70 0xff>;
+	};
+
+	i2c1_pconf: i2c1_pconf {
+		pinctrl-single,pins = <
+			0x20 0
+			0x24 0
+		>;
+		pinctrl-single,drive-strength = <0x30 0xff>;
+	};
+
+	/*spi0 drive strength conf 1~3*/
+	spi0_pconf1: spi0_pconf1 {
+		pinctrl-single,pins = <
+			0x28 0
+			0x2c 0
+		>;
+		pinctrl-single,drive-strength = <0x20 0xff>;
+	};
+
+	spi0_pconf2: spi0_pconf2 {
+		pinctrl-single,pins = <
+			0x30 0
+		>;
+		pinctrl-single,drive-strength = <0x50 0xff>;
+	};
+
+	spi0_pconf3: spi0_pconf3 {
+		pinctrl-single,pins = <
+			0x34 0
+		>;
+		pinctrl-single,drive-strength = <0x30 0xff>;
+	};
+
+	/*spi1 drive strength conf 1~3*/
+	spi1_pconf1: spi1_pconf1 {
+		pinctrl-single,pins = <
+			0xe4 0
+			0xe8 0
+		>;
+		pinctrl-single,drive-strength = <0x30 0xff>;
+	};
+
+	spi1_pconf2: spi1_pconf2 {
+		pinctrl-single,pins = <
+			0xec 0
+			0xf0 0
+		>;
+		pinctrl-single,drive-strength = <0x20 0xff>;
+	};
+
+	spi1_pconf3: spi1_pconf3 {
+		pinctrl-single,pins = <
+			0xf4 0
+		>;
+		pinctrl-single,drive-strength = <0x0 0xff>;
+	};
+
+	spi_3wire_pconf: spi_3wire_pconf{
+		pinctrl-single,pins = <
+			0x2c 0
+			0x30 0
+			0x34 0
+		>;
+		pinctrl-single,drive-strength = <0x70 0xff>;
+	};
+
+	sensor_pconf1: sensor_pconf1 {
+		pinctrl-single,pins = <
+			0x38 0
+		>;
+		pinctrl-single,drive-strength = <0x31 0xff>;
+	};
+
+	sensor_pconf2: sensor_pconf2 {
+		pinctrl-single,pins = <
+			0x3c 0
+		>;
+		pinctrl-single,drive-strength = <0x20 0xff>;
+	};
+
+	vi_bt1120_pconf: vi_bt1120_pconf {
+		pinctrl-single,pins = <
+			0x40 0
+			0x44 0
+			0x48 0
+			0x4c 0
+			0x50 0
+			0x54 0
+			0x58 0
+			0x5c 0
+			0x60 0
+		>;
+		pinctrl-single,drive-strength = <0x70 0xff>;
+	};
+
+	sensor_dc_pconf: sensor_dc_pconf {
+		pinctrl-single,pins = <
+			0x40 0
+			0x44 0
+			0x48 0
+			0x4c 0
+			0x50 0
+			0x54 0
+			0x58 0
+			0x5c 0
+			0x60 0
+		>;
+		pinctrl-single,drive-strength = <0x70 0xff>;
+	};
+
+	vo_bt656_pconf1: vo_bt656_pconf1 {
+		pinctrl-single,pins = <
+			0x40 0
+		>;
+		pinctrl-single,drive-strength = <0x40 0xff>;
+	};
+
+	vo_bt656_pconf2: vo_bt656_pconf2 {
+		pinctrl-single,pins = <
+			0x44 0
+			0x48 0
+			0x4c 0
+			0x50 0
+			0x54 0
+			0x58 0
+			0x5c 0
+			0x60 0
+		>;
+		pinctrl-single,drive-strength = <0x20 0xff>;
+	};
+
+	vo_lcd_pconf1: vo_lcd_pconf1 {
+		pinctrl-single,pins = <
+			0x40 0
+		>;
+		pinctrl-single,drive-strength = <0x40 0xff>;
+	};
+
+	vo_lcd_pconf2: vo_lcd_pconf2 {
+		pinctrl-single,pins = <
+			0x44 0
+			0x48 0
+			0x4c 0
+			0x50 0
+			0x54 0
+			0x58 0
+			0x5c 0
+			0x60 0
+			0x64 0
+		>;
+		pinctrl-single,drive-strength = <0x10 0xff>;
+	};
+
+	i2s_with_jtag_pconf: i2s_with_jtag_pconf{
+		pinctrl-single,pins = <
+			0xe4 0
+			0xe8 0
+			0xec 0
+			0xf0 0
+			0xf4 0
+		>;
+		pinctrl-single,drive-strength = <0x30 0xff>;
+	};
+
+	i2s_with_vi_pconf: i2s_with_vi_pconf{
+		pinctrl-single,pins = <
+			0x40 0
+			0x44 0
+			0x48 0
+			0x4c 0
+			0x58 0
+		>;
+		pinctrl-single,drive-strength = <0x70 0xff>;
+	};
+};
+
+&i2c_bus0 {
+	status = "okay";
+	clock-frequency = <100000>;
+};
+
+&spi_bus0{
+	status = "okay";
+	num-cs = <1>;
+	cs-gpios = <&gpio_chip0 6 0>;
+
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		pl022,interface = <0>;
+		pl022,com_mode = <0>;
+		spi-max-frequency = <50000000>;
+	};
+};
+
+&sensor_device0 {
+	pinctrl-names = "i2c_mipi", "ssp_mipi", "i2c_dc", "ssp_dc", "sleep";
+	pinctrl-0 = <&sensor_pmux &sensor_pconf1 &sensor_pconf2 &i2c0_pmux &i2c0_pconf>;
+	pinctrl-1 = <&sensor_pmux &sensor_pconf1 &sensor_pconf2 &spi0_pmux &spi0_pconf1 &spi0_pconf2 &spi0_pconf3>;
+	pinctrl-2 = <&sensor_pmux &sensor_pconf1 &sensor_pconf2 &i2c0_pmux &i2c0_pconf &sensor_dc_pmux &sensor_dc_pconf>;
+	pinctrl-3 = <&sensor_pmux &sensor_pconf1 &sensor_pconf2 &spi0_pmux &spi0_pconf1 &spi0_pconf2 &spi0_pconf3 &sensor_dc_pmux &sensor_dc_pconf>;
+	pinctrl-4 = <&sensor_pmux &sensor_pconf1 &sensor_pconf2>;
+};
+
+&viu {
+	pinctrl-names = "default", "bt1120", "sleep";
+	pinctrl-0 = <&vi_flash_trig_pmux &vi_shutter_trig_pmux>;
+	pinctrl-1 = <&vi_flash_trig_pmux &vi_shutter_trig_pmux &vi_bt1120_pmux &vi_bt1120_pconf>;
+	pinctrl-2 = <&vi_flash_trig_pmux &vi_shutter_trig_pmux>;
+};
+
+&vou {
+	pinctrl-names = "bt656", "lcd", "sleep", "default";
+	pinctrl-0 = <&vo_bt656_pmux &vo_bt656_pconf1 &vo_bt656_pconf2>;
+	pinctrl-1 = <&vo_lcd_pmux &vo_lcd_pconf1 &vo_lcd_pconf2>;
+	pinctrl-2 = <>;
+	pinctrl-3 = <>;
+};
+
+/*
+&audio {
+	pinctrl-names = "default";
+	pinctrl-0 = <&i2s_with_jtag_pmux &i2s_with_jtag_pconf>;
+};
+*/
+
+&pin_ctrl_online {
+	pinctrl-single,pins = <
+		0x12030000 0x00000080
+		0x12030044 0x66664111
+		0x12030048 0x66666013
+		0x1203004c 0x65266666
+		0x12030050 0x00000011
+		0x12030054 0x00000110
+		0x12030058 0x00000000
+		0x12060204 0x1f>;
+};
+
+&pin_ctrl_offline {
+	pinctrl-single,pins = <
+		0x12030000 0x00000000
+		0x12030044 0x66666111
+		0x12030048 0x66666023
+		0x1203004c 0x65266666
+		0x12030050 0x00000011
+		0x12030054 0x00000100
+		0x12030058 0x00000000
+		0x12060204 0x2>;
+};
+
+&pin_ctrl_ddr {
+	pinctrl-single,pins = <
+		0x120600c0 0x76543210
+		0x120600c4 0x76543210
+		0x120600c8 0x76543210
+		0x120600cc 0x76543210
+		0x120600d0 0x76543210
+		0x120600d4 0x76543210
+		0x12060100 0x76543210
+		0x12060104 0x76543210
+		0x12060108 0x76543210
+		0x1206010c 0x76543210
+		0x12060110 0x76543210
+		0x12060114 0x76543210
+		0x12060140 0x00000000
+		0x12060144 0x00000000
+		0x12060148 0x00000000
+		0x1206014c 0x00000000
+		0x12060150 0x00000000
+		0x12060154 0x00000000
+		0x12060180 0x00004000
+		0x12060184 0x00004000
+		0x12060188 0x00000000
+		0x1206018c 0x00000000
+		0x12060190 0x00000100
+		0x12060194 0x00000000
+		0x12060200 0x1f
+		0x12060208 0x2
+		0x1206020c 0x2
+		0x12060214 0x3
+		0x12060240 0xb
+		0x12060244 0xcff
+		0x12060040 0x81001000
+		0x12060044 0x81001000
+		0x12060048 0x81001000
+		0x1206004c 0x81001000
+		0x12060050 0x81001000
+		0x12060054 0x81001000
+		0x120614bc 0x101
+		0x113200E0 0xd
+	>;
+};
+
+&user_pinmux {
+	pinctrl-single,pins = <
+	>;
+};

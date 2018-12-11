@@ -1,0 +1,15 @@
+Hisilicon hi3519 USB3 PHY
+-----------------------
+
+Required properties:
+- compatible: should be "hisilicon,hisi-usb3-phy"
+- reg: offset and length of the PHY registers
+- #phy-cells: must be 0
+Refer to phy/phy-bindings.txt for the generic PHY binding properties
+
+Example:
+	usb3_phy: phy {
+		compatible = "hisilicon,hisi-usb3-phy";
+		reg = <0x10180000 0x10000>, <0x12010000 0x10000>;
+		#phy-cells = <0>;
+	};

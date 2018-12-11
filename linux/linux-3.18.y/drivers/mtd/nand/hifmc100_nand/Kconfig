@@ -1,0 +1,104 @@
+#
+# drivers/mtd/nand/hifmc100_nand/Kconfig
+# add by hisilicon 2015.5.7
+#
+
+menuconfig HIFMC100_NAND
+	tristate "Hisilicon Flash Memory Controller v100 Nand device Support"
+	depends on HIFMC
+	depends on MTD_NAND
+	default n if ARCH_HI3519
+	default n if ARCH_HI3519V101
+	default n if ARCH_HI3559
+	default n if ARCH_HI3556
+	select MISC_FILESYSTEMS
+	select MTD_BLOCK
+	help
+	  Hisilicon Flash Memory Controller device version 100 driver Support
+	  Hisilicon Flash Memory Controller version 100 is called hifmc100 for
+	  short. The controller support DMA transfers while reading or writing
+	  the Nand flash.
+
+if HIFMC100_NAND
+
+config HIFMC100_MAX_NAND_CHIP
+	int "number of Nand flash chip (1, 2)"
+	default 1 if ARCH_HI3519
+	default 1 if ARCH_HI3519V101
+	default 1 if ARCH_HI3559
+	default 1 if ARCH_HI3556
+	help
+	  flash memory controller v100 device only support 1 or 2 Nand flash
+	  chip, your should not config other value.
+
+config HIFMC100_NAND_EDO_MODE
+	bool "the Extended Data Out(EDO) mode"
+	help
+	  In Extended data out (EDO), a new data cycle is started while the data
+	  output of the previous cycle is still active. This process of cycle
+	  overlapping, called pipelining, increases processing speed by about
+	  10 nanoseconds per cycle,increasing computer performance by about 5
+	  percent compared to performance using FMP.
+
+config RW_H_WIDTH
+	int "the width of Read/Write HIGH Hold Time (0 to 15)"
+	range 0 15
+	default 10 if ARCH_HI3519
+	default 10 if ARCH_HI3519V101
+	default 10 if ARCH_HI3559
+	default 10 if ARCH_HI3556
+	help
+	  the Read/Write HIGH Hold Time of nand flash
+
+config R_L_WIDTH
+	int "the Read pulse width (0 to 15)"
+	range 0 15
+	default 10 if ARCH_HI3519
+	default 10 if ARCH_HI3519V101
+	default 10 if ARCH_HI3559
+	default 10 if ARCH_HI3556
+	help
+	  the Read/Write LOW Hold Time of nand flash
+
+config W_L_WIDTH
+	int "the Write pulse width (0 to 15)"
+	range 0 15
+	default 10 if ARCH_HI3519
+	default 10 if ARCH_HI3519V101
+	default 10 if ARCH_HI3559
+	default 10 if ARCH_HI3556
+	help
+	  the Read/Write LOW Hold Time of nand flash
+
+choice
+	prompt "Page Size and Ecc Type Select"
+	default HIFMC100_NAND_AUTO_PAGESIZE_ECC if ARCH_HI3519
+	default HIFMC100_NAND_AUTO_PAGESIZE_ECC if ARCH_HI3519V101
+	default HIFMC100_NAND_AUTO_PAGESIZE_ECC if ARCH_HI3559
+	default HIFMC100_NAND_AUTO_PAGESIZE_ECC if ARCH_HI3556
+
+config HIFMC100_NAND_HARDWARE_PAGESIZE_ECC
+	bool "Hardware"
+	help
+	  the configure of page size and ecc type lie on switch on the board.
+	  so the page size and ecc type is controlled by Hardware see demo
+	  board of SOC.
+
+config HIFMC100_NAND_AUTO_PAGESIZE_ECC
+	bool "Auto"
+	help
+	  auto-sensed the page size and ecc type value. driver will try each of
+	  page size and ecc type one by one till flash can be read and wrote
+	  accurately. so the page size and ecc type is match adaptively without
+	  switch on the board
+
+config HIFMC100_NAND_PAGESIZE_AUTO_ECC_NONE
+	bool "Pagesize Auto, Ecc None"
+	help
+	  auto-sensed the page size and select ecc none. driver will try each
+	  of page size one by one till flash can be read and wrote accurately.
+	  so the page size is match adaptively without switch on the board
+
+endchoice
+
+endif # End of HIFMC100_NAND

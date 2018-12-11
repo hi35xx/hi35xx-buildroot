@@ -1,0 +1,36 @@
+menuconfig HI_SATA
+	bool "hisilicon sata device support"
+	depends on ARCH_HI3536C
+	default y if ARCH_HI3536C
+	select ATA
+	select ATA_VERBOSE_ERROR
+	select SATA_PMP
+	select SATA_AHCI_PLATFORM
+
+if HI_SATA
+config HI_SATA_IOBASE
+	hex "hi sata IO address"
+	default "0x11010000" if ARCH_HI3536C
+	help
+	  hisilicon sata io base address.
+
+config HI_SATA_FBS
+	int "hi sata FIS-Based switching"
+	default 1
+	range 0 1
+	help
+	  Hisatav200 supports FBS.
+	  FBS is FIS-Based switching.
+	  Choose y if you want to use it.
+
+config HI_SATA_NCQ
+	int "hi sata Native Command Queuing"
+	default 1
+	range 0 1
+	help
+	  Hisatav200 supports NCQ.
+	  NCQ is Native Command Queuing.
+	  Choose y if you want to use it.
+
+endif
+

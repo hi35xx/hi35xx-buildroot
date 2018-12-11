@@ -1,0 +1,84 @@
+#
+# Makefile for DWC_usb3 SuperSpeed USB controller driver
+#
+
+CFLAGS	:= -O2 -Wall -Wno-pointer-sign -g -I.
+LDFLAGS	:= -g
+
+CFLAGS	+= -DTESTCOMPILE
+
+# Uncomment these for debug messages
+CFLAGS	+= -DDEBUG
+CFLAGS	+= -DVERBOSE
+CFLAGS	+= -DDEBUG_EP0
+
+# Uncomment this, and comment out the previous 3, for minimal debug for ISOC
+#CFLAGS	+= -DISOC_DEBUG
+
+# Uncomment this to enable Bulk Streams, to support the UASP gadget
+CFLAGS	+= -DDWC_UASP_GADGET_STREAMS
+
+# Uncomment this to support the UTE gadget, and also uncomment the line with
+# "dwc_usb3-objs += ute_if.o" below
+#CFLAGS	+= -DDWC_UTE -I$(KBUILD_SRC)/../UTE-3.0/common
+
+#CFLAGS	+= -DDWC_ISOC_INTR_MODERATION
+#CFLAGS	+= -DDWC_TEST_ISOC_CHAIN
+#CFLAGS	+= -DLECROY
+
+#CFLAGS	+= -DDWC_STAR_9000446947_WORKAROUND
+#CFLAGS	+= -DDWC_STAR_9000449814_WORKAROUND
+#CFLAGS	+= -DDWC_STAR_9000459034_WORKAROUND
+#CFLAGS	+= -DDWC_STAR_9000463548_WORKAROUND
+#CFLAGS	+= -DDWC_STAR_9000468158_WORKAROUND
+#CFLAGS	+= -DDWC_STAR_9000483510_WORKAROUND
+
+obj-m		:= dwc_usb3
+
+dwc_usb3-objs	:= cil.o cil_intr.o
+dwc_usb3-objs	+= pcd.o pcd_intr.o pcd_hiber.o ep0.o
+dwc_usb3-objs	+= no_os/no_os_init.o no_os/no_os_hiber.o no_os/no_os_ep0.o
+dwc_usb3-objs	+= no_os/no_os_gadget.o no_os/no_os_src_sink_lpbk.o
+
+# Uncomment this to support the UTE gadget, and also uncomment the line with
+# "-DDWC_UTE" above
+#dwc_usb3-objs	+= ute_if.o
+
+PWD		:= $(shell pwd)
+
+# Command paths
+CTAGS		:= /usr/bin/ctags
+DOXYGEN		:= /depot/doxygen-1.5.8/bin/doxygen
+
+default: all
+
+docs:
+	cd doc ; \
+	$(DOXYGEN) ; \
+	cp doxygen.sty latex/ ; \
+	cp synopsys.eps latex/ ; \
+	cp synopsys.pdf latex/ ; \
+	make -C latex/ ; \
+	cd ..
+
+tags:	$(wildcard *.[ch])
+	$(CTAGS) -e $(wildcard *.[ch]) $(wildcard linux/*.[ch]) \
+            $(wildcard $(KDIR)/include/linux/usb*.h)
+
+driver: links $(obj-m)
+
+$(obj-m): $(dwc_usb3-objs)
+	$(CC) $(LDFLAGS) -o $(obj-m) $(dwc_usb3-objs)
+
+links:
+	rm -f os_defs.h os_dev.h
+	ln -s no_os/no_os_defs.h os_defs.h
+	ln -s no_os/no_os_dev.h os_dev.h
+
+clean:
+	rm -rf $(obj-m) *.o no_os/*.o
+
+cleanall: clean
+	rm -rf doc/html doc/latex doc/rtf
+
+all: driver

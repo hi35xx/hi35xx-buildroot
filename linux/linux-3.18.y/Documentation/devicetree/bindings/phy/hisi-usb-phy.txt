@@ -1,0 +1,15 @@
+Hisilicon hi3519 USB2 PHY
+-----------------------
+
+Required properties:
+- compatible: should be "hisilicon,hisi-usb-phy"
+- reg: offset and length of the PHY registers
+- #phy-cells: must be 0
+Refer to phy/phy-bindings.txt for the generic PHY binding properties
+
+Example:
+	usb_phy: phy {
+		compatible = "hisilicon,hisi-usb-phy";
+		reg = <0x12030000 0x10000>, <0x12010000 0x10000>;
+		#phy-cells = <0>;
+	};

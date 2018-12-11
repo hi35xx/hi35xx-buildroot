@@ -1,0 +1,44 @@
+#
+# hisilicon usb2 device controller version 3.00a
+#
+
+menuconfig HI_SS_DEVICE
+	tristate "hisilicon usb3 device controller version 2.50a driver"
+	default n
+	select USB_GADGET_DUALSPEED
+	select USB_GADGET_SELECTED
+	help
+	  hisilicon usb3 device controller version 3.00a.
+
+if HI_SS_DEVICE
+
+config HIUSB_XHCI_REG_BASE_ADDRESS
+	hex "hiusb3dev system control register base address"
+	default "0xf98a0000" if ARCH_S40
+	default "0x60180000" if ARCH_GODBOX
+	default "0x10180000" if ARCH_HI3519
+	default "0x10180000" if ARCH_HI3519V101
+	default "0x10180000" if ARCH_HI3559
+	default "0x10180000" if ARCH_HI3556
+	default "0x10180000" if ARCH_HI3516AV200
+
+config HIUSB_XHCI_REG_BASE_ADDRESS_LEN
+	hex "hiusb3dev system control register size length"
+	default "0x10000" if ARCH_S40
+	default "0x10000" if ARCH_GODBOX
+	default "0x10000" if ARCH_HI3519
+	default "0x10000" if ARCH_HI3519V101
+	default "0x10000" if ARCH_HI3559
+	default "0x10000" if ARCH_HI3556
+	default "0x10000" if ARCH_HI3516AV200
+
+config HIUSB_XHCI_IRQ_NUMBER
+	int "hiusb3dev system control register interrupt number"
+	default "100" if ARCH_S40
+	default "103" if ARCH_GODBOX
+	default "54" if ARCH_HI3519
+	default "54" if ARCH_HI3519V101
+	default "54" if ARCH_HI3559
+	default "54" if ARCH_HI3556
+	default "54" if ARCH_HI3516AV200
+endif # HI_SS_DEVICE

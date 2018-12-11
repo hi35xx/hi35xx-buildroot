@@ -1,0 +1,22 @@
+Hisilicon Gigabit Ethernet MDIO Controller interface
+
+Required properties:
+- compatible: should be "hisilicon,hisi-gemac-mdio".
+- reg: address and length of the register set for the device.
+- clocks: A phandle to the reference clock for this device.
+
+- PHY subnode: inherits from phy binding [1]
+[1] Documentation/devicetree/bindings/net/phy.txt
+
+Example:
+mdio: mdio@100503c0 {
+	compatible = "hisilicon,hisi-gemac-mdio";
+	reg = <0x100503c0 0x20>;
+	clocks = <&crg HI3519V100_MDIO_CLK>;
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	phy0: phy@1 {
+		reg = <1>;
+	};
+};

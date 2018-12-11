@@ -1,0 +1,22 @@
+Hisilicon SATA NANO PHY
+-----------------------
+
+Required properties:
+- compatible: should be "hisilicon,hisi-sata-nano-phy"
+- reg: offset and length of the PHY registers
+- #phy-cells: must be 0
+Refer to phy/phy-bindings.txt for the generic PHY binding properties
+
+Optional Properties:
+- hisilicon,peripheral-syscon: phandle of syscon used to control peripheral.
+- hisilicon,power-reg: offset and bit number within peripheral-syscon,
+	register of controlling sata power supply.
+
+Example:
+	sata_phy: phy@f9900000 {
+		compatible = "hisilicon,hisi-sata-nano-phy";
+		reg = <0xf9900000 0x10000>;
+		#phy-cells = <0>;
+		hisilicon,peripheral-syscon = <&peripheral_ctrl>;
+		hisilicon,power-reg = <0x8 10>;
+	};

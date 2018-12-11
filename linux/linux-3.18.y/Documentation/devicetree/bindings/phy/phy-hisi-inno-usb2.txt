@@ -1,0 +1,48 @@
+HiSilicon INNO USB2 PHY
+-----------------------
+Required properties:
+- compatible: Should be "hisilicon,inno_usb2_phy"
+- #phy-cells: Must be 0
+- hisilicon,peripheral-syscon: Phandle of syscon used to control phy.
+- hisilicon,reg-num: Number of phy registers which should be configured
+at phy intialization stage
+- hisilicon,reg-seq: Sequence of triplets of (address, value, delay-us).
+The number of triplets is equal to "hisilicon,reg-num". Each triplet is
+used to write one phy register. The delay-us cell represents the delay
+time in microseconds to be applied after each write.
+- clocks: Phandle and clock specifier pair for reference clock utmi_refclk.
+- resets: List of phandle and reset specifier pairs for each reset signal in
+reset-names.
+- reset-names: Should be "por_rst" and "test_rst". The test_rst only
+exists in some of SOCs, so it is optional.
+
+Phy node can includes up to four subnodes. Each subnode represents one port.
+The required properties of port node are as follows:
+- clocks: Phandle and clock specifier pair for utmi_clock.
+- resets: List of phandle and reset specifier pairs for port reset and utmi reset.
+- reset-names: List of reset signal names. Should be "port_rst" and "utmi_rst"
+
+Refer to phy/phy-bindings.txt for the generic PHY binding properties
+
+Example:
+usb_phy: phy {
+		 compatible = "hisilicon,inno_usb2_phy";
+		 #phy-cells = <0>;
+		 hisilicon,peripheral-syscon = <&peri_ctrl>;
+		 hisilicon,reg-num = <7>;
+		 hisilicon,reg-seq = <0x80 0x800000 20>,
+			 <0x80 0xa0060c 200>,
+			 <0x80 0x80001c 20>,
+			 <0x80 0xa0001c 20>,
+			 <0x80 0x80060f 20>,
+			 <0x80 0xa0060f 20>,
+			 <0x80 0x800a4b 20>;
+		 clocks = <&crg USB2_REF_CLK>;
+		 resets = <&crg 0xb4 2>;
+		 reset-names = "por_rst";
+		 port0 {
+			 clocks = <&crg USB2_UTMI0_CLK>;
+			 resets = <&crg 0xb4 5>, <&crg 0xb4 1>;
+			 reset-names = "port_rst", "utmi_rst";
+		 };
+	 };

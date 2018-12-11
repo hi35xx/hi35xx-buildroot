@@ -1,0 +1,16 @@
+Hisilicon RTC controller
+
+Required properties:
+-compatible: should contain one SoC specific compatible string
+The SoC specific strings supported including:
+- compatible: "hisilicon,hi35xvr-rtc"
+- reg: physical base address and length of the controller's registers.
+- interrupts: IRQ line for the RTC.
+
+Example:
+rtc: rtc@120b0000 {
+		 compatible = "hisilicon,hi35xvr-rtc";
+		 reg = <0x120b0000 0x10000>;
+		 interrupts = <0 5 4>;
+	 };
+

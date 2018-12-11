@@ -1,0 +1,24 @@
+Hisilicon BVT I2C master controller
+
+Required properties:
+- compatible: should be "hisilicon,hibvt-i2c" and one of the following:
+	"hisilicon,hi3516cv300-i2c"
+- reg: physical base address of the controller and length of memory mapped.
+     region.
+- interrupts: interrupt number to the cpu.
+- clocks: phandles to input clocks.
+
+Optional properties:
+- clock-frequency: Desired I2C bus frequency in Hz, otherwise defaults to 100000.
+
+Other properties:
+see Documentation/devicetree/bindings/i2c/i2c.txt.
+
+Examples:
+i2c_bus0: i2c@12110000 {
+	compatible = "hisilicon,hi3516cv300-i2c", "hisilicon,hibvt-i2c";
+	reg = <0x12110000 0x100>;
+	interrupts = <20>;
+	clocks = <&crg_ctrl HI3516CV300_APB_CLK>;
+	clock-frequency = <100000>;
+};

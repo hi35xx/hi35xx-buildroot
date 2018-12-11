@@ -1,0 +1,42 @@
+#
+# HISILICON device configuration
+#
+
+config NET_VENDOR_HISILICON
+	bool "Hisilicon devices"
+	default y
+	depends on ARM
+	---help---
+	  If you have a network (Ethernet) card belonging to this class, say Y
+	  and read the Ethernet-HOWTO, available from
+	  <http://www.tldp.org/docs.html#howto>.
+
+	  Note that the answer to this question doesn't directly affect the
+	  kernel: saying N will just cause the configurator to skip all
+	  the questions about Hisilicon devices. If you say Y, you will be asked
+	  for your specific card in the following questions.
+
+if NET_VENDOR_HISILICON
+
+config HIX5HD2_GMAC
+	tristate "Hisilicon HIX5HD2 Family Network Device Support"
+	select PHYLIB
+	help
+	  This selects the hix5hd2 mac family network device.
+
+config HISI_FEMAC
+	tristate "Hisilicon Fast Ethernet MAC device support"
+	depends on HAS_IOMEM
+	select PHYLIB
+	select RESET_CONTROLLER
+	help
+	  This selects the Hisilicon Fast Ethernet MAC device(FEMAC).
+	  The FEMAC receives and transmits data over Ethernet
+	  ports at 10/100 Mbps in full-duplex or half-duplex mode.
+	  The FEMAC exchanges data with the CPU, and supports
+	  the energy efficient Ethernet (EEE).
+
+source "drivers/net/ethernet/hisilicon/higmac/Kconfig"
+source "drivers/net/ethernet/hisilicon/hieth/Kconfig"
+
+endif # NET_VENDOR_HISILICON

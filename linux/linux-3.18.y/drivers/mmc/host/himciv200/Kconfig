@@ -1,0 +1,38 @@
+#
+# himci v200 device configuration
+#
+menuconfig HIMCIV200
+	tristate "himci v200 eMMC/SDXC/SDIO device support"
+	depends on (ARCH_HI3516CV300 || ARCH_HI3519 || ARCH_HI3519V101 || ARCH_HI3559 || ARCH_HI3556 || ARCH_HI3516AV200)
+	default y if (ARCH_HI3516CV300)
+	default y if (ARCH_HI3519)
+	default y if (ARCH_HI3519V101)
+	default y if (ARCH_HI3516AV200)
+	default y if (ARCH_HI3559)
+	default y if (ARCH_HI3556)
+	select MMC_UNSAFE_RESUME
+	select MMC_EMBEDDED_SDIO
+	select MMC_BLOCK
+	select MMC_BLOCK_BOUNCE
+	help
+	  This selects the Hisilicon Synopsys MultiMedia Card Driver
+	  support. If you want use SD/MMC/SDIO driver,
+	  Say Y or M here.
+
+	  default is Y.
+
+config SEND_AUTO_STOP
+	bool "Send Auto Stop to terminate data transfer between host and SD card"
+	depends on (ARCH_HI3516CV300 || ARCH_HI3519 || ARCH_HI3519V101 || ARCH_HI3559 || ARCH_HI3556 || ARCH_HI3516AV200) && HIMCIV200
+	default y
+
+config DETECT_CARD_TIME
+	int "The Period to detect whether Card is pluged or unpluged."
+	depends on (ARCH_HI3516CV300 || ARCH_HI3519 || ARCH_HI3519V101 || ARCH_HI3559 || ARCH_HI3556 || ARCH_HI3516AV200) && HIMCIV200
+	range 10 500
+	default 200
+	help
+	  Set the Period Time to detect the card, which the unit is ms.
+	  Should set it between 10 and 500.
+
+	  Default is 200 here.

@@ -1,0 +1,45 @@
+Hisilicon hieth controller
+
+Required properties:
+- compatible: should be "hisilicon,hieth".
+- reg: specifies base physical address(s) and size of the device registers.
+  The region is the MAC register base and size.
+- interrupts: should contain the MAC interrupt.
+- #address-cells: must be <1>.
+- #size-cells: must be <0>.
+- phy-mode: see ethernet.txt [1].
+- phy-handle: see ethernet.txt [1].
+- mac-address: see ethernet.txt [1].
+- clocks: clock phandle and specifier pair.
+- resets: reset controller phandle and specifier pair.
+
+- PHY subnode: inherits from phy binding [2]
+
+[1] Documentation/devicetree/bindings/net/ethernet.txt
+[2] Documentation/devicetree/bindings/net/phy.txt
+
+Example:
+	hieth: ethernet@10050000 {
+		compatible = "hisilicon,hieth";
+		reg = <0x10050000 0x4000>;
+		interrupts = <12>;
+
+		clocks = <&clock HI3516CV300_ETH_CLK>;
+		clock-names = "clk";
+
+		resets = <&clock 0xcc 0>,
+				<&clock 0xcc 3>;
+		reset-names = "mac_reset",
+				"phy0_reset";
+
+		phy-handle = <&hieth_phy0>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		hieth_phy0: hieth_phy@1 {
+			reg = <1>;
+			mac-address = [00 00 00 00 00 00];
+			phy-mode = "mii";
+		};
+	};

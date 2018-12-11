@@ -1,0 +1,96 @@
+#
+# higmac family network device configuration
+#
+
+menuconfig HIETH_GMAC
+	tristate "hieth gmac family network device support"
+	select PHYLIB
+	select RESET_CONTROLLER
+	help
+	  This selects the hieth gmac family network device.
+	  The gigabit switch fabric (GSF) receives and transmits data over Ethernet
+	  ports at 10/100/1000 Mbit/s in full-duplex or half-duplex mode.
+	  The Ethernet port exchanges data with the CPU port, and supports
+	  the energy efficient Ethernet (EEE) and wake on LAN (WoL) functions.
+
+if HIETH_GMAC
+
+config HIGMAC_DESC_4WORD
+        bool "higmac descriptor size is 4 words"
+        default y
+        help
+	  This define the size of higmac descriptor structure.
+	  In the newest version, descriptor size is 4 words.
+	  But in some old version, the size is 8 words.
+	  The default value is true.
+
+config HIGMAC_RXCSUM
+        bool "higmac Receive checksumming offload supported"
+        default y
+        help
+	  This indicate MAC support Receive checksumming offload.
+	  Support IPv4 and IPv6, tcp and udp.
+	  The default value is enabled.
+	  If old version MAC does not support, disable this option please.
+
+config RX_FLOW_CTRL_SUPPORT
+	bool "rx flow ctrl supported"
+	default y
+	help
+	  Rx flow ctrl supported, default is enabled.
+	  When we received pause frame,
+	  we will stop transmiting data frame for some time.
+	  The stopping time is the time filled in pause frame.
+
+config TX_FLOW_CTRL_SUPPORT
+	bool "tx flow ctrl supported"
+	default y
+	help
+	  Tx flow ctrl supported, default is enabled.
+	  When we has no buffer to receive packet,
+	  we will send pause frame.
+	  When buffer is available, we will send zero-quanta pause frame.
+
+config TX_FLOW_CTRL_PAUSE_TIME
+	hex "tx flow ctrl pause time"
+	default "0xFFFF"
+	help
+	  The pause time filled in the sending pause frame.
+	  The unit is the time for transmiting 512 bit data.
+	  This value is 16 bit, so its value is 0x0000~0xFFFF.
+	  The default value is 0xFFFF.
+
+config TX_FLOW_CTRL_PAUSE_INTERVAL
+	hex "tx flow ctrl pause interval"
+	default "0xFFFF"
+	help
+	  The interval time for sending pause frame.
+	  When the remainint amount of receive queue is below tx flow ctrl active threshold,
+	  we will wait this time to transmiting pause frame.
+	  The unit is the time for transmiting 512 bit data.
+	  This value is 16 bit, so its value is 0x0000~0xFFFF.
+	  The default value is 0xFFFF.
+
+config TX_FLOW_CTRL_ACTIVE_THRESHOLD
+	int "tx flow ctrl active threshold"
+	default "16"
+	range 1 127
+	help
+	  The threshold for activing tx flow ctrl.
+	  When the left amount of receive queue descriptors is below this threshold,
+	  hardware will send pause frame immediately.
+	  We advise this value is set smaller than 64. Too bigger is not a good choice.
+	  This value must be smaller than tx flow ctrl deactive threshold.
+
+config TX_FLOW_CTRL_DEACTIVE_THRESHOLD
+	int "tx flow ctrl deactive threshold"
+	default "32"
+	range 1 127
+	help
+	  The threshold for deactiving tx flow ctrl.
+	  When the left amount of receive queue descriptors is above or equal with this threshold,
+	  hardware will exit flow control state.
+	  We advise this value is set smaller than 64. Too bigger is not a good choice.
+	  This value must be larger than tx flow ctrl active threshold.
+
+endif # HIETH_GMAC

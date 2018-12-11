@@ -1,0 +1,129 @@
+config ARCH_HISI
+	bool "Hisilicon SoC Support"
+	select ARM_AMBA
+	select ARM_GIC if ARCH_MULTI_V7
+	select ARM_TIMER_SP804
+	select POWER_RESET
+	select POWER_RESET_HISI
+	select POWER_SUPPLY
+
+if ARCH_HISI
+
+menu "Hisilicon platform type"
+
+config ARCH_HI3xxx
+	bool "Hisilicon Hi36xx family" if ARCH_MULTI_V7
+	select CACHE_L2X0
+	select HAVE_ARM_SCU if SMP
+	select HAVE_ARM_TWD if SMP
+	select PINCTRL
+	select PINCTRL_SINGLE
+	help
+	  Support for Hisilicon Hi36xx SoC family
+
+config ARCH_HIP04
+	bool "Hisilicon HiP04 Cortex A15 family" if ARCH_MULTI_V7
+	select ARM_ERRATA_798181 if SMP
+	select HAVE_ARM_ARCH_TIMER
+	select MCPM if SMP
+	select MCPM_QUAD_CLUSTER if SMP
+	help
+	  Support for Hisilicon HiP04 SoC family
+
+config ARCH_HIX5HD2
+	bool "Hisilicon X5HD2 family" if ARCH_MULTI_V7
+	select CACHE_L2X0
+	select HAVE_ARM_SCU if SMP
+	select HAVE_ARM_TWD if SMP
+	select PINCTRL
+	select PINCTRL_SINGLE
+	help
+	  Support for Hisilicon HIX5HD2 SoC family
+
+config ARCH_HI3519
+	bool "Hisilicon Hi3519 Cortex-a7.Cortex-a17 family" if ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select ARM_CCI
+	select ARCH_HAS_RESET_CONTROLLER
+	select RESET_CONTROLLER
+	select PM_OPP
+	select PMC if SMP
+	help
+	  Support for Hisilicon Hi3519 Soc family
+
+config ARCH_HI3519V101
+	bool "Hisilicon Hi3519V101 Cortex-a7.Cortex-a17 family" if ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select ARM_CCI
+	select ARCH_HAS_RESET_CONTROLLER
+	select RESET_CONTROLLER
+	select PM_OPP
+	select PMC if SMP
+	help
+	  Support for Hisilicon Hi3519V101 Soc family
+
+config ARCH_HI3516AV200
+	bool "Hisilicon Hi3516AV200 Cortex-a7.Cortex-a17 family" if ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select ARM_CCI
+	select ARCH_HAS_RESET_CONTROLLER
+	select RESET_CONTROLLER
+	select PM_OPP
+	select PMC if SMP
+	help
+	  Support for Hisilicon Hi3516AV200 Soc family
+
+config ARCH_HI3559
+	bool "Hisilicon Hi3559 Cortex-a7.Cortex-a17 family" if ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select ARM_CCI
+	select ARCH_HAS_RESET_CONTROLLER
+	select RESET_CONTROLLER
+	select PM_OPP
+	select PMC if SMP
+	help
+	  Support for Hisilicon Hi3559 Soc family
+
+config ARCH_HI3556
+	bool "Hisilicon Hi3556 Cortex-a7.Cortex-a17 family" if ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select ARM_CCI
+	select ARCH_HAS_RESET_CONTROLLER
+	select RESET_CONTROLLER
+	select PM_OPP
+	select PMC if SMP
+	help
+	  Support for Hisilicon Hi3556 Soc family
+
+
+if ARCH_HI3519 || ARCH_HI3519V101 || ARCH_HI3559 || ARCH_HI3556 || ARCH_HI3516AV200
+
+config PMC
+	bool
+	help
+	  support power control for Hi3519 or Hi3519V101 or Hi3516AV200 or HI3559 Cortex-a17 or HI3556 Cortex-a17
+
+endif
+
+config ARCH_HI3516CV300
+	bool "Hisilicon Hi3516cv300 arm926ej-s family" if ARCH_MULTI_V5
+	depends on ARCH_MULTI_V5
+	select ARM_VIC
+	select PINCTRL
+	select PINCTRL_SINGLE
+	help
+	  Support for Hisilicon Hi3516cv300 Soc family
+
+config ARCH_HI3536C
+	bool "Hisilicon Hi3536C Cortex-a7 family" if ARCH_MULTI_V7
+	select HAVE_ARM_ARCH_TIMER
+	select ARM_GIC
+	select ARCH_HAS_RESET_CONTROLLER
+	select RESET_CONTROLLER
+	select HAVE_ARM_SCU if SMP
+	help
+	  Support for Hisilicon Hi3536C Soc family
+
+endmenu
+
+endif

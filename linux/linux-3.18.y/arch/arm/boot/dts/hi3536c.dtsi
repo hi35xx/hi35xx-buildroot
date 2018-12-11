@@ -1,0 +1,274 @@
+/*
+ * Copyright (c) 2013-2014 Linaro Ltd.
+ * Copyright (c) 2015-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include "skeleton.dtsi"
+#include <dt-bindings/clock/hi3536c-clock.h>
+/ {
+	aliases {
+		fmc = &fmc;
+		serial0 = &uart0;
+		spi0 = &spi_bus0;
+	};
+
+	clock: clock@12040000 {
+		compatible = "hisilicon,hi3536c-clock";
+		#address-cells = <1>;
+		#size-cells = <1>;
+		#clock-cells = <1>;
+		#reset-cells = <2>;
+		reg = <0x12040000 0x1000>;
+	};
+
+	gic: interrupt-controller@10300000 {
+		compatible = "arm,cortex-a7-gic";
+		#interrupt-cells = <3>;
+		#address-cells = <0>;
+		interrupt-controller;
+		/* gic dist base, gic cpu base , no virtual support */
+		reg = <0x10301000 0x1000>, <0x10302000 0x100>;
+	 };
+
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		interrupt-parent = <&gic>;
+		ranges;
+		
+		rtc: rtc@120b0000 {
+			compatible = "hisilicon,hi35xvr-rtc";
+			interrupts = <0 5 4>;
+			reg = <0x120b0000 0x10000>;
+			status = "disabled";
+		};
+		sysctrl: system-controller@12050000 {
+			compatible = "hisilicon,sysctrl";
+			reg = <0x12050000 0x1000>;
+			reboot-offset = <0x4>;
+			#clock-cells = <1>;
+		};
+
+		pmu {
+			compatible = "arm,cortex-a7-pmu";
+			interrupts = <0 54 4>,
+					<0 48 4>;
+		};
+
+		amba {
+			#address-cells = <1>;
+			#size-cells = <1>;
+			compatible = "arm,amba-bus";
+			ranges;
+
+			uart0: uart@12080000 {
+				compatible = "arm,pl011", "arm,primecell";
+				reg = <0x12080000 0x1000>;
+				interrupts = <0 6 4>;
+				clocks = <&clock HI3536C_UART0_CLK>;
+				clock-names = "apb_pclk";
+				status = "disabled";
+			};
+
+			uart1: uart@121090000 {
+				compatible = "arm,pl011", "arm,primecell";
+				reg = <0x12090000 0x1000>;
+				interrupts = <0 7 4>;
+				clocks = <&clock HI3536C_UART1_CLK>;
+				clock-names = "apb_pclk";
+				status = "disabled";
+			};
+
+			uart2: uart@120a0000 {
+				compatible = "arm,pl011", "arm,primecell";
+				reg = <0x120a0000 0x1000>;
+				interrupts = <0 8 4>;
+				clocks = <&clock HI3536C_UART2_CLK>;
+				clock-names = "apb_pclk";
+				status = "disabled";
+			};
+
+			timer@0x12000000 {
+				compatible = "hisilicon,timer";
+				/* timer0 & timer1 & timer2*/
+				reg = <0x12000000 0x20>, /* clocksource */
+					  <0x12000020 0x20>, /* local timer for each cpu */
+					  <0x12010000 0x20>;
+				interrupts = <0 1 4>, <0 2 4>; /* irq of local timer */
+				clocks = <&sysctrl HI3536C_TIME0_0_CLK>;
+				clock-names = "timer00";
+			};
+		};
+
+		/* dual timer 0 and 1 have used for clocksource and local timer */
+		dual_timer2: dual_timer@12020000 {
+			compatible = "arm,sp804", "arm,primecell";
+			/* timer4 & timer5 */
+			interrupts = <0 3 4>;
+			reg = <0x12020000 0x1000>;
+			clocks = <&sysctrl HI3536C_TIME2_4_CLK>,
+					<&sysctrl HI3536C_TIME2_5_CLK>,
+					<&clock HI3536C_SYSAXI_CLK>;
+			clock-names = "timer4", "timer5", "apb_pclk";
+			status = "disabled";
+		};
+
+		dual_timer3: dual_timer@12030000 {
+			compatible = "arm,sp804", "arm,primecell";
+			/* timer6 & timer7 */
+			interrupts = <0 4 4>;
+			reg = <0x12030000 0x1000>;
+			clocks = <&sysctrl HI3536C_TIME3_6_CLK>,
+					<&sysctrl HI3536C_TIME3_7_CLK>,
+					<&clock HI3536C_SYSAXI_CLK>;
+			clock-names = "timer6", "timer7", "apb_pclk";
+			status = "disabled";
+		};
+
+		spi_bus0: spi@120d0000 {
+				compatible = "arm,pl022", "arm,primecell";
+				arm,primecell-periphid = <0x00800022>;
+				reg = <0x120d0000 0x1000>, <0x12120014 0x4>;
+				interrupts = <0 14 4>;
+				clocks = <&clock HI3536C_SPI0_CLK>;
+				clock-names = "apb_pclk";
+				status = "disabled";
+				#address-cells = <1>;
+				#size-cells = <0>;
+				hisi,spi_cs_sb = <0>;
+				hisi,spi_cs_mask_bit = <0x00000007>;
+		};
+
+		sata_phy: phy@11010000 {
+			compatible = "hisilicon,hisi-sata-nano-phy";
+			reg = <0x11010000 0x10000>;
+			#phy-cells = <0>;
+		};
+
+		ahci: sata@11010000 {
+			compatible = "hisilicon,hisi-ahci";
+			reg = <0x11010000 0x1000>;
+			interrupts = <0 17 4>;
+			phys = <&sata_phy>;
+			phy-names = "sata-phy";
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		usb_phy: usbphy {
+			compatible = "hisilicon,hisi-usb-phy";
+			reg = <0x12120000 0x1000>, <0x12040000 0x1000>;
+		};
+
+		ehci@0x10120000 {
+			compatible = "generic-ehci";
+			reg = <0x10040000 0x10000>;
+			interrupts = <0 19 4>;
+		};
+
+		ohci@0x10110000 {
+			compatible = "generic-ohci";
+			reg = <0x10030000 0x10000>;
+			interrupts = <0 18 4>;
+		};
+
+		mdio: mdio@100a03c0 {
+			compatible = "hisilicon,hisi-gemac-mdio";
+			reg = <0x100a03c0 0x20>;
+			clocks = <&clock HI3536C_ETH_CLK>;
+			resets = <&clock 0x14c 5>;
+			reset-names = "phy_reset";
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+		mdio1: mdio@100a13c0 {
+			compatible = "hisilicon,hisi-gemac-mdio";
+			reg = <0x100a13c0 0x20>;
+			clocks = <&clock HI3536C_ETH1_CLK>;
+			resets = <&clock 0x14c 13>;
+			reset-names = "phy_reset";
+			#address-cells = <1>;
+			#size-cells = <0>;
+		};
+
+		higmac: ethernet@100a0000 {
+			compatible = "hisilicon,higmac-v5";
+			reg = <0x100a0000 0x1000>,<0x100a300c 0x4>;
+			interrupts = <0 16 4>, <0 61 4>, <0 62 4>, <0 63 4>;
+
+			clocks = <&clock HI3536C_ETH_CLK>,
+					<&clock HI3536C_ETH_MACIF_CLK>;
+			clock-names = "higmac_clk",
+					"macif_clk";
+
+			resets = <&clock 0x14c 0>,
+					<&clock 0x14c 2>,
+					<&clock 0x14c 5>;
+			reset-names = "port_reset",
+					"macif_reset",
+					"phy_reset";
+
+			mac-address = [00 00 00 00 00 00];
+		};
+		higmac1: ethernet@100a1000 {
+			compatible = "hisilicon,higmac-v5";
+			reg = <0x100a1000 0x1000>,<0x100a3010 0x4>;
+			interrupts = <0 16 4>, <0 61 4>, <0 62 4>, <0 63 4>;
+
+			clocks = <&clock HI3536C_ETH1_CLK>,
+					<&clock HI3536C_ETH_MACIF1_CLK>;
+			clock-names = "higmac_clk",
+					"macif_clk";
+
+			resets = <&clock 0x14c 8>,
+					<&clock 0x14c 10>,
+					<&clock 0x14c 13>;
+			reset-names = "port_reset",
+					"macif_reset",
+					"phy_reset";
+
+			mac-address = [00 00 00 00 00 00];
+		};
+
+
+		fmc: flash-memory-controller@10000000 {
+			compatible = "hisilicon,hisi-fmc";
+			reg = <0x10000000 0x1000>, <0x14000000 0x1000000>;
+			reg-names = "control", "memory";
+			clocks = <&clock HI3536C_FMC_CLK>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			hisfc:spi_nor_controller {
+				compatible = "hisilicon,hisi-sfc";
+				assigned-clocks = <&clock HI3536C_FMC_CLK>;
+				assigned-clock-rates = <24000000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
+			hisnfc:spi_nand_controller {
+				compatible = "hisilicon,hisi-spi-nand";
+				assigned-clocks = <&clock HI3536C_FMC_CLK>;
+				assigned-clock-rates = <24000000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+		};
+	};
+};

@@ -1,0 +1,52 @@
+Hisilicon higmac controller
+
+Required properties:
+- compatible: should be "hisilicon,higmac" and one of the following:
+	- "hisilicon,higmac-v1"
+	- "hisilicon,higmac-v2"
+	- "hisilicon,higmac-v3"
+	- "hisilicon,higmac-v4"
+	- "hisilicon,higmac-v5"
+- reg: specifies base physical address(s) and size of the device registers.
+  The first region is the MAC register base and size.
+  The second region is external interface control register.
+- interrupts: should contain the MAC interrupt.
+- #address-cells: must be <1>.
+- #size-cells: must be <0>.
+- phy-mode: see ethernet.txt [1].
+- phy-handle: see ethernet.txt [1].
+- mac-address: see ethernet.txt [1].
+- clocks: clock phandle and specifier pair.
+- resets: reset controller phandle and specifier pair.
+
+- PHY subnode: inherits from phy binding [2]
+
+[1] Documentation/devicetree/bindings/net/ethernet.txt
+[2] Documentation/devicetree/bindings/net/phy.txt
+
+Example:
+	higmac: ethernet@10050000 {
+		compatible = "hisilicon,higmac";
+		reg = <0x10050000 0x1000>,<0x120100ec 0x4>;
+		interrupts = <0 25 4>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		phy-mode = "rgmii";
+		phy-handle = <&eth_phy>;
+		mac-address = [00 00 00 00 00 00];
+		clocks = <&clock HI3519_ETH_CLK>,
+				<&clock HI3519_ETH_MACIF_CLK>;
+		clock-names = "higmac_clk",
+				"macif_clk";
+
+		resets = <&clock 0xcc 0>,
+				<&clock 0xcc 2>,
+				<&clock 0xcc 7>;
+		reset-names = "port_reset",
+				"macif_reset",
+				"phy_reset";
+
+		eth_phy: ethernet-phy@1 {
+			reg = <1>;
+		};
+	};

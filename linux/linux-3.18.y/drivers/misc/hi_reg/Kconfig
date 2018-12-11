@@ -1,0 +1,13 @@
+menu "hisi 'himm/himd.l/himc'support"
+
+config HISI_REG
+	tristate "hisi \"himd\" \"himm\" \"himc\" support"
+	default y if (ARCH_HI3519)
+	default y if (ARCH_HI3519V101)
+	help
+	  This selects the Hisilicon io register access support
+	  If you want use "himd" "himm" "himc" command,
+	  Say Y or M here.
+
+	  Default is Y.
+endmenu

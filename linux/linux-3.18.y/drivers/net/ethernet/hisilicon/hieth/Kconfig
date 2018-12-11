@@ -1,0 +1,57 @@
+#
+# hieth family network device configuration
+#
+
+menuconfig HIETH_SWITCH_FABRIC
+	tristate "hieth(switch fabric) family network device support"
+	select PHYLIB
+	select RESET_CONTROLLER
+	help
+	  This selects the hieth family network device.
+	  The hieth switch fabric (SF) receives and transmits data over two Ethernet
+	  ports at 10/100 Mbit/s in full-duplex or half-duplex mode.
+	  The Ethernet port exchanges data with the CPU port, and supports
+	  the energy efficient Ethernet (EEE).
+
+if HIETH_SWITCH_FABRIC
+
+config HIETH_MAX_RX_POOLS
+	int "hieth max rx pool size"
+	default "1024"
+	help
+	  hieth max static rx pool size.
+
+config TX_FLOW_CTRL_SUPPORT
+	bool "tx flow ctrl supported"
+	default y
+	help
+	  Tx flow ctrl supported, default is enabled.
+	  When we has no buffer to receive packet,
+	  we will send pause frame.
+	  Rx flow ctrl default is enabled, cannot be disabled.
+
+config TX_FLOW_CTRL_ACTIVE_THRESHOLD
+	int "tx flow ctrl active threshold"
+	default "3"
+	range 1 31
+	help
+	  The threshold for activing tx flow ctrl.
+	  When the left amount of receive queue descriptors is below this threshold,
+	  hardware will send pause frame immediately.
+	  We advise this value is set between 1 and 10. Too bigger is not a good choice.
+	  This value must be smaller than tx flow ctrl deactive threshold.
+
+config TX_FLOW_CTRL_DEACTIVE_THRESHOLD
+	int "tx flow ctrl deactive threshold"
+	default "5"
+	range 1 31
+	help
+	  The threshold for deactiving tx flow ctrl.
+	  When the left amount of receive queue descriptors is above or equal with this threshold,
+	  hardware will exit flow control state.
+	  We advise this value is set between 1 and 10. Too bigger is not a good choice.
+	  This value must be larger than tx flow ctrl active threshold.
+
+endif # HIETH_SWITCH_FABRIC
+
+#vim: set ts=8 sw=8 tw=78:
