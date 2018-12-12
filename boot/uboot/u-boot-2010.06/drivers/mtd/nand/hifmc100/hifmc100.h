@@ -1,11 +1,22 @@
-/******************************************************************************
- *	Flash Memory Controller v100 Device Driver
- *	Copyright (c) 2014 - 2015 by Hisilicon
- *	All rights reserved.
- * ***
- *	Create by hisilicon
+/*
+ * The Flash Memory Controller v100 Device Driver for hisilicon
  *
- *****************************************************************************/
+ * Copyright (c) 2016-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #ifndef __HIFMC100_H__
 #define __HIFMC100_H__
@@ -96,7 +107,7 @@ struct hifmc_host {
 	void (*send_cmd_erase)(struct hifmc_host *host);
 	void (*send_cmd_readid)(struct hifmc_host *host);
 	void (*send_cmd_reset)(struct hifmc_host *host);
-	void (*set_system_clock)(struct hifmc_host *host, int clk_en);
+	void (*set_system_clock)(struct spi_op *op, int clk_en);
 };
 
 /*****************************************************************************/
@@ -110,10 +121,8 @@ void hifmc100_spi_nand_init(struct hifmc_host *host);
 extern unsigned char hifmc_ip_user;
 extern unsigned char hifmc_cs_user[];
 
-/******************************************************************************/
+/*****************************************************************************/
 extern void hifmc_spi_nand_ids_register(void);
-
-extern void hifmc100_get_fmc_best_clock(unsigned int *clock);
 
 /*****************************************************************************/
 

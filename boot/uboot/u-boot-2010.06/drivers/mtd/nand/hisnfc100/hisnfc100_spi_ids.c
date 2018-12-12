@@ -1,9 +1,20 @@
-/******************************************************************************
- *    Copyright (c) 2014 by Hisilicon.
- *    All rights reserved.
- * ***
- *    Create By hisilicon
-******************************************************************************/
+/*
+ * Copyright (c) 2016 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #include <linux/mtd/nand.h>
 #include <exports.h>
@@ -92,32 +103,47 @@ SET_READ_STD(1, INFINITE, 24);
 
 SET_READ_FAST(1, INFINITE, 50);
 SET_READ_FAST(1, INFINITE, 104);
+SET_READ_FAST(1, INFINITE, 108);
 SET_READ_FAST(1, INFINITE, 120);
 
 SET_READ_DUAL(1, INFINITE, 50);
 SET_READ_DUAL(1, INFINITE, 104);
+SET_READ_DUAL(1, INFINITE, 108);
 SET_READ_DUAL(1, INFINITE, 120);
 
+SET_READ_DUAL_ADDR(1, INFINITE, 60);
 SET_READ_DUAL_ADDR(1, INFINITE, 104);
+SET_READ_DUAL_ADDR(1, INFINITE, 108);
 SET_READ_DUAL_ADDR(1, INFINITE, 120);
 
 SET_READ_QUAD(1, INFINITE, 50);
 SET_READ_QUAD(1, INFINITE, 104);
+SET_READ_QUAD(1, INFINITE, 108);
 SET_READ_QUAD(1, INFINITE, 120);
 
+SET_READ_QUAD_ADDR(1, INFINITE, 60);
+SET_READ_QUAD_ADDR(1, INFINITE, 104);
 SET_READ_QUAD_ADDR(2, INFINITE, 104);
+SET_READ_QUAD_ADDR(1, INFINITE, 108);
 SET_READ_QUAD_ADDR(1, INFINITE, 120);
 
 /*****************************************************************************/
 SET_WRITE_STD(0, 256, 24);
+SET_WRITE_STD(0, 256, 80);
+SET_WRITE_STD(0, 256, 104);
 
+SET_WRITE_QUAD(0, 256, 80);
 SET_WRITE_QUAD(0, 256, 104);
+SET_WRITE_QUAD(0, 256, 108);
 SET_WRITE_QUAD(0, 256, 120);
 
 /*****************************************************************************/
 SET_ERASE_SECTOR_128K(0, _128K, 24);
+SET_ERASE_SECTOR_128K(0, _128K, 80);
+SET_ERASE_SECTOR_128K(0, _128K, 104);
 
 SET_ERASE_SECTOR_256K(0, _256K, 24);
+SET_ERASE_SECTOR_256K(0, _256K, 104);
 
 /*****************************************************************************/
 static struct spi_nand_driver spi_nand_driver_general = {
@@ -141,7 +167,7 @@ static struct spi_nand_driver  spi_nand_driver_micron = {
 };
 
 /*****************************************************************************/
-#define SPI_NAND_ID_TAB_VER		"1.5"
+#define SPI_NAND_ID_TAB_VER		"1.9"
 
 /******* SPI Nand ID Table ***************************************************
 * Version	Manufacturer	Chip Name	Size		Operation
@@ -155,11 +181,17 @@ static struct spi_nand_driver  spi_nand_driver_micron = {
 * 1.2		GD		5F1GQ4UBYIG	128MB		Add 2 chip
 *		GD		5F2GQ4UBYIG	256MB
 * 1.3		ATO		ATO25D1GA	128MB		Add 1 chip
-* 1.4		Micron		MT29F1G01	128MB		Add 3 chip
+*		Micron		MT29F1G01	128MB		Add 3 chip
 *		Micron		MT29F2G01	256MB
 *		Micron		MT29F4G01	512MB
-* 1.5		MXIC		MX35LF1GE4AB	128MB		Add 2 chip
-*		MXIC		MX35LF2GE4AB	256MB
+* 1.4		MXIC		MX35LF1GE4AB	128MB		Add 2 chip
+* 1.5		Paragon		PN26G01A	128MB		Add 1 chip
+* 1.6		All-flash	AFS1GQ4UAC	128MB		Add 1 chip
+* 1.7		TOSHIBA		TC58CVG0S3H	128MB		Add 2 chip
+*		TOSHIBA		TC58CVG2S0H	512MB
+* 1.8		ALL-flash	AFS2GQ4UAD	256MB		Add 2 chip
+*		Paragon		PN26G02A	256MB
+* 1.9		HeYangTek	HYF1GQ4UAACAE	128MB		Add 1 chip
 ******************************************************************************/
 struct hisnfc_chip_info hisnfc_spi_nand_flash_table[] = {
 	/* ESMT F50L512M41A 512Mbit */
@@ -223,7 +255,7 @@ struct hisnfc_chip_info hisnfc_spi_nand_flash_table[] = {
 	/* GD 5F1GQ4UAYIG 1Gbit */
 	{
 		.name      = "5F1GQ4UAYIG",
-		.id        = {0xC8, 0xF1},
+		.id        = {0xc8, 0xf1},
 		.id_len    = 2,
 		.chipsize  = _128M,
 		.erasesize = _128K,
@@ -254,7 +286,7 @@ struct hisnfc_chip_info hisnfc_spi_nand_flash_table[] = {
 	/* GD 5F1GQ4UBYIG 1Gbit */
 	{
 		.name      = "5F1GQ4UBYIG",
-		.id        = {0xC8, 0xD1},
+		.id        = {0xc8, 0xd1},
 		.id_len    = 2,
 		.chipsize  = _128M,
 		.erasesize = _128K,
@@ -285,7 +317,7 @@ struct hisnfc_chip_info hisnfc_spi_nand_flash_table[] = {
 	/* GD 5F2GQ4UAYIG 2Gbit */
 	{
 		.name      = "5F2GQ4UAYIG",
-		.id        = {0xC8, 0xF2},
+		.id        = {0xc8, 0xf2},
 		.id_len    = 2,
 		.chipsize  = _256M,
 		.erasesize = _128K,
@@ -316,7 +348,7 @@ struct hisnfc_chip_info hisnfc_spi_nand_flash_table[] = {
 	/* GD 5F2GQ4UBYIG 2Gbit */
 	{
 		.name      = "5F2GQ4UBYIG",
-		.id        = {0xC8, 0xD2},
+		.id        = {0xc8, 0xd2},
 		.id_len    = 2,
 		.chipsize  = _256M,
 		.erasesize = _128K,
@@ -347,7 +379,7 @@ struct hisnfc_chip_info hisnfc_spi_nand_flash_table[] = {
 	/* GD 5F4GQ4UAYIG 4Gbit */
 	{
 		.name      = "5F4GQ4UAYIG",
-		.id        = {0xC8, 0xF4},
+		.id        = {0xc8, 0xf4},
 		.id_len    = 2,
 		.chipsize  = _512M,
 		.erasesize = _128K,
@@ -378,7 +410,7 @@ struct hisnfc_chip_info hisnfc_spi_nand_flash_table[] = {
 	/* GD 5F4GQ4UBYIG 4Gbit */
 	{
 		.name      = "5F4GQ4UBYIG",
-		.id        = {0xC8, 0xD4},
+		.id        = {0xc8, 0xd4},
 		.id_len    = 2,
 		.chipsize  = _512M,
 		.erasesize = _256K,
@@ -577,20 +609,85 @@ struct hisnfc_chip_info hisnfc_spi_nand_flash_table[] = {
 		.driver    = &spi_nand_driver_general,
 	},
 
-	/* MXIC MX35LF2GE4AB 2Gbit */
+	/* Paragon PN26G01A 1Gbit */
 	{
-		.name      = "MX35LF2GE4AB",
-		.id        = {0xc2, 0x22},
+		.name      = "PN26G01A",
+		.id        = {0xa1, 0xe1},
+		.id_len    = 2,
+		.chipsize  = _128M,
+		.erasesize = _128K,
+		.pagesize  = _2K,
+		.oobsize   = 128,
+		.badblock_pos = BBP_FIRST_PAGE,
+		.read      = {
+			&READ_STD(1, INFINITE, 24),
+			&READ_FAST(1, INFINITE, 108),
+			&READ_DUAL(1, INFINITE, 108),
+			&READ_DUAL_ADDR(1, INFINITE, 108),
+			&READ_QUAD(1, INFINITE, 108),
+			&READ_QUAD_ADDR(1, INFINITE, 108),
+			0
+		},
+		.write     = {
+			&WRITE_STD(0, 256, 24),
+			&WRITE_QUAD(0, 256, 108),
+			0
+		},
+		.erase     = {
+			&ERASE_SECTOR_128K(0, _128K, 24),
+			0
+		},
+		.driver    = &spi_nand_driver_general,
+	},
+
+	/* Paragon PN26G02A 2Gbit */
+	{
+		.name      = "PN26G02A",
+		.id        = {0xa1, 0xe2},
 		.id_len    = 2,
 		.chipsize  = _256M,
 		.erasesize = _128K,
 		.pagesize  = _2K,
-		.oobsize   = 64,
+		.oobsize   = 128,
+		.badblock_pos = BBP_FIRST_PAGE,
+		.read      = {
+			&READ_STD(1, INFINITE, 24),
+			&READ_FAST(1, INFINITE, 108),
+			&READ_DUAL(1, INFINITE, 108),
+			&READ_DUAL_ADDR(1, INFINITE, 108),
+			&READ_QUAD(1, INFINITE, 108),
+			&READ_QUAD_ADDR(1, INFINITE, 108),
+			0
+		},
+		.write     = {
+			&WRITE_STD(0, 256, 24),
+			&WRITE_QUAD(0, 256, 108),
+			0
+		},
+		.erase     = {
+			&ERASE_SECTOR_128K(0, _128K, 24),
+			0
+		},
+		.driver    = &spi_nand_driver_general,
+	},
+
+	/* All-flash AFS1GQ4UAC 1Gbit */
+	{
+		.name      = "AFS1GQ4UAC",
+		.id        = {0xc1, 0x51},
+		.id_len    = 2,
+		.chipsize  = _128M,
+		.erasesize = _128K,
+		.pagesize  = _2K,
+		.oobsize   = 128,
 		.badblock_pos = BBP_FIRST_PAGE,
 		.read      = {
 			&READ_STD(1, INFINITE, 24),
 			&READ_FAST(1, INFINITE, 104),
+			&READ_DUAL(1, INFINITE, 104),
+			&READ_DUAL_ADDR(1, INFINITE, 104),
 			&READ_QUAD(1, INFINITE, 104),
+			&READ_QUAD_ADDR(1, INFINITE, 104),
 			0
 		},
 		.write     = {
@@ -605,6 +702,123 @@ struct hisnfc_chip_info hisnfc_spi_nand_flash_table[] = {
 		.driver    = &spi_nand_driver_general,
 	},
 
+	/* All-flash AFS2GQ4UAD 2Gbit */
+	{
+		.name      = "AFS2GQ4UAD",
+		.id        = {0xc1, 0x52},
+		.id_len    = 2,
+		.chipsize  = _256M,
+		.erasesize = _128K,
+		.pagesize  = _2K,
+		.oobsize   = 128,
+		.badblock_pos = BBP_FIRST_PAGE,
+		.read      = {
+			&READ_STD(1, INFINITE, 24),
+			&READ_FAST(1, INFINITE, 104),
+			&READ_DUAL(1, INFINITE, 104),
+			&READ_DUAL_ADDR(1, INFINITE, 104),
+			&READ_QUAD(1, INFINITE, 104),
+			&READ_QUAD_ADDR(1, INFINITE, 104),
+			0
+		},
+		.write     = {
+			&WRITE_STD(0, 256, 24),
+			&WRITE_QUAD(0, 256, 104),
+			0
+		},
+		.erase     = {
+			&ERASE_SECTOR_128K(0, _128K, 24),
+			0
+		},
+		.driver    = &spi_nand_driver_general,
+	},
+
+	/* TOSHIBA TC58CVG0S3H 1Gbit */
+	{
+		.name      = "TC58CVG0S3H",
+		.id        = {0x98, 0xc2},
+		.id_len    = 2,
+		.chipsize  = _128M,
+		.erasesize = _128K,
+		.pagesize  = _2K,
+		.oobsize   = 64,
+		.badblock_pos = BBP_FIRST_PAGE,
+		.read      = {
+			&READ_STD(1, INFINITE, 24),
+			&READ_FAST(1, INFINITE, 104),
+			&READ_DUAL(1, INFINITE, 104),
+			&READ_QUAD(1, INFINITE, 104),
+			0
+		},
+		.write     = {
+			&WRITE_STD(0, 256, 104),
+			0
+		},
+		.erase     = {
+			&ERASE_SECTOR_128K(0, _128K, 104),
+			0
+		},
+		.driver    = &spi_nand_driver_esmt,
+	},
+
+	/* TOSHIBA TC58CVG2S0H 4Gbit */
+	{
+		.name      = "TC58CVG2S0H",
+		.id        = {0x98, 0xcd},
+		.id_len    = 2,
+		.chipsize  = _512M,
+		.erasesize = _256K,
+		.pagesize  = _4K,
+		.oobsize   = 128,
+		.badblock_pos = BBP_FIRST_PAGE,
+		.read      = {
+			&READ_STD(1, INFINITE, 24),
+			&READ_FAST(1, INFINITE, 104),
+			&READ_DUAL(1, INFINITE, 104),
+			&READ_QUAD(1, INFINITE, 104),
+			0
+		},
+		.write     = {
+			&WRITE_STD(0, 256, 104),
+			0
+		},
+		.erase     = {
+			&ERASE_SECTOR_256K(0, _256K, 104),
+			0
+		},
+		.driver    = &spi_nand_driver_esmt,
+	},
+
+	/* HeYangTek HYF1GQ4UAACAE 1Gbit */
+	{
+		.name      = "HYF1GQ4UAACAE",
+		.id        = {0xc9, 0x51},
+		.id_len    = 2,
+		.chipsize  = _128M,
+		.erasesize = _128K,
+		.pagesize  = _2K,
+		.oobsize   = 128,
+		.badblock_pos = BBP_FIRST_PAGE,
+		.read      = {
+			&READ_STD(1, INFINITE, 24),
+			&READ_FAST(1, INFINITE, 50),
+			&READ_DUAL(1, INFINITE, 50),
+			&READ_DUAL_ADDR(1, INFINITE, 60),
+			&READ_QUAD(1, INFINITE, 50),
+			&READ_QUAD_ADDR(1, INFINITE, 60),
+			0
+		},
+		.write     = {
+			&WRITE_STD(0, 256, 80),
+			&WRITE_QUAD(0, 256, 80),
+			0
+		},
+		.erase     = {
+			&ERASE_SECTOR_128K(0, _128K, 80),
+			0
+		},
+		.driver    = &spi_nand_driver_general,
+	},
 	{	.id_len    = 0,	},
 };
 

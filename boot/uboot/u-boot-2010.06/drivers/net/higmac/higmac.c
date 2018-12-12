@@ -254,7 +254,6 @@ static speed_port_mode_match_value calculate_port_mode(speed_mode_e speed, inter
 static void higmac_net_adjust_link(struct higmac_netdev_local* ld)
 {
 	int stat = 0,speed = 0;
-	speed_port_mode_match_value match;
 
 	stat |= miiphy_link(ld->phy_name, PHY_ADDR) ? HIGMAC_LINKED : 0;
 	stat |= miiphy_duplex(ld->phy_name, PHY_ADDR) ? HIGMAC_DUP_FULL : 0;
@@ -264,6 +263,8 @@ static void higmac_net_adjust_link(struct higmac_netdev_local* ld)
 
 	if (ld->link_stat != stat)
 	{
+		speed_port_mode_match_value match;
+
 		/*calculate port mode.*/
 		match = calculate_port_mode(
 				((stat & HIGMAC_SPD_100M) ? speed_mode_100M : 

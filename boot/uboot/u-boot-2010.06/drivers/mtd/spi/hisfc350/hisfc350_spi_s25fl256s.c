@@ -1,7 +1,20 @@
-/******************************************************************************
-*    Copyright (c) 2009-2012 by Hisi.
-*    All rights reserved.
-******************************************************************************/
+/*
+ * Copyright (c) 2016 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #include <common.h>
 #include <asm/io.h>
@@ -44,14 +57,14 @@ static int spi_s25fl256s_entry_4addr(struct hisfc_spi *spi, int enable)
 		| HISFC350_CMD_CONFIG_START);
 
 	HISFC350_CMD_WAIT_CPU_FINISH(host);
-	if (DEBUG_SPI) {
-		regval = hisfc_read(host, HISFC350_CMD_DATABUF0);
-		if (!(regval & SPI_EN4B)) {
-			printf("now is 3-byte address mode\n");
-			printf("regval_read_SPI : 0x%x\n", regval);
-		} else
-			printf("now is 4-byte address mode\n");
-	}
+
+	regval = hisfc_read(host, HISFC350_CMD_DATABUF0);
+	if (!(regval & SPI_EN4B)) {
+		printf("Err: now is 3-byte address mode\n");
+		printf("regval_read_SPI : 0x%x\n", regval);
+	} else if (DEBUG_SPI)
+		printf("now is 4-byte address mode\n");
+
 	host->set_host_addr_mode(host, enable);
 
 	return 0;

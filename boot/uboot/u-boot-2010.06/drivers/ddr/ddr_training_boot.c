@@ -64,6 +64,20 @@ void ddr_result_data_save(void *ddrtr_result,
 }
 
 /**
+ * ddr_lpca_data_save
+ * @base_dmc
+ * @base_phy
+ * @ddrtr_result
+ * @data
+ *
+ *
+ */
+void ddr_lpca_data_save(void *ddrtr_result, struct ca_data_st *data)
+{
+	/* nothing to do when ddr training on power up */
+}
+
+/**
  * ddr_ddrt_get_test_addr
  * @void
  *
@@ -142,6 +156,10 @@ void ddr_training_local_str(void)
 
 		"str_dataeye:\n\t"
 		".asciz \"Dataeye\"\n\t"
+		".align 2\n\t"
+
+		"str_lpca:\n\t"
+		".asciz \"LPCA\"\n\t"
 		".align 2\n\t"
 
 		"str_err:\n\t"
@@ -223,6 +241,12 @@ void ddr_training_error(unsigned int mask, unsigned int phy, int byte, int dq)
 	case DDR_ERR_DATAEYE:
 		asm volatile(
 				"adr	r0, str_dataeye\n\t"
+				"bl	uart_early_puts"
+			    );
+		break;
+	case DDR_ERR_LPCA:
+		asm volatile(
+				"adr	r0, str_lpca\n\t"
 				"bl	uart_early_puts"
 			    );
 		break;

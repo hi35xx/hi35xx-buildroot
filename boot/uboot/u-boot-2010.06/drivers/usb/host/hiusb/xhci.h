@@ -41,7 +41,7 @@
 /* Generic timeout for XHCI events */
 /*reslove xhci support usb2.0 and some usb3.0 device
  * we modify 5000 to 500000 */
-#define XHCI_CTRL_TIMEOUT		500000
+#define XHCI_CTRL_TIMEOUT		1000000
 #define XHCI_ABORT_TIMEOUT		10
 /* Max number of USB devices for any host controller - limit in section 6.1 */
 #define MAX_HC_SLOTS            256

@@ -65,6 +65,7 @@ HI_VOID HAL_SYS_Control(HI_VOID);
 
 *****************************************************************************/
 HI_VOID HAL_SYS_SetOutstanding(HI_VOID);
+HI_VOID HAL_SYS_SetAxiMaster(HI_VOID);
 HI_VOID HAL_SYS_SetArbMode(HI_U32 bMode);
 HI_VOID HAL_SYS_SetRdBusId(HI_U32 bMode);
 HI_VOID HAL_SYS_VdpResetClk(HI_U32 sel);

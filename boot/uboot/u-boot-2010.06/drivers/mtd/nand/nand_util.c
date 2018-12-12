@@ -44,6 +44,10 @@
 typedef struct erase_info erase_info_t;
 typedef struct mtd_info	  mtd_info_t;
 
+/* for ecc0 read and write */
+unsigned int ecc0_flag;
+unsigned int oobsize_real;
+
 /* support only for native endian JFFS2 */
 #define cpu_to_je16(x) (x)
 #define cpu_to_je32(x) (x)
@@ -517,6 +521,13 @@ int nand_write_yaffs_skip_bad(nand_info_t *nand, loff_t offset, size_t *length,
 	mtd_oob_ops_t ops = {0};
 	int     i;
 	size_t  length_data;  /* length without oob */
+	u_int32_t oobsize;
+
+	/*oobsize_real for ecc0 read and write */
+	if (ecc0_flag == 1)
+		oobsize = oobsize_real;
+	else
+		oobsize = nand->oobsize;
 
 	/* Reject writes, which are not page aligned */
 	if ((offset & (nand->writesize - 1)) != 0) {
@@ -524,15 +535,15 @@ int nand_write_yaffs_skip_bad(nand_info_t *nand, loff_t offset, size_t *length,
 			(u_int)offset);
 		return -EINVAL;
 	}
-	if ((*length % (nand->writesize  + nand->oobsize)) != 0) {
+	if ((*length % (nand->writesize  + oobsize)) != 0) {
 		printf("Attempt to write non page aligned data, length %#x\n",
 			(u_int)*length);
 		printf("Page size %#x, OOB size %d\n", (u_int)nand->writesize,
-			nand->oobsize);
+			oobsize);
 		return -EINVAL;
 	}
 
-	length_data = (*length / (nand->writesize + nand->oobsize))
+	length_data = (*length / (nand->writesize + oobsize))
 			* nand->writesize;
 	len_incl_bad = get_len_incl_bad(nand, offset, length_data);
 
@@ -545,15 +556,19 @@ int nand_write_yaffs_skip_bad(nand_info_t *nand, loff_t offset, size_t *length,
 		return -EINVAL;
 	}
 
+	/* add to cooperate with hitool */
+	print_to_hitool("pure data length is %d, len_incl_bad is %d\r\n",
+		length_data, len_incl_bad);
+
 	if (len_incl_bad == length_data) {
 		for (i = 0; i < length_data / nand->writesize; i++) {
 			ops.datbuf = buffer
-					+ i * (nand->writesize + nand->oobsize);
+					+ i * (nand->writesize + oobsize);
 			ops.oobbuf = buffer
-					+ i * (nand->writesize + nand->oobsize)
+					+ i * (nand->writesize + oobsize)
 					+ nand->writesize;
 			ops.len = nand->writesize;
-			ops.ooblen = nand->oobsize;
+			ops.ooblen = oobsize;
 			ops.mode = MTD_OOB_RAW;
 
 			rval = nand->write_oob(nand, offset
@@ -592,7 +607,7 @@ int nand_write_yaffs_skip_bad(nand_info_t *nand, loff_t offset, size_t *length,
 			ops.datbuf = p_buffer;
 			ops.oobbuf = p_buffer + nand->writesize;
 			ops.len = nand->writesize;
-			ops.ooblen = nand->oobsize;
+			ops.ooblen = oobsize;
 			ops.ooboffs = 0;
 			ops.mode = MTD_OOB_RAW;
 
@@ -604,7 +619,7 @@ int nand_write_yaffs_skip_bad(nand_info_t *nand, loff_t offset, size_t *length,
 				return rval;
 			}
 
-			p_buffer += nand->writesize + nand->oobsize;
+			p_buffer += nand->writesize + oobsize;
 			left_to_write -= nand->writesize;
 			offset        += nand->writesize;
 		}
@@ -664,6 +679,13 @@ int nand_read_yaffs_skip_bad(nand_info_t *nand, loff_t offset, size_t *length,
 	int i;
 	size_t length_data;  /* length without oob */
 	struct nand_chip *chip = nand->priv;
+	u_int32_t oobsize;
+
+	/*oobsize_real for ecc0 read and write */
+	if (ecc0_flag == 1)
+		oobsize = oobsize_real;
+	else
+		oobsize = nand->oobsize;
 
 	/* Reject reads, which are not page aligned */
 	if ((offset & (nand->writesize - 1)) != 0) {
@@ -671,15 +693,15 @@ int nand_read_yaffs_skip_bad(nand_info_t *nand, loff_t offset, size_t *length,
 			offset);
 		return -EINVAL;
 	}
-	if ((*length % (nand->writesize  + nand->oobsize)) != 0) {
+	if ((*length % (nand->writesize  + oobsize)) != 0) {
 		printf("Attempt to read non aligned data, read length should "\
 			"be aligned with (pagesize + oobsize), length:%d "
 			"pagesize:%d oobsize:%d\n",
-			*length, nand->writesize, nand->oobsize);
+			*length, nand->writesize, oobsize);
 		return -EINVAL;
 	}
 
-	length_data = *length / (nand->writesize + nand->oobsize)
+	length_data = *length / (nand->writesize + oobsize)
 		 * nand->writesize;
 	len_incl_bad = get_len_incl_bad(nand, offset, length_data);
 
@@ -692,15 +714,19 @@ int nand_read_yaffs_skip_bad(nand_info_t *nand, loff_t offset, size_t *length,
 		return -EINVAL;
 	}
 
+	/* add to cooperate with hitool */
+	print_to_hitool("pure data length is %d, len_incl_bad is %d\r\n",
+		length_data, len_incl_bad);
+
 	if (len_incl_bad == length_data) {
 		for (i = 0; i < length_data / nand->writesize; i++) {
 			ops.datbuf = buffer +
-				 i*(nand->writesize + nand->oobsize);
+				 i*(nand->writesize + oobsize);
 			ops.oobbuf = buffer +
-				 i*(nand->writesize + nand->oobsize) +
+				 i*(nand->writesize + oobsize) +
 				 nand->writesize;
 			ops.len = nand->writesize;
-			ops.ooblen = nand->oobsize;
+			ops.ooblen = oobsize;
 			ops.mode = MTD_OOB_RAW;
 
 			rval = nand->read_oob(nand, offset + i*nand->writesize,
@@ -711,9 +737,10 @@ int nand_read_yaffs_skip_bad(nand_info_t *nand, loff_t offset, size_t *length,
 				return rval;
 			}
 
-			nand_fill_ecc(chip, ops.oobbuf, ops.ooblen);
+			if (ecc0_flag != 1)
+				nand_fill_ecc(chip, ops.oobbuf, ops.ooblen);
 
-			length -= nand->writesize + nand->oobsize;
+			*length -= nand->writesize + oobsize;
 		}
 
 
@@ -743,7 +770,7 @@ int nand_read_yaffs_skip_bad(nand_info_t *nand, loff_t offset, size_t *length,
 			ops.datbuf = p_buffer;
 			ops.oobbuf = p_buffer + nand->writesize;
 			ops.len = nand->writesize;
-			ops.ooblen = nand->oobsize;
+			ops.ooblen = oobsize;
 			ops.ooboffs = 0;
 			ops.mode = MTD_OOB_RAW;
 
@@ -754,12 +781,13 @@ int nand_read_yaffs_skip_bad(nand_info_t *nand, loff_t offset, size_t *length,
 				return rval;
 			}
 
-			nand_fill_ecc(chip, ops.oobbuf, ops.ooblen);
+			if (ecc0_flag != 1)
+				nand_fill_ecc(chip, ops.oobbuf, ops.ooblen);
 
-			p_buffer += nand->writesize + nand->oobsize;
+			p_buffer += nand->writesize + oobsize;
 			left_to_read -= nand->writesize;
 			offset += nand->writesize;
-			*length -= nand->writesize + nand->oobsize;
+			*length -= nand->writesize + oobsize;
 		}
 	}
 
@@ -797,6 +825,10 @@ int nand_write_skip_bad(nand_info_t *nand, loff_t offset, size_t *length,
 	}
 
 	len_incl_bad = get_len_incl_bad(nand, offset, *length);
+
+	/* add to cooperate with hitool */
+	print_to_hitool("pure data length is %d, len_incl_bad is %d\r\n",
+	       (u_int)*length, len_incl_bad);
 
 	if (len_incl_bad != *length)
 		printf("data length:%#x, include bad block length: %#x\n",

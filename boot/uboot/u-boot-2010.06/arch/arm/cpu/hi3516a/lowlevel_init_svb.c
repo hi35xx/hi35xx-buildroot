@@ -91,6 +91,11 @@
 #define CORE_CONFIG_1_1V_1(attr)	(voltage_to_reg(attr, 1050))
 #define CORE_CONFIG_1_1V_2(attr)	(voltage_to_reg(attr, 1010))
 
+/* CORE 5M 50PWDR */
+#define CORE_CONFIG_1_15V_0(attr)	(voltage_to_reg(attr, 1150))
+#define CORE_CONFIG_1_15V_1(attr)	(voltage_to_reg(attr, 1090))
+#define CORE_CONFIG_1_15V_2(attr)	(voltage_to_reg(attr, 1040))
+
 /* DDR */
 #define DDR_CONFIG_1_1V_0(attr)	(voltage_to_reg(attr, 1100))
 #define DDR_CONFIG_1_1V_1(attr)	(voltage_to_reg(attr, 1010))
@@ -99,6 +104,11 @@
 #define MDA_CONFIG_1_1V_0(attr)	(voltage_to_reg(attr, 1100))
 #define MDA_CONFIG_1_1V_1(attr)	(voltage_to_reg(attr, 1040))
 #define MDA_CONFIG_1_1V_2(attr)	(voltage_to_reg(attr, 990))
+
+/* MDA 5M 50PWDR */
+#define MDA_CONFIG_1_15V_0(attr)	(voltage_to_reg(attr, 1150))
+#define MDA_CONFIG_1_15V_1(attr)	(voltage_to_reg(attr, 1090))
+#define MDA_CONFIG_1_15V_2(attr)	(voltage_to_reg(attr, 1040))
 
 /* CPU 1.1V */
 #define CPU_CONFIG_1_1V_0(attr)	(voltage_to_reg(attr, 1100))
@@ -122,7 +132,7 @@ struct hipmc_attr {
 	unsigned int mda_check;
 	unsigned int volt_level;
 	unsigned int adjust_mode;
-	/* unsigned int profile_mda; */
+	unsigned int profile_mda;
 };
 
 static inline unsigned int readl(unsigned int addr)
@@ -155,7 +165,7 @@ static void parse_parameter(struct hipmc_attr *pmc_attr)
 
 	pmc_attr->adjust_mode	= (tmp_flags >> 8) & 0xF;
 	pmc_attr->volt_level	= (tmp_flags >> 4) & 0xF;
-	/* pmc_attr->profile_mda = (tmp_flags >> 12) & 0xF; */
+	pmc_attr->profile_mda	= (tmp_flags >> 12) & 0xF;
 
 	if (0x0 == profile) {
 		if (VOLTAGE_1_1V != pmc_attr->volt_level) {
@@ -164,10 +174,18 @@ static void parse_parameter(struct hipmc_attr *pmc_attr)
 			pmc_attr->ddr_check = 0;
 			pmc_attr->mda_check = 0;
 		} else {
-			pmc_attr->core_check = 1;
-			pmc_attr->cpu_check = 0;
-			pmc_attr->ddr_check = 0;
-			pmc_attr->mda_check = 0;
+			if (pmc_attr->profile_mda == 0x4) {
+				/* use media zone as source */
+				pmc_attr->core_check = 0;
+				pmc_attr->cpu_check = 0;
+				pmc_attr->ddr_check = 0;
+				pmc_attr->mda_check = 1;
+			} else {
+				pmc_attr->core_check = 1;
+				pmc_attr->cpu_check = 0;
+				pmc_attr->ddr_check = 0;
+				pmc_attr->mda_check = 0;
+			}
 		}
 	} else if (0x1 == profile) {
 		if (VOLTAGE_1_1V != pmc_attr->volt_level) {
@@ -182,10 +200,17 @@ static void parse_parameter(struct hipmc_attr *pmc_attr)
 			pmc_attr->mda_check = 1;
 		}
 	} else if (0x2 == profile) {
-		pmc_attr->core_check = 1;
-		pmc_attr->cpu_check = 1;
-		pmc_attr->ddr_check = 0;
-		pmc_attr->mda_check = 0;
+		if (pmc_attr->profile_mda == 0x4) {
+			pmc_attr->core_check = 0;
+			pmc_attr->cpu_check = 1;
+			pmc_attr->ddr_check = 0;
+			pmc_attr->mda_check = 1;
+		} else {
+			pmc_attr->core_check = 1;
+			pmc_attr->cpu_check = 1;
+			pmc_attr->ddr_check = 0;
+			pmc_attr->mda_check = 0;
+		}
 	} else if (0x3 == profile) {
 		pmc_attr->core_check = 1;
 		pmc_attr->cpu_check = 1;
@@ -256,7 +281,7 @@ static void hpm_init(struct hipmc_attr *pmc_attr)
 		writel(pmc_pwm_sel | 0xF0000, MISC_CTR_5);
 
 		/* Config CORE--PWM0 DDRC--PWM1 MDA--PWM2 CPU--PWM3 */
-		writel(0x7855, REG_BASE_PMC + 0x10);
+		/* writel(0x7855, REG_BASE_PMC + 0x10); */
 	} else if (1 == pmc_attr->adjust_mode) { /* init i2c mode */
 
 		/* Select PMU auto control reg */
@@ -486,10 +511,10 @@ static unsigned int get_hpm_recorder(unsigned int zone_index)
 
 	for (i = 0; i < aver_num; i++) {
 		recorder0 = readl(reg_zone_status);
-		hpm_value0 += (recorder0 + (recorder0 >> 12)) & 0x3ff;
+		hpm_value0 += (recorder0 & 0x3ff) + ((recorder0 >> 12) & 0x3ff);
 
 		recorder1 = readl(reg_zone_status + 0x4);
-		hpm_value1 += (recorder1 + (recorder1 >> 12)) & 0x3ff;
+		hpm_value1 += (recorder1 & 0x3ff) + ((recorder1 >> 12) & 0x3ff);
 		delay(1);
 	}
 
@@ -543,19 +568,36 @@ void start_svb(void)
 		core_aver_recorder = get_hpm_recorder(CORE);
 		writel(core_aver_recorder, 0x2005014c); /* save recorder*/
 
-		/* adjusting voltage based on aver record */
-		if (core_aver_recorder <= CORE_HPM_BOUNDARY_0) {
-			/* 0~310: 1.1V */
-			set_voltage(&pmc_attr, CORE,
-					CORE_CONFIG_1_1V_0(&pmc_attr));
-		} else if (core_aver_recorder < CORE_HPM_BOUNDARY_1) {
-			/* 340~max: 1.01V */
-			set_voltage(&pmc_attr, CORE,
-					CORE_CONFIG_1_1V_2(&pmc_attr));
+		if (pmc_attr.profile_mda == 0x4) {
+			/* adjusting voltage based on aver record */
+			if (core_aver_recorder <= CORE_HPM_BOUNDARY_0) {
+				/* 0~270: 1.15V */
+				set_voltage(&pmc_attr, CORE,
+						CORE_CONFIG_1_15V_0(&pmc_attr));
+			} else if (core_aver_recorder > CORE_HPM_BOUNDARY_1) {
+				/* 0x320~max: 1.04V */
+				set_voltage(&pmc_attr, CORE,
+						CORE_CONFIG_1_15V_2(&pmc_attr));
+			} else {
+				/* 270~320: 1.09V */
+				set_voltage(&pmc_attr, CORE,
+						CORE_CONFIG_1_15V_1(&pmc_attr));
+			}
 		} else {
-			/* 310~340: 1.05V */
-			set_voltage(&pmc_attr, CORE,
-					CORE_CONFIG_1_1V_1(&pmc_attr));
+			/* adjusting voltage based on aver record */
+			if (core_aver_recorder <= CORE_HPM_BOUNDARY_0) {
+				/* 0~310: 1.1V */
+				set_voltage(&pmc_attr, CORE,
+						CORE_CONFIG_1_1V_0(&pmc_attr));
+			} else if (core_aver_recorder > CORE_HPM_BOUNDARY_1) {
+				/* 340~max: 1.01V */
+				set_voltage(&pmc_attr, CORE,
+						CORE_CONFIG_1_1V_2(&pmc_attr));
+			} else {
+				/* 310~340: 1.05V */
+				set_voltage(&pmc_attr, CORE,
+						CORE_CONFIG_1_1V_1(&pmc_attr));
+			}
 		}
 		delay(100);
 	}
@@ -625,19 +667,36 @@ void start_svb(void)
 		mda_aver_recorder = get_hpm_recorder(MDA);
 		writel(mda_aver_recorder, 0x20050154); /* save recorder */
 
-		/* adjusting voltage based on aver record */
-		if (mda_aver_recorder <= MDA_HPM_BOUNDARY_0) {
-			/* 0~270: 1.1V */
-			set_voltage(&pmc_attr, MDA,
-					MDA_CONFIG_1_1V_0(&pmc_attr));
-		} else if (mda_aver_recorder > MDA_HPM_BOUNDARY_1) {
-			/* 0x320~max: 1.01V */
-			set_voltage(&pmc_attr, MDA,
-					MDA_CONFIG_1_1V_2(&pmc_attr));
+		if (pmc_attr.profile_mda == 0x4) {
+			/* adjusting voltage based on aver record */
+			if (mda_aver_recorder <= MDA_HPM_BOUNDARY_0) {
+				/* 0~270: 1.15V */
+				set_voltage(&pmc_attr, MDA,
+						MDA_CONFIG_1_15V_0(&pmc_attr));
+			} else if (mda_aver_recorder > MDA_HPM_BOUNDARY_1) {
+				/* 0x320~max: 1.04V */
+				set_voltage(&pmc_attr, MDA,
+						MDA_CONFIG_1_15V_2(&pmc_attr));
+			} else {
+				/* 270~320: 1.09V */
+				set_voltage(&pmc_attr, MDA,
+						MDA_CONFIG_1_15V_1(&pmc_attr));
+			}
 		} else {
-			/* 270~320: 1.03V */
-			set_voltage(&pmc_attr, MDA,
-					MDA_CONFIG_1_1V_1(&pmc_attr));
+			/* adjusting voltage based on aver record */
+			if (mda_aver_recorder <= MDA_HPM_BOUNDARY_0) {
+				/* 0~270: 1.10V */
+				set_voltage(&pmc_attr, MDA,
+						MDA_CONFIG_1_1V_0(&pmc_attr));
+			} else if (mda_aver_recorder > MDA_HPM_BOUNDARY_1) {
+				/* 0x320~max: 0.99V */
+				set_voltage(&pmc_attr, MDA,
+						MDA_CONFIG_1_1V_2(&pmc_attr));
+			} else {
+				/* 270~320: 1.04V */
+				set_voltage(&pmc_attr, MDA,
+						MDA_CONFIG_1_1V_1(&pmc_attr));
+			}
 		}
 		delay(100);
 	}

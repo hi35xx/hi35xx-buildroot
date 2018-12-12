@@ -1,21 +1,19 @@
 #ifdef CONFIG_NET_HISFV300_GODBOX_V1
 
-#define HIETH_SYSREG_BASE	REG_BASE_CRG
-#define HIETH_SYSREG_REG	REG_PERI_CRG26
-
-static void hieth_set_regbit(unsigned long addr, int bit, int shift)
-{
-	unsigned long reg;
-	reg = _readl(addr);
-	bit = bit ? 1 : 0;
-	reg &= ~(1<<shift);
-	reg |= bit<<shift;
-	_writel(reg, addr);
-}
+#define HIETH_CRG_REG		(REG_BASE_CRG + REG_PERI_CRG26)
+#define ETH_SOFT_RESET		(1 << 0)
+#define ETH_CLK_ENABLE		(1 << 8)
 
 static void hieth_reset(int rst)
 {
-	hieth_set_regbit(HIETH_SYSREG_BASE + HIETH_SYSREG_REG, rst, 0);
+	u32 val;
+
+	val = _readl(HIETH_CRG_REG);
+	if (rst)
+		val |= ETH_SOFT_RESET;
+	else
+		val &= ~ETH_SOFT_RESET;
+	_writel(val, HIETH_CRG_REG);
 
 	udelay(100);
 }
@@ -24,18 +22,18 @@ static inline void hieth_clk_ena(void)
 {
 	unsigned int val;
 
-	val = _readl(HIETH_SYSREG_BASE + HIETH_SYSREG_REG);
-	val |= (1 << 8);
-	_writel(val, HIETH_SYSREG_BASE + HIETH_SYSREG_REG);
+	val = _readl(HIETH_CRG_REG);
+	val |= ETH_CLK_ENABLE;
+	_writel(val, HIETH_CRG_REG);
 }
 
 static inline void hieth_clk_dis(void)
 {
 	unsigned int val;
 
-	val = _readl(HIETH_SYSREG_BASE + HIETH_SYSREG_REG);
-	val &= ~(1 << 8);
-	_writel(val, HIETH_SYSREG_BASE + HIETH_SYSREG_REG);
+	val = _readl(HIETH_CRG_REG);
+	val &= ~ETH_CLK_ENABLE;
+	_writel(val, HIETH_CRG_REG);
 }
 
 static void hieth_phy_reset(void)

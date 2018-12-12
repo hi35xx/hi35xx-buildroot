@@ -30,6 +30,8 @@ int ddr_sw_training_func(void *ddrtr_result)
 		& PHY_DRAMCFG_MA2T;
 	unsigned int acphyctl = REG_READ(base_phy + DDR_PHY_ACPHYCTL4);
 
+	DDR_VARIABLE_DECLARE(swapdfibyte_en);
+
 	/* check sw ddr training enable */
 	if (DDR_BYPASS_ALL_MASK == REG_READ(DDR_REG_BASE_SYSCTRL
 		+ SYSCTRL_DDR_TRAINING_CFG))
@@ -46,6 +48,9 @@ int ddr_sw_training_func(void *ddrtr_result)
 	REG_WRITE(misc_scramb & PHY_MISC_SCRAMB_DIS,
 		base_phy + DDR_PHY_MISC);
 
+	/* disable rdqs swap */
+	DDR_DQSSWAP_SAVE_FUNC(swapdfibyte_en, base_phy);
+
 	/* check hardware gating */
 	if (REG_READ(base_phy + DDR_PHY_PHYINITSTATUS)
 		& PHY_INITSTATUS_GT_MASK) {
@@ -54,15 +59,33 @@ int ddr_sw_training_func(void *ddrtr_result)
 			base_phy, -1, -1);
 	}
 
+#ifdef DDR_LPCA_TRAINING_CONFIG
+	/* lpca */
+	if (!ddr_training_check_bypass(DDR_BYPASS_LPCA_MASK)
+		&& (PHY_DRAMCFG_TYPE_LPDDR3 ==
+		(REG_READ(base_phy + DDR_PHY_DRAMCFG)
+		& PHY_DRAMCFG_TYPE_LPDDR3))) {
+		/* disable auto refresh */
+		ddr_training_set_timing(base_dmc,
+			auto_ref_timing & DMC_AUTO_TIMING_DIS);
+
+		result += ddr_lpca_training(base_dmc, base_phy,
+			ddrtr_result);
+
+		/* enable auto refresh */
+		ddr_training_set_timing(base_dmc, auto_ref_timing);
+	}
+#endif
+
 #ifdef DDR_WL_TRAINING_CONFIG
 	/* write leveling */
 	if (!ddr_training_check_bypass(DDR_BYPASS_WL_MASK)) {
 		/* disable auto refresh */
-		REG_WRITE(auto_ref_timing & DMC_AUTO_TIMING_DIS,
-			base_dmc + DDR_DMC_TIMING2);
+		ddr_training_set_timing(base_dmc,
+			auto_ref_timing & DMC_AUTO_TIMING_DIS);
 		result += ddr_write_leveling(base_dmc, base_phy);
 		/* enable auto refresh */
-		REG_WRITE(auto_ref_timing, base_dmc + DDR_DMC_TIMING2);
+		ddr_training_set_timing(base_dmc, auto_ref_timing);
 	}
 #endif
 
@@ -104,15 +127,17 @@ int ddr_sw_training_func(void *ddrtr_result)
 	if (!ddr_training_check_bypass(DDR_BYPASS_GATE_MASK)) {
 		ddr_ddrt_init(base_dmc, DDR_DDRT_MODE_GATE);
 		/* disable auto refresh */
-		REG_WRITE(auto_ref_timing & DMC_AUTO_TIMING_DIS,
-			base_dmc + DDR_DMC_TIMING2);
+		ddr_training_set_timing(base_dmc,
+			auto_ref_timing & DMC_AUTO_TIMING_DIS);
 
 		if (!dramcfg_ma2t) /* set 1T */
 			REG_WRITE(0x0, base_phy + DDR_PHY_ACPHYCTL4);
 
 		result += ddr_gate_training(base_dmc, base_phy);
+
 		/* enable auto refresh */
-		REG_WRITE(auto_ref_timing, base_dmc + DDR_DMC_TIMING2);
+		ddr_training_set_timing(base_dmc, auto_ref_timing);
+
 		if (!dramcfg_ma2t) /* restore */
 			REG_WRITE(acphyctl, base_phy + DDR_PHY_ACPHYCTL4);
 	}
@@ -129,6 +154,9 @@ int ddr_sw_training_func(void *ddrtr_result)
 	/* restore scramb */
 	REG_WRITE(misc_scramb, base_phy + DDR_PHY_MISC);
 
+	/* restore rdqs swap */
+	DDR_DQSSWAP_RESTORE_FUNC(swapdfibyte_en, base_phy);
+
 	if (!result)
 		ddr_training_suc();
 	return result;
@@ -144,7 +172,8 @@ int ddr_sw_training_func(void *ddrtr_result)
 {
 	unsigned int base_dmc, base_phy;
 	struct tr_relate_reg relate_reg;
-#if defined(DDR_WL_TRAINING_CONFIG) || defined(DDR_GATE_TRAINING_CONFIG)
+#if defined(DDR_WL_TRAINING_CONFIG) || defined(DDR_GATE_TRAINING_CONFIG) \
+	|| defined(DDR_LPCA_TRAINING_CONFIG)
 	struct tr_relate_reg relate_reg_timing;
 #endif
 	int result = 0;
@@ -177,6 +206,20 @@ int ddr_sw_training_func(void *ddrtr_result)
 			ddr_training_stat(DDR_ERR_HW_GATING,
 				base_phy, -1, -1);
 		}
+
+#ifdef DDR_LPCA_TRAINING_CONFIG
+		/* lpca */
+		if (!ddr_training_check_bypass(DDR_BYPASS_LPCA_MASK)
+			&& (PHY_DRAMCFG_TYPE_LPDDR3 ==
+			(REG_READ(base_phy + DDR_PHY_DRAMCFG)
+			& PHY_DRAMCFG_TYPE_LPDDR3))) {
+			ddr_training_save_reg(&relate_reg_timing,
+				DDR_BYPASS_LPCA_MASK);
+			result += ddr_lpca_training(base_dmc, base_phy,
+				ddrtr_result);
+			ddr_training_restore_reg(&relate_reg_timing);
+		}
+#endif
 
 #ifdef DDR_WL_TRAINING_CONFIG
 		/* write leveling */

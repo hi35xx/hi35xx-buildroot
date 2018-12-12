@@ -949,6 +949,17 @@ submit_control_msg_ex(struct usb_device *udev, unsigned long pipe, void *buffer,
 #ifdef CONFIG_HI3531A
 #include "hiusb-xhci-3531a.c"
 #endif
+
+#if (defined CONFIG_HI3519 || defined CONFIG_HI3519V101)
+#include "hiusb-xhci-3519.c"
+#endif
+
+#ifdef CONFIG_HI3516AV200
+#include "hiusb-xhci-3516av200.c"
+#endif
+#if (defined CONFIG_HI3559 || defined CONFIG_HI3556)
+#include "hiusb-xhci-3559.c"
+#endif
 /**
  * Intialises the XHCI host controller
  * and allocates the necessary data structures
@@ -1034,7 +1045,12 @@ int usb_lowlevel_init_ex(void)
 
 	have_xhci_device = 0;
 
-	if (reg & PORT_CONNECT)
+	/*
+	 * To avoid not scan usb2 when usb3 connect mouse.
+	 * [13:10] 1-full speed; 2-low speed; 3-high speed; 4-super speed
+	 * Ignore low-speed device.
+	 */
+	if ((reg & PORT_CONNECT) && ((reg >> 10) & 0xf != 2))
 		have_xhci_device = 1;
 
 	status_reg = (volatile uint32_t *)(&hcor->portregs[1].or_portsc);

@@ -3,6 +3,8 @@
 #include "ctrl.h"
 #include "mdio.h"
 
+#define INVALID_PHY_ADDR 0xFF
+
 /* suppose higmac_board_info[i] was initialed! */
 #define for_each_gmac_netdev_local_priv(ld, i)	\
 	for (i = 0; i < CONFIG_GMAC_NUMS &&	\
@@ -22,7 +24,7 @@ struct higmac_board_info higmac_board_info[] = { /* MAX_GMAC_NUMS */
 		.phy_intf		= CONFIG_HIGMAC_PHY1_INTERFACE_MODE,
 		.phy_addr		= CONFIG_HIGMAC_PHY1_ADDR,
 	},
-#if (CONFIG_GMAC_NUMS == 2)
+#if GMAC_AT_LEAST_2PORT
 	{
 		{
 			.index		= 1,
@@ -71,12 +73,11 @@ static int g_speed_portmode_table[speed_mode_butt][interface_mode_butt] = {
 static int calculate_port_mode(enum speed_mode speed, enum if_mode if_mode,
 		int is_duplex_half)
 {
-	int ret = port_mode_butt ;
-
 	if (speed < speed_mode_butt && if_mode < interface_mode_butt) {
-		ret = g_speed_portmode_table[speed][if_mode];
+		int ret = g_speed_portmode_table[speed][if_mode];
+
 		if (is_duplex_half)
-			ret &= ~(1 << 4); /* see mac_if reg def. */
+			ret &= ~BIT(4); /* see mac_if reg def. */
 		return ret;
 	}
 
@@ -102,7 +103,6 @@ static int calculate_port_mode(enum speed_mode speed, enum if_mode if_mode,
  */
 static void parse_module_parameters(void)
 {
-	enum if_mode if_mode;
 	unsigned long tmp;
 	int gmac = 0;
 	char *s, *e;
@@ -123,6 +123,8 @@ static void parse_module_parameters(void)
 	s = getenv("mdio_intf");
 next_mii:
 	if (s) {
+		enum if_mode if_mode;
+
 		while (*s == ' ' || *s == ',')
 			s++;
 
@@ -142,19 +144,19 @@ next_mii:
 			gmac = 1;
 			higmac_board_info[0].phy_intf = if_mode;
 			/* in case phy_intf=mii */
-#if (CONFIG_GMAC_NUMS == 2)
+#if GMAC_AT_LEAST_2PORT
 			higmac_board_info[1].phy_intf = if_mode;
 #endif
 			s = strchr(s, ',');
 			goto next_mii;
 		} else
-#if (CONFIG_GMAC_NUMS == 2)
+#if GMAC_AT_LEAST_2PORT
 			higmac_board_info[1].phy_intf = if_mode;
 #else
 			;
 #endif
 	}
-#if (CONFIG_GMAC_NUMS == 2)
+#if GMAC_AT_LEAST_2PORT
 	/* use_mdio=0 or use_mdio=1 or use_mdio=0,1 or ... */
 	gmac = 0;
 	s = getenv("use_mdio");
@@ -211,7 +213,7 @@ next_phyaddr:
 			s = strchr(s, ',');
 			goto next_phyaddr;
 		} else /* gmac1 */
-#if (CONFIG_GMAC_NUMS == 2)
+#if GMAC_AT_LEAST_2PORT
 			higmac_board_info[gmac].phy_addr = tmp;
 #else
 			;
@@ -290,12 +292,12 @@ void random_ether_addr(unsigned char *mac)
 
 static int higmac_net_set_mac_address(struct higmac_netdev_local *ld)
 {
-	unsigned char mac[MAC_LEN];
+	unsigned char mac[MAC_LEN] = {0};
 	int ret;
 
 	ret = eth_getenv_enetaddr("ethaddr", mac);
 	if (!ret) {
-		unsigned char ethaddr[20];
+		unsigned char ethaddr[20] = {0};
 
 		random_ether_addr(mac);
 		sprintf((char *)ethaddr, "%02X:%02X:%02X:%02X:%02X:%02X",
@@ -375,12 +377,15 @@ static int higmac_init_hw_desc_queue(struct higmac_netdev_local *ld)
 
 _error_alloc_tx_rq:
 	free(ld->tx_bq_addr);
+	ld->tx_bq_addr = NULL;
 
 _error_alloc_tx_bq:
 	free(ld->rx_bq_addr);
+	ld->rx_bq_addr = NULL;
 
 _error_alloc_rx_bq:
 	free(ld->rx_fq_addr);
+	ld->rx_fq_addr = NULL;
 
 _error_alloc_rx_fq:
 	return -1;
@@ -401,12 +406,154 @@ static void higmac_destroy_hw_desc_queue(struct higmac_netdev_local *ld)
 }
 #endif
 
+#define PHY_ID_KSZ8051		0x00221550
+#define PHY_ID_KSZ8081		0x00221560
+#define PHY_ID_KSZ9031		0x00221620
+#define PHY_ID_MASK		0xFFFFFFF0
+
+/* MMD: MDIO Manageable Device */
+#define MACR			0x0D
+#define MAADR			0x0E
+static void phy_mmd_read(char *devname, u32 phyaddr,
+			 u32 mmd_device, u32 regnum, u32 *val)
+{
+	int ret = 0;
+
+	miiphy_write(devname, phyaddr, MACR, mmd_device);
+	miiphy_write(devname, phyaddr, MAADR, regnum);
+	miiphy_write(devname, phyaddr, MACR, 0x4000 | mmd_device);
+
+	ret = miiphy_read(devname, phyaddr, MAADR, (unsigned short *)val);
+	if (ret)
+		printf("%s mmd read phy %d dev %d reg 0x%x failed\n",
+			devname, phyaddr, mmd_device, regnum);
+}
+
+static void phy_mmd_write(char *devname, u32 phyaddr,
+			  u32 mmd_device, u32 regnum, u32 val)
+{
+	miiphy_write(devname, phyaddr, MACR, mmd_device);
+	miiphy_write(devname, phyaddr, MAADR, regnum);
+	miiphy_write(devname, phyaddr, MACR, 0x4000 | mmd_device);
+
+	miiphy_write(devname, phyaddr, MAADR, val);
+}
+
+static int phy_detected(char *devname, unsigned int phyaddr)
+{
+	u32 phy_id = 0;
+	u16 id1 = 0, id2 = 0;
+
+	if (miiphy_read(devname, phyaddr, PHY_PHYIDR1, &id1) != 0) {
+		printf("PHY IDR1 read failed\n");
+		return 0;
+	};
+	if (miiphy_read(devname, phyaddr, PHY_PHYIDR2, &id2) != 0) {
+		printf("PHY IDR2 read failed\n");
+		return 0;
+	};
+
+	phy_id = (id1 & 0xffff) << 16;
+	phy_id |= (id2 & 0xffff);
+
+	/* If the phy_id is all Fs, there is no device there */
+	if (0xffffffff == phy_id || 0 == phy_id ||
+	    phy_id == 0xFFFF || phy_id == 0xFFFF0000)
+		return 0;
+
+	return 1;
+}
+
+static int phy_fixup(char *devname, unsigned int phyaddr, enum if_mode phymode)
+{
+	u32 phy_id;
+	u16 id1 = 0, id2 = 0;
+
+	if (miiphy_read(devname, phyaddr, PHY_PHYIDR1, &id1) != 0) {
+		printf("PHY IDR1 read failed\n");
+		return -1;
+	};
+	if (miiphy_read(devname, phyaddr, PHY_PHYIDR2, &id2) != 0) {
+		printf("PHY IDR2 read failed\n");
+		return -1;
+	};
+
+	phy_id = (id1 & 0xffff) << 16;
+	phy_id |= (id2 & 0xffff);
+
+	/* If the phy_id is all Fs, there is no device there */
+	if (0xffffffff == phy_id || 0 == phy_id ||
+	    phy_id == 0xFFFF || phy_id == 0xFFFF0000) {
+		return -1;
+	}
+
+	/* PHY-KSZ8051 */
+	if (((phy_id & PHY_ID_MASK) == PHY_ID_KSZ8051) &&
+	    (phymode == interface_mode_rmii)) {
+		unsigned int val = 0;
+
+		if (miiphy_read(devname, phyaddr, 0x1F,
+				(unsigned short *)&val) != 0) {
+			printf("PHY reg read failed\n");
+			return -1;
+		};
+		val |= BIT(7);       /* set phy RMII 50MHz clk; */
+		if (miiphy_write(devname, phyaddr, 0x1F, val) != 0)
+			return -1;
+
+		if (miiphy_read(devname, phyaddr, 0x16,
+				(unsigned short *)&val) != 0) {
+			printf("PHY reg read failed\n");
+			return -1;
+		};
+		val |= BIT(1);       /* set phy RMII override; */
+		if (miiphy_write(devname, phyaddr, 0x16, val) != 0)
+			return -1;
+	}
+
+	/* PHY-KSZ8081 */
+	if (((phy_id & PHY_ID_MASK) == PHY_ID_KSZ8081) &&
+	    (phymode == interface_mode_rmii)) {
+		unsigned int val = 0;
+
+		if (miiphy_read(devname, phyaddr, 0x1F,
+				(unsigned short *)&val) != 0) {
+			printf("PHY IDR1 read failed\n");
+			return -1;
+		};
+		val |= BIT(7);       /* set phy RMII 50MHz clk; */
+		if (miiphy_write(devname, phyaddr, 0x1F, val) != 0)
+			return -1;
+	}
+
+	/* PHY-KSZ9031 */
+	if ((phy_id & PHY_ID_MASK) == PHY_ID_KSZ9031) {
+		unsigned int val = 0;
+
+		/* RX_CLK Pad Skew: 1_1101(+0.84) */
+		phy_mmd_read(devname, phyaddr, 0x2, 0x8, &val);
+		val = (val & ~0x1F) | 0x1D;
+		phy_mmd_write(devname, phyaddr, 0x2, 0x8, val);
+	}
+
+	return 0;
+}
+
 static int higmac_net_adjust_link(struct higmac_netdev_local *ld)
 {
 	char *mii_name = higmac_board_info[ld->index].mii_name;
 	int phy_addr = higmac_board_info[ld->index].phy_addr;
+	enum if_mode phy_mode = higmac_board_info[ld->index].phy_intf;
 	int stat = 0, speed = 0, is_duplex_half = 1, port_mode, phy_duplex;
-	enum speed_mode speed_mode;
+	enum speed_mode speed_mode = speed_mode_100M;
+
+	if (phy_addr == INVALID_PHY_ADDR)
+		return stat;
+
+	phy_fixup(mii_name, phy_addr, phy_mode);
+
+	if (!phy_detected(mii_name, phy_addr))
+		return stat;
 
 	stat |= miiphy_link(mii_name, phy_addr) ? HIGMAC_LINKED : 0;
 
@@ -424,6 +571,7 @@ static int higmac_net_adjust_link(struct higmac_netdev_local *ld)
 		break;
 	default:
 		printf("wired, phy speed!\n");
+		break;
 	case _100BASET:
 		stat |= HIGMAC_SPD_100M;
 		speed_mode = speed_mode_100M;
@@ -478,7 +626,6 @@ static int select_current_linked_phy(void)
 
 link_failed:
 	for (i = 0; i < CONFIG_GMAC_NUMS; i++) {
-		ld = &higmac_board_info[i].higmac_ld;
 		printf("ETH%d: PHY(phyaddr=%d, %s) not link!\n",
 			i, higmac_board_info[i].phy_addr,
 			phy_intf_str[higmac_board_info[i].phy_intf]);
@@ -501,14 +648,15 @@ link_on:
 	return 0;
 }
 
+#define NET_IP_ALIGN	2
 int eth_rx(void)
 {
 	struct higmac_netdev_local *ld = current_ld;
 	int timeout_us = 100000;
-	int rx_fq_wr_offset = 0;
-	int rx_fq_rd_offset = 0;
-	int rx_bq_wr_offset = 0;
-	int rx_bq_rd_offset = 0;
+	u32 rx_fq_wr_offset = 0;
+	u32 rx_fq_rd_offset = 0;
+	u32 rx_bq_wr_offset = 0;
+	u32 rx_bq_rd_offset = 0;
 	int len = 0;
 	int wr_rd_dist;
 	int i;
@@ -536,9 +684,10 @@ int eth_rx(void)
 		rx_fq_desc = ld->rx_fq_addr +
 				(rx_fq_wr_offset >> DESC_BYTE_SHIFT);
 		rx_fq_desc->data_buff_addr
-			= (unsigned int)malloc(HIETH_BUFFER_SIZE);
+			= (unsigned int)memalign(64, HIETH_BUFFER_SIZE);
 		if (rx_fq_desc->data_buff_addr == (unsigned int)NULL)
 			break;
+		rx_fq_desc->data_buff_addr += NET_IP_ALIGN;
 		rx_fq_desc->descvid = DESC_VLD_FREE;
 		rx_fq_desc->buffer_len = (HIETH_MAX_FRAME_SIZE - 1);
 		rx_fq_desc->data_len = 8;
@@ -581,7 +730,9 @@ int eth_rx(void)
 	if (HIGMAC_INVALID_RXPKG_LEN(len)) {
 		higmac_writel_bits(ld, rx_bq_rd_offset, RX_BQ_RD_ADDR,
 			BITS_RX_BQ_RD_ADDR);
+		rx_bq_desc->data_buff_addr -= NET_IP_ALIGN;
 		free((void *)rx_bq_desc->data_buff_addr);
+		rx_bq_desc->data_buff_addr = 0;
 		return -1;
 	}
 	if (gmac_debug)
@@ -589,7 +740,9 @@ int eth_rx(void)
 
 	memcpy((void *)NetRxPackets[0],
 			(const void *)rx_bq_desc->data_buff_addr, len);
+	rx_bq_desc->data_buff_addr -= NET_IP_ALIGN;
 	free((void *)rx_bq_desc->data_buff_addr);
+	rx_bq_desc->data_buff_addr = 0;
 
 	higmac_writel_bits(ld, rx_bq_rd_offset, RX_BQ_RD_ADDR,
 		BITS_RX_BQ_RD_ADDR);
@@ -609,10 +762,10 @@ int eth_send(volatile void *packet, int length)
 {
 	struct higmac_netdev_local *ld = current_ld;
 	int timeout_us = 1000;
-	int tx_bq_wr_offset = 0;
-	int tx_bq_rd_offset = 0;
-	int tx_rq_wr_offset = 0;
-	int tx_rq_rd_offset = 0;
+	u32 tx_bq_wr_offset = 0;
+	u32 tx_bq_rd_offset = 0;
+	u32 tx_rq_wr_offset = 0;
+	u32 tx_rq_rd_offset = 0;
 	unsigned int tso_ver = 0;
 	higmac_desc *tx_bq_desc = ld->tx_bq_addr;
 
@@ -693,6 +846,8 @@ static int higmac_init(void)
 {
 	int ret = 0;
 	struct higmac_netdev_local *ld;
+	char *mii_name = NULL;
+	unsigned int phy_addr = 0;
 	int i;
 
 	/* init once to save time */
@@ -705,29 +860,32 @@ static int higmac_init(void)
 			mdio_register = 1;
 			miiphy_register(mdio_bus[0], higmac0_mdio_read,
 					higmac0_mdio_write);
-
-			if (CONFIG_GMAC_NUMS == 2) {
-				miiphy_register(mdio_bus[1], higmac1_mdio_read,
-						higmac1_mdio_write);
-			}
+#if GMAC_AT_LEAST_2PORT
+			miiphy_register(mdio_bus[1], higmac1_mdio_read,
+					higmac1_mdio_write);
+#endif
 		}
 #if 0
 		/* disable PHY 1000M Mode */
 		miiphy_write(higmac_board_info[0].mii_name,
 				higmac_board_info[0].phy_addr, PHY_1000BTCR, 0);
-
-		if (CONFIG_GMAC_NUMS == 2)
-			miiphy_write(higmac_board_info[1].mii_name,
-					higmac_board_info[1].phy_addr,
-					PHY_1000BTCR, 0);
+#if GMAC_AT_LEAST_2PORT
+		miiphy_write(higmac_board_info[1].mii_name,
+				higmac_board_info[1].phy_addr, PHY_1000BTCR, 0);
+#endif
 #endif
 
-		miiphy_reset(higmac_board_info[0].mii_name,
-				higmac_board_info[0].phy_addr);
+		mii_name = higmac_board_info[0].mii_name;
+		phy_addr = higmac_board_info[0].phy_addr;
+		if (phy_detected(mii_name, phy_addr))
+			miiphy_reset(mii_name, phy_addr);
 
-		if (CONFIG_GMAC_NUMS == 2)
-			miiphy_reset(higmac_board_info[1].mii_name,
-					higmac_board_info[1].phy_addr);
+#if GMAC_AT_LEAST_2PORT
+		mii_name = higmac_board_info[1].mii_name;
+		phy_addr = higmac_board_info[1].phy_addr;
+		if (phy_detected(mii_name, phy_addr))
+			miiphy_reset(mii_name, phy_addr);
+#endif
 
 		for_each_gmac_netdev_local_priv(ld, i) {
 			higmac_glb_preinit_dummy(ld);

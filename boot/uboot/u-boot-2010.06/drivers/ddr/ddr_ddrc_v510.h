@@ -14,20 +14,37 @@
 #define DDR_DMC_CFG_PD			0x28   /* PowerDown */
 #define DDR_DMC_CFG_DDRMODE		0x50
 #define DDR_DMC_CFG_SCRAMB		0x58   /* DDR scramb config */
+#define DDR_DMC_CFG_RNKVOL(n)	(0x60 + ((n) << 2))
 #define DDR_DMC_CFG_EMRS01		0xf0
 #define DDR_DMC_TIMING2			0x108
 #define DDR_DMC_SFCREQ			0xc
 #define DDR_DMC_SFCCMD			0x210
 #define DDR_DMC_SFCADDR			0x214   /* read col and row */
 #define DDR_DMC_SFCBANK			0x218
+#ifndef DDR_DMC_SFC_RDATA0
 #define DDR_DMC_SFC_RDATA0		0x4A8   /* SFC read data[31:0] */
+#endif
+#ifndef DDR_DMC_SFC_RDATA1
 #define DDR_DMC_SFC_RDATA1		0x4AC   /* SFC read data[63:32] */
+#endif
+#ifndef DDR_DMC_SFC_RDATA2
 #define DDR_DMC_SFC_RDATA2		0x4B0   /* SFC read data[95:64] */
+#endif
+#ifndef DDR_DMC_SFC_RDATA3
 #define DDR_DMC_SFC_RDATA3		0x4B4   /* SFC read data[127:96] */
+#endif
+#ifndef DDR_DMC_SFC_RDATA4
 #define DDR_DMC_SFC_RDATA4		0x4B8   /* SFC read data[159:128] */
+#endif
+#ifndef DDR_DMC_SFC_RDATA5
 #define DDR_DMC_SFC_RDATA5		0x4BC   /* SFC read data[191:160] */
+#endif
+#ifndef DDR_DMC_SFC_RDATA6
 #define DDR_DMC_SFC_RDATA6		0x4C0   /* SFC read data[223:192] */
+#endif
+#ifndef DDR_DMC_SFC_RDATA7
 #define DDR_DMC_SFC_RDATA7		0x4C4   /* SFC read data[255:224] */
+#endif
 
 /* register mask */
 #define DMC_CMD_MRS_MASK		0xffff
@@ -36,6 +53,7 @@
 #define DMC_MRS_MASK			0xffff  /* [15:0] Mode Register mask */
 #define DMC_MR0_BL_MASK			0x3
 #define DMC_CFG_DRAM_TYPE_MASK	0xf /* [3:0]101:DDR2, 110:DDR3, 111:DDR4 */
+#define DMC_CFG_MEM_BG_MASK	    0x3 /* [11:10]0:1, 1:2, 2:4 Bank Group */
 
 /* register bit */
 #define DMC_MEM_WIDTH_BIT		4       /* storing data bus width */
@@ -44,6 +62,7 @@
 /* [CUSTOM] [29:12]config MR when LMR command */
 #define DMC_SFC_CMD_MRS_BIT		12
 #define DMC_SFC_RANK_BIT		16      /* [CUSTOM] [31:16]sfc_rank */
+#define DMC_CFG_MEM_BG_BIT	    10      /* [11:10] mem_bankgroup */
 
 /* register value */
 #define DMC_BANK_MR1			1
@@ -63,6 +82,7 @@
 /* [4] scramb_seed_type, [2:0] scramb_seed_sort */
 #define DMC_SCRAMB_CFG          0xffffffe8
 #define DMC_CFG_DRAM_TYPE_DDR4	0x7        /* DDR4 */
+#define DMC_CFG_MEM_2BG	        0x1        /* 2 Bank Group */
 
 #ifndef DDR_PHY_NUM
 #define DDR_PHY_NUM				2 /* phy number */
@@ -121,17 +141,18 @@
 #define DDR_AXI_REGION_ATTRIB1           0x114  /* region 1 */
 
 /* register mask */
-#define AXI_REGION_ATTRIB_CH_MASK        0xffff0000 /* channel mask */
+#define AXI_REGION_ATTRIB_CH_MASK        0xfffffff0 /* channel mask */
 
 /* register value */
 /* Map to the single channel, independent address */
 #define AXI_RNG_ATTR_CH_MODE             0x4
 #define AXI_RNG_ATTR_CH_START_0          0x0
 #define AXI_RNG_ATTR_CH_START_1          0x1
+#define AXI_RNG_NUM	2	/* region number */
 
 /********data define************************************/
 struct ddr_ddrc_data {
-	unsigned int region_attrib[DDR_PHY_NUM];
+	unsigned int region_attrib[AXI_RNG_NUM];
 };
 
 #define DDR_AXI_SAVE_FUNC(relate_reg) \

@@ -9,7 +9,7 @@
 
 #define MCI_SRC_CLK		(50*1000*1000)	/* 50MHz */
 #define MCI_ID_CLK		(400*1000)	/* 400KHz */
-#define MCI_BOOT_CLK		(20*1000*1000)	/* 20MHz */
+#define MCI_BOOT_CLK		(25*1000*1000)	/* 20MHz */
 
 #define DELAY_US		(1000)
 
@@ -118,32 +118,6 @@ static unsigned int emmc_init(void)
 	unsigned int tmp_reg;
 	unsigned int mmc_base = SDIO0_BASE_REG;
 	unsigned int hcs;
-
-	emmc_io_init();
-
-	emmc_sys_init();
-
-	/* reset all */
-	tmp_reg = himci_readl(mmc_base + MCI_CTRL);
-	tmp_reg |= CTRL_RESET | FIFO_RESET | DMA_RESET;
-	himci_writel(tmp_reg, mmc_base + MCI_CTRL);
-
-	/* card reset  */
-	himci_writel(0, mmc_base + MCI_RESET_N);
-	delay(30 * DELAY_US);
-
-	/*
-	 * card power off and power on
-	 * 84ms for hi3716mv300; 55ms for hi3716c
-	 */
-	himci_writel(0, mmc_base + MCI_PWREN);
-	delay(20000 * DELAY_US);
-	himci_writel(0x1 << 1, mmc_base + MCI_PWREN);
-	delay(20000 * DELAY_US);
-
-	/* card reset cancel */
-	himci_writel(0x1 << 1, mmc_base + MCI_RESET_N);
-	delay(300 * DELAY_US);
 
 	/* set drv/smpl phase shift */
 	tmp_reg = himci_readl(mmc_base + MCI_UHS_REG_EXT);
@@ -284,14 +258,15 @@ static void emmc_read(void *ptr, unsigned int size, unsigned int hcs)
 
 		/*start to read data*/
 		while (1) {
+			val = (DCRC_INT_STATUS | DRTO_INT_STATUS | HTO_INT_STATUS
+				 | FRUN_INT_STATUS | HLE_INT_STATUS | SBE_INT_STATUS
+				 | EBE_INT_STATUS);
 			tmp_reg = himci_readl(mmc_base + MCI_RINTSTS);
-			if (tmp_reg & RXDR_INT_STATUS)
-				break;
-
-			val = (DRTO_INT_STATUS | HTO_INT_STATUS
-				 | HLE_INT_STATUS | EBE_INT_STATUS);
 			if (tmp_reg & val)
 				return;
+
+			if (tmp_reg & RXDR_INT_STATUS)
+				break;
 		}
 		himci_writel(ALL_INT_CLR, mmc_base + MCI_RINTSTS);
 

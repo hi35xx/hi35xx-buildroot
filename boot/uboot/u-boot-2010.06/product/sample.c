@@ -35,7 +35,7 @@ out:
 }
 
 
-#ifdef CONFIG_HI3521A
+#if defined(CONFIG_HI3521A) || defined(CONFIG_HI3531A)
 HI_U32 g_u32HDMI_update_status_flag = 0;
 
 void update_hdmi_status(void)

@@ -4,9 +4,9 @@
 #include "hieth.h"
 #include "ctrl.h"
 
-static inline int _hieth_irq_enable(struct hieth_netdev_local *ld, int irqs)
+static inline u32 _hieth_irq_enable(struct hieth_netdev_local *ld, u32 irqs)
 {
-	int old;
+	u32 old;
 
 	old = hieth_readl(ld, GLB_RW_IRQ_ENA);
 
@@ -15,9 +15,9 @@ static inline int _hieth_irq_enable(struct hieth_netdev_local *ld, int irqs)
 	return old;
 }
 
-static inline int _hieth_irq_disable(struct hieth_netdev_local *ld, int irqs)
+static inline u32 _hieth_irq_disable(struct hieth_netdev_local *ld, u32 irqs)
 {
-	int old;
+	u32 old;
 
 	old = hieth_readl(ld, GLB_RW_IRQ_ENA);
 
@@ -26,9 +26,9 @@ static inline int _hieth_irq_disable(struct hieth_netdev_local *ld, int irqs)
 	return old;
 }
 
-static inline int _hieth_read_irqstatus(struct hieth_netdev_local *ld)
+static inline u32 _hieth_read_irqstatus(struct hieth_netdev_local *ld)
 {
-	int status;
+	u32 status;
 
 	status = hieth_readl(ld, GLB_RO_IRQ_STAT);
 
@@ -45,9 +45,9 @@ static inline int _test_recv_queue_ready(struct hieth_netdev_local *ld)
 	return hieth_readl_bits(ld, UD_REG_NAME(GLB_RO_QUEUE_STAT), BITS_RECVQ_RDY);
 }
 
-int hieth_irq_enable(struct hieth_netdev_local *ld, int irqs)
+u32 hieth_irq_enable(struct hieth_netdev_local *ld, u32 irqs)
 {
-	int old;
+	u32 old;
 
 	local_lock(ld);
 	old = _hieth_irq_enable(ld, irqs);
@@ -56,9 +56,9 @@ int hieth_irq_enable(struct hieth_netdev_local *ld, int irqs)
 	return old;
 }
 
-int hieth_irq_disable(struct hieth_netdev_local *ld, int irqs)
+u32 hieth_irq_disable(struct hieth_netdev_local *ld, u32 irqs)
 {
-	int old;
+	u32 old;
 
 	local_lock(ld);
 	old = _hieth_irq_disable(ld, irqs);
@@ -67,9 +67,9 @@ int hieth_irq_disable(struct hieth_netdev_local *ld, int irqs)
 	return old;
 }
 
-int hieth_read_irqstatus(struct hieth_netdev_local *ld)
+u32 hieth_read_irqstatus(struct hieth_netdev_local *ld)
 {
-	int status;
+	u32 status;
 
 	local_lock(ld);
 	status = _hieth_read_irqstatus(ld);
@@ -78,9 +78,9 @@ int hieth_read_irqstatus(struct hieth_netdev_local *ld)
 	return status;
 }
 
-int hieth_read_raw_irqstatus(struct hieth_netdev_local *ld)
+u32 hieth_read_raw_irqstatus(struct hieth_netdev_local *ld)
 {
-	int status;
+	u32 status;
 
 	local_lock(ld);
 	status = hieth_readl(ld, GLB_RO_IRQ_STAT); 
@@ -89,9 +89,9 @@ int hieth_read_raw_irqstatus(struct hieth_netdev_local *ld)
 	return status;
 }
 
-int hieth_clear_irqstatus(struct hieth_netdev_local *ld, int irqs)
+u32 hieth_clear_irqstatus(struct hieth_netdev_local *ld, u32 irqs)
 {
-	int status;
+	u32 status;
 
 	local_lock(ld);
 	hieth_writel(ld, irqs, GLB_RW_IRQ_RAW);
@@ -101,9 +101,9 @@ int hieth_clear_irqstatus(struct hieth_netdev_local *ld, int irqs)
 	return status;
 }
 
-int hieth_set_endian_mode(struct hieth_netdev_local *ld, int mode)
+u32 hieth_set_endian_mode(struct hieth_netdev_local *ld, u32 mode)
 {
-	int old;
+	u32 old;
 
 	local_lock(ld);
 	old = hieth_readl_bits(ld, GLB_ENDIAN_MOD, BITS_ENDIAN);

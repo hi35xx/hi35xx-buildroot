@@ -164,8 +164,8 @@ static int au_check_header_valid(int idx, long nbytes)
 	image_header_t *hdr;
 	unsigned long checksum;
 
-	char env[20];
-	char auversion[20];
+	char env[20] = {0};
+	char auversion[20] = {0};
 
 	hdr = (image_header_t *)LOAD_ADDR;
 	/* check the easy ones first */
@@ -218,7 +218,7 @@ static int au_check_header_valid(int idx, long nbytes)
 	/* recycle checksum */
 	checksum = ntohl(hdr->ih_size);
 	/* for kernel and app the image header must also fit into flash */
-	if ((idx == IDX_KERNEL) && (idx == IH_TYPE_RAMDISK))
+	if ((idx == IDX_KERNEL) || (hdr->ih_type == IH_TYPE_RAMDISK))
 		checksum += sizeof(*hdr);
 
 	/* check the size does not exceed space in flash. HUSH scripts */
@@ -232,6 +232,89 @@ static int au_check_header_valid(int idx, long nbytes)
 	setenv(auversion, env);
 
 	return 0;
+}
+
+static void schedule_notify(unsigned long offset, unsigned long len,
+		unsigned long off_start)
+{
+	int percent_complete = -1;
+
+	do {
+		unsigned long long n = (unsigned long long)
+			(offset - off_start) * 100;
+		int percent;
+
+		do_div(n, len);
+		percent = (int)n;
+
+		/* output progress message only at whole percent
+		 * steps to reduce the number of messages
+		 * printed on (slow) serial consoles
+		 */
+		if (percent != percent_complete) {
+			percent_complete = percent;
+
+			printf("\rOperation at 0x%lx -- %3d%% complete.",
+					offset, percent);
+		}
+	} while (0);
+}
+
+static int spi_flash_erase_op(struct spi_flash *flash, unsigned long offset,
+		unsigned long len)
+{
+	int ret;
+	struct mtd_info_ex *spiflash_info = get_spiflash_info();
+	unsigned long erase_start, erase_len, erase_step;
+
+	erase_start = offset;
+	erase_len   = len;
+	erase_step  = spiflash_info->erasesize;
+
+	while (len > 0) {
+		if (len < erase_step)
+			erase_step = len;
+
+		ret = flash->erase(flash, (u32)offset, erase_step);
+		if (ret)
+			return 1;
+
+		len -= erase_step;
+		offset += erase_step;
+		/* notify real time schedule */
+		schedule_notify(offset, erase_len, erase_start);
+	}
+	return ret;
+}
+
+static int spi_flash_write_op(struct spi_flash *flash, unsigned long offset,
+		unsigned long len, void *buf)
+{
+	int ret = 0;
+	unsigned long write_start, write_len, write_step;
+	char *pbuf = buf;
+	struct mtd_info_ex *spiflash_info = get_spiflash_info();
+
+	write_start = offset;
+	write_len   = len;
+	write_step  = spiflash_info->erasesize;
+
+	while (len > 0) {
+		if (len < write_step)
+			write_step = len;
+
+		ret = flash->write(flash, offset, write_step, pbuf);
+		if (ret)
+			break;
+
+		offset += write_step;
+		pbuf   += write_step;
+		len    -= write_step;
+		/* notify real time schedule */
+		schedule_notify(offset, write_len, write_start);
+	}
+
+	return ret;
 }
 
 static int au_do_update(int idx, long sz)
@@ -252,7 +335,7 @@ static int au_do_update(int idx, long sz)
 	 * erase the address range.
 	 */
 	printf("flash erase...\n");
-	rc = flash->erase(flash, start, len);
+	rc = spi_flash_erase_op(flash, start, len);
 	if (rc) {
 		printf("SPI flash sector erase failed\n");
 		return 1;
@@ -274,8 +357,8 @@ static int au_do_update(int idx, long sz)
 	}
 
 	/* copy the data from RAM to FLASH */
-	printf("flash write...\n");
-	rc = flash->write(flash, start, write_len, pbuf);
+	printf("\nflash write...\n");
+	rc = spi_flash_write_op(flash, start, write_len, pbuf);
 	if (rc) {
 		printf("SPI flash write failed, return %d\n", rc);
 		return 1;
@@ -407,6 +490,7 @@ int do_auto_update(void)
 	int old_ctrlc;
 	int j;
 	int state = -1;
+	int dev;
 
 	au_stor_curr_dev = -1;
 	for (j = 0; j < MAX_UPDATE_INTF; j++) {
@@ -418,8 +502,15 @@ int do_auto_update(void)
 				continue;
 			}
 
+			dev = 0;
+
+#if (defined CONFIG_HI3516CV300 || defined CONFIG_ARCH_HI3519 || \
+		defined CONFIG_ARCH_HI3519V101 || defined CONFIG_ARCH_HI3516AV200)
+			if (strncmp("mmc", s_intf[j].name, sizeof("mmc")) == 0)
+				dev = 2;
+#endif
 			debug("device name %s!\n", s_intf[j].name);
-			stor_dev = get_dev(s_intf[j].name, 0);
+			stor_dev = get_dev(s_intf[j].name, dev);
 			if (NULL == stor_dev) {
 				debug("Unknow device type!\n");
 				continue;

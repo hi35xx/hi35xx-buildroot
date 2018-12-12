@@ -1643,7 +1643,7 @@ struct spi_info hisfc300new_spi_info_table[] = {
 
 	*/
 	{
-		"W25Q32BV",  {0xef, 0x40, 0x16}, 3, (_64K * 64),   _64K, 3,
+		"W25Q32(B/F)V",  {0xef, 0x40, 0x16}, 3, (_64K * 64),   _64K, 3,
 		{
 			&READ_STD(0, INFINITE, 50),
 			&READ_FAST(1, INFINITE, 80),

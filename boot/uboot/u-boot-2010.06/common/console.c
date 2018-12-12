@@ -382,6 +382,23 @@ void printf(const char *fmt, ...)
 	puts(printbuffer);
 }
 
+void print_to_hitool(const char *fmt, ...)
+{
+	va_list args;
+	char printbuffer[CONFIG_SYS_PBSIZE];
+
+	va_start(args, fmt);
+
+	/* For this to work, printbuffer must be larger than
+	 * anything we ever want to print.
+	 */
+	vsprintf(printbuffer, fmt, args);
+	va_end(args);
+
+	/* Print the string */
+	serial_puts_to_hitool(printbuffer);
+}
+
 void vprintf(const char *fmt, va_list args)
 {
 	char printbuffer[CONFIG_SYS_PBSIZE];

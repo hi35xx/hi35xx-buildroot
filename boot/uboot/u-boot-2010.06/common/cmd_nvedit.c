@@ -63,9 +63,10 @@ DECLARE_GLOBAL_DATA_PTR;
     !defined(CONFIG_ENV_IS_IN_NVRAM)	&& \
     !defined(CONFIG_ENV_IS_IN_ONENAND)	&& \
     !defined(CONFIG_ENV_IS_IN_SPI_FLASH)	&& \
-    !defined(CONFIG_ENV_IS_NOWHERE)
+!defined(CONFIG_ENV_IS_NOWHERE)	&& \
+!defined(CONFIG_ENV_IS_IN_EMMC)
 # error Define one of CONFIG_ENV_IS_IN_{EEPROM|FLASH|DATAFLASH|ONENAND|\
-SPI_FLASH|MG_DISK|NVRAM|NOWHERE}
+SPI_FLASH|MG_DISK|NVRAM|NOWHERE|EMMC}
 #endif
 
 #define XMK_STR(x)	#x
@@ -313,9 +314,9 @@ int _do_setenv (int flag, int argc, char *argv[])
 
 	/* Delete only ? */
 	if ((argc < 3) || argv[2] == NULL) {
-		/* 
-		 * optimize uboot startup time, only do_saveenv command update CRC, 
-		 * so if you want do saveenv, you should call function env_crc_update() 
+		/*
+		 * optimize uboot startup time, only do_saveenv command update CRC,
+		 * so if you want do saveenv, you should call function env_crc_update()
 		 * before call function saveenv()
 		 */
 		/* env_crc_update (); */
@@ -329,6 +330,9 @@ int _do_setenv (int flag, int argc, char *argv[])
 		;
 	if (env > env_data)
 		++env;
+#if defined(CONFIG_ARCH_HI3559) || defined(CONFIG_ARCH_HI3556)
+    uchar *newenv = env;
+#endif
 	/*
 	 * Overflow when:
 	 * "name" + "=" + "val" +"\0\0"  > ENV_SIZE - (env-env_data)
@@ -356,9 +360,9 @@ int _do_setenv (int flag, int argc, char *argv[])
 	*++env = '\0';
 
 	/* Update CRC */
-	/* 
-	 * optimize uboot startup time, only do_saveenv command update CRC, 
-	 * so if you want do saveenv, you should call function env_crc_update() 
+	/*
+	 * optimize uboot startup time, only do_saveenv command update CRC,
+	 * so if you want do saveenv, you should call function env_crc_update()
 	 * before call function saveenv()
 	 */
 	/* env_crc_update (); */
@@ -367,7 +371,41 @@ int _do_setenv (int flag, int argc, char *argv[])
 	 * Some variables should be updated when the corresponding
 	 * entry in the enviornment is changed
 	 */
+#if defined(CONFIG_ARCH_HI3559) || defined(CONFIG_ARCH_HI3556)
+	if (strcmp(argv[1],"minibootargs") == 0)
+	{
+        int newlen = env - newenv;
+        #define MAX_ARGS_LEN (1024)
+        //printf("\n newlen: %d,env : 0x%x,newenv: 0x%x\n",newlen,env,newenv);
 
+        uchar newbuf[MAX_ARGS_LEN];
+
+        if (newlen>= MAX_ARGS_LEN)
+        {
+            printf("\nminibootargs is too long: %d\n",newlen);
+            return 0;
+        }
+
+        memset(newbuf,0,sizeof(newbuf));
+
+        int datalen = newenv - env_data;
+
+        for (i = 0;i < newlen; i++)
+        {
+            newbuf[i] = env_data[i + datalen];
+        }
+
+        for (i = datalen - 1;i >= 0;i--)
+        {
+            env_data[i + newlen] = env_data[i];
+        }
+
+        for (i = 0;i < newlen; i++)
+        {
+            env_data[i] = newbuf[i];
+        }
+	}
+#endif
 	if (strcmp(argv[1],"ethaddr") == 0)
 		return 0;
 
@@ -604,9 +642,9 @@ int do_saveenv (cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 
 	printf ("Saving Environment to %s...\n", env_name_spec);
 
-	/* 
-	 * optimize uboot startup time, only do_saveenv command update CRC, 
-	 * so if you want do saveenv, you should call function env_crc_update() 
+	/*
+	 * optimize uboot startup time, only do_saveenv command update CRC,
+	 * so if you want do saveenv, you should call function env_crc_update()
 	 * before call function saveenv()
 	 */
 	env_crc_update ();

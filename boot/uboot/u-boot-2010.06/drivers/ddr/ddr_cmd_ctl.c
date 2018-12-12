@@ -80,7 +80,7 @@ static void ddr_training_reg_read_phy(unsigned int base_dmc,
 {
 	int byte_num;
 	int index = 0;
-	int i;
+	unsigned int i;
 
 	byte_num = ((REG_READ(base_dmc + DDR_DMC_CFG_DDRMODE)
 			>> DMC_MEM_WIDTH_BIT) & DMC_MEM_WIDTH_MASK) << 1;
@@ -174,6 +174,12 @@ static void ddr_training_reg_read_phy(unsigned int base_dmc,
 	/* DRAM Vref */
 	DDR_PHY_VREF_DRAM_DISPLAY(base_phy, ddr_reg, index, byte_num);
 
+	/* CA Phase */
+	DDR_PHY_ADDRPH_DISPLAY(base_phy, ddr_reg, index);
+
+	/* CA BDL */
+	DDR_PHY_ADDRBDL_DISPLAY(base_phy, ddr_reg, index);
+
 	/* read register */
 	for (i = 0; i < index; i++) {
 		if (0 == ddr_reg->reg[i].addr)
@@ -204,20 +210,23 @@ static void ddr_training_reg_read(struct ddr_training_reg_st *ddr_reg)
 		if (0 == i && !(cfg & DDR_BYPASS_PHY0_MASK))
 			ddr_training_reg_read_phy(DDR_REG_BASE_DMC0,
 				DDR_REG_BASE_PHY0, ddr_reg, 0);
+#if DDR_PHY_NUM == 2
 		else if (1 == i && !(cfg & DDR_BYPASS_PHY1_MASK))
 			ddr_training_reg_read_phy(DDR_REG_BASE_DMC1,
 				DDR_REG_BASE_PHY1, ddr_reg,
 				DDR_TRAINING_REG_NUM);
+#endif
 	}
 }
 
 /**
- * ddr_cmd_result_print
+ * ddr_cmd_result_print_dataeye
  * @ddrtr_data
  *
  *
  */
-static int ddr_cmd_result_print(struct ddr_training_data_st *ddrtr_data)
+static void ddr_cmd_result_print_dataeye(
+	struct ddr_training_data_st *ddrtr_data)
 {
 	unsigned int i, k, j;
 	unsigned int dq_num, dqs, dq, win, win_min, win_max, win_sum;
@@ -309,7 +318,88 @@ static int ddr_cmd_result_print(struct ddr_training_data_st *ddrtr_data)
 			printf("%d ", i);
 	}
 	printf("\n\n");
-	return 0;
+}
+
+static void ddr_cmd_result_print_ca(struct ddr_training_data_st *ddrtr_data)
+{
+	unsigned int i, j;
+	unsigned int left, right, mid, win, min, max, sum;
+
+	for (i = 0; i < DDR_PHY_CA_MAX; i++) {
+		if (0 != ddrtr_data->ca_addr[i])
+			break;
+		if (i == (DDR_PHY_CA_MAX - 1))
+			return; /* no result to print */
+	}
+
+	min = PHY_DQ_BDL_LEVEL;
+	max = 0;
+	sum = 0;
+
+	printf("Command address window:\n");
+	printf("--------------------------------------------------------\n");
+
+	/* title */
+	printf("%-4s", "CA");
+	for (i = 0; i < PHY_DQ_BDL_LEVEL; i++) {
+		if (0 == i % 4)
+			printf("%-4d", i);
+	}
+	printf(" %-10s  %-6s%-4s\n", "RANGE", "BDL", "WIN");
+
+	/* data */
+	for (i = 0; i < DDR_PHY_CA_MAX; i++) {
+		left = ddrtr_data->ca_addr[i] >> DDR_DATAEYE_RESULT_BIT;
+		right = ddrtr_data->ca_addr[i] & DDR_DATAEYE_RESULT_MASK;
+		mid = (left + right) >> 1;
+		win = right - left + 1;
+
+		printf("%-4d", i);
+		for (j = 0; j < PHY_DQ_BDL_LEVEL; j++) {
+			if (j >= left && j <= right)
+				printf("%-1s", "-");
+			else
+				printf("%-1s", "X");
+		}
+		printf(" 0x%08x  %-6d%-4d\n",
+			ddrtr_data->ca_addr[i], mid, win);
+
+		if (win < min)
+			min = win;
+		if (win > max)
+			max = win;
+		sum += win;
+	}
+	printf("--------------------------------------------------------\n");
+
+	printf("Sum WIN: %d. Avg WIN: %d\n", sum, sum / DDR_PHY_CA_MAX);
+	printf("Min WIN: %d. CA Index: ", min);
+	for (i = 0; i < DDR_PHY_CA_MAX; i++) {
+		win = (ddrtr_data->ca_addr[i] & DDR_DATAEYE_RESULT_MASK)
+			- (ddrtr_data->ca_addr[i] >> DDR_DATAEYE_RESULT_BIT)
+			+ 1;
+		if (win == min)
+			printf("%d ", i);
+	}
+	printf("\nMax WIN: %d. CA Index: ", max);
+	for (i = 0; i < DDR_PHY_CA_MAX; i++) {
+		win = (ddrtr_data->ca_addr[i] & DDR_DATAEYE_RESULT_MASK)
+			- (ddrtr_data->ca_addr[i] >> DDR_DATAEYE_RESULT_BIT)
+			+ 1;
+		if (win == max)
+			printf("%d ", i);
+	}
+	printf("\n\n");
+}
+
+static void ddr_cmd_result_print(struct ddr_training_data_st *ddrtr_data,
+	unsigned int cmd)
+{
+	if (DDR_TRAINING_CMD_DATAEYE & cmd)
+		ddr_cmd_result_print_dataeye(ddrtr_data);
+
+	if (DDR_TRAINING_CMD_LPCA & cmd)
+		ddr_cmd_result_print_ca(ddrtr_data);
 }
 
 /**
@@ -317,7 +407,8 @@ static int ddr_cmd_result_print(struct ddr_training_data_st *ddrtr_data)
  * @ddrtr_result
  *
  */
-void ddr_cmd_result_display(struct ddr_training_result_st *ddrtr_result)
+void ddr_cmd_result_display(struct ddr_training_result_st *ddrtr_result,
+	unsigned int cmd)
 {
 	int i;
 	unsigned int cfg;
@@ -329,14 +420,16 @@ void ddr_cmd_result_display(struct ddr_training_result_st *ddrtr_result)
 		/* PHY0 bypass */
 		if ((cfg & DDR_BYPASS_PHY0_MASK) && 0 == i)
 			continue;
-
+		
+#if DDR_PHY_NUM == 2
 		/* PHY1 bypass */
 		if ((cfg & DDR_BYPASS_PHY1_MASK) && 1 == i)
 			continue;
+#endif
 
 		if (2 == DDR_PHY_NUM)
 			printf("\r\n[PHY%d]:\r\n", i);
-		ddr_cmd_result_print(&ddrtr_result->ddrtr_data[i]);
+		ddr_cmd_result_print(&ddrtr_result->ddrtr_data[i], cmd);
 	}
 }
 
@@ -367,12 +460,14 @@ void ddr_reg_result_display(struct ddr_training_reg_st *ddr_reg)
 		if ((cfg & DDR_BYPASS_PHY1_MASK)
 			&& i >= DDR_TRAINING_REG_NUM)
 			continue;
-
+		
+#if DDR_PHY_NUM == 2
 		if (0 == i && 2 == DDR_PHY_NUM)
 			printf("\r\n[PHY0]:\r\n");
 
 		if (DDR_TRAINING_REG_NUM  == i && 2 == DDR_PHY_NUM)
 			printf("\r\n[PHY1]:\r\n");
+#endif
 
 		printf("[0x%08x = 0x%08x] %-32s", ddr_reg->reg[i].addr,
 				ddr_reg->reg[i].val, ddr_reg->reg[i].name);
@@ -412,6 +507,7 @@ void *ddr_cmd_get_entry(void)
 		"DDR training cmd", DDR_TRAINING_RUN_STACK, length,
 		(DDR_REG_BASE_SYSCTRL + SYSCTRL_DDR_TRAINING_CFG), cfg);
 
+#if DDR_PHY_NUM != 2
 	if (((cfg & DDR_BYPASS_PHY0_MASK) && (cfg & DDR_BYPASS_PHY1_MASK))
 		|| ((1 == DDR_PHY_NUM) && (cfg & DDR_BYPASS_PHY0_MASK))) {
 		printf("Please config DDR training item. Bypass bit:\n"
@@ -423,6 +519,7 @@ void *ddr_cmd_get_entry(void)
 			"[20]HW             : 0x100000\n"
 			"[21]MPR            : 0x200000\n"
 			"[22]AC             : 0x400000\n"
+			"[23]LPCA           : 0x800000\n"
 			"[24]Host Vref      : 0x1000000\n"
 			"[25]Dram Vref      : 0x2000000\n"
 			"[28]Dataeye Adjust : 0x10000000\n"
@@ -430,7 +527,7 @@ void *ddr_cmd_get_entry(void)
 			"[30]HW Read Adjust : 0x40000000\n");
 		return 0;
 	}
-
+#endif
 	ddr_cmd_prepare_copy();
 	memcpy(dst_ptr, src_ptr, length);
 	return (void *) dst_ptr;

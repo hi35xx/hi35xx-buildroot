@@ -110,6 +110,7 @@ phase shift of the Read DQS to create 90 degree delays*/
 #define PHY_GATE_BDL_MAX        0x40 /* [4:0]rdqsg_bdl + [20:16]rdqsgtxbdl */
 /* [5] two cycle on address or command.(2T timing) */
 #define PHY_DRAMCFG_MA2T		0x20
+#define PHY_DRAMCFG_TYPE_LPDDR3 0x5 /* [2:0] DRAM Type LPDDR3 */
 
 /* other */
 #define PHY_RDQSG_PHASE_STEP	4 /* gate training phase step. */
@@ -142,6 +143,8 @@ phase shift of the Read DQS to create 90 degree delays*/
 #define DDR_BDL_PHASE_REL		2
 #endif
 
+#define DDR_VARIABLE_DECLARE(var)
+
 #define DDR_PHY_VREF_HOST_SET(base_phy, val, bytenum) \
 	REG_WRITE(((val & 0x7) << 12) | ((val >> 3) & 0x3), \
 		base_phy + DDR_PHY_IOCTL2)
@@ -173,3 +176,16 @@ phase shift of the Read DQS to create 90 degree delays*/
 #define DDR_PHY_VREF_DRAM_GET(base_phy, val, byte_index)
 #define DDR_PHY_VREF_DRAM_DISPLAY(base_phy, ddr_reg, index, byte_num)
 #define DDR_PHY_VREF_DRAM_DISPLAY_CMD(base_phy, byte_num)
+
+/* phy s40 not support Lowpower ddr ca */
+#define DDR_PHY_ADDRPH_DISPLAY(base_phy, ddr_reg, index)
+#define DDR_PHY_ADDRBDL_DISPLAY(base_phy, ddr_reg, index)
+#define DDR_PHY_ADDRPH_DISPLAY_CMD(base_phy)
+#define DDR_PHY_ADDRBDL_DISPLAY_CMD(base_phy, byte_num)
+
+/* phy s40 not support DDR4 */
+#define DDR_PHY_RDQS_SYNC_RDM(base_dmc, base_phy, delay, byte_index)
+
+/* phy s40 not support dqs swap */
+#define DDR_DQSSWAP_SAVE_FUNC(swapdfibyte_en, base_phy)
+#define DDR_DQSSWAP_RESTORE_FUNC(swapdfibyte_en, base_phy)

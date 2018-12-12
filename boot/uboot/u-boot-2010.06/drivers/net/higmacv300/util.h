@@ -25,30 +25,30 @@
 	} while (0)
 
 #define higmac_readl(ld, ofs) \
-	({ unsigned long reg = readl((ld)->iobase + (ofs)); \
-	 higmac_trace(2, "readl(0x%04X) = 0x%08lX", (ofs), reg); \
+	({ unsigned int reg = readl((ld)->iobase + (ofs)); \
+	 higmac_trace(2, "readl(0x%04X) = 0x%08X", (ofs), reg); \
 	 reg; })
 
 #define higmac_writel(ld, v, ofs) \
 	do { writel(v, (ld)->iobase + (ofs)); \
-		higmac_trace(2, "writel(0x%04X) = 0x%08lX", \
-				(ofs), (unsigned long)(v)); \
+		higmac_trace(2, "writel(0x%04X) = 0x%08X", \
+				(ofs), (unsigned int)(v)); \
 	} while (0)
 
 #define higmac_writel_bits(ld, v, ofs, bits_desc) do { \
-	unsigned long _bits_desc = bits_desc; \
-	unsigned long _shift = (_bits_desc) >> 16; \
-	unsigned long _reg  = higmac_readl(ld, ofs); \
-	unsigned long _mask = ((_bits_desc & 0x3F) < 32) ? \
+	unsigned int _bits_desc = bits_desc; \
+	unsigned int _shift = (_bits_desc) >> 16; \
+	unsigned int _reg  = higmac_readl(ld, ofs); \
+	unsigned int _mask = ((_bits_desc & 0x3F) < 32) ? \
 		(((1 << (_bits_desc & 0x3F)) - 1) << (_shift)) : 0xffffffff; \
 	higmac_writel(ld, (_reg & (~_mask)) | (((v) << (_shift)) & _mask), \
 			ofs); \
 	} while (0)
 
 #define higmac_readl_bits(ld, ofs, bits_desc) ({ \
-		unsigned long _bits_desc = bits_desc; \
-		unsigned long _shift = (_bits_desc) >> 16; \
-		unsigned long _mask = ((_bits_desc & 0x3F) < 32) \
+		unsigned int _bits_desc = bits_desc; \
+		unsigned int _shift = (_bits_desc) >> 16; \
+		unsigned int _mask = ((_bits_desc & 0x3F) < 32) \
 		? (((1 << (_bits_desc & 0x3F)) - 1) << (_shift)) : 0xffffffff; \
 		(higmac_readl(ld, ofs) & _mask) >> (_shift); })
 

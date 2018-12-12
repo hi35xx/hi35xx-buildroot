@@ -37,12 +37,8 @@ unsigned char GMAC1_PHY_ADDR = STMMAC_PHYADDR1;
 
 unsigned int FLAG;
 
-#define INTERFACE_MODE_RGMII 0x20
-#define INTERFACE_MODE_MII 0x0
-#define INTERFACE_MODE_RMII 0x80
-
 #ifndef CONFIG_HI3536_A7
-static unsigned int g_interface_mode = INTERFACE_MODE_RGMII;
+unsigned int g_interface_mode = INTERFACE_MODE_RGMII;
 #endif
 
 struct dma_desc_rx rd __attribute__ ((aligned(16)));

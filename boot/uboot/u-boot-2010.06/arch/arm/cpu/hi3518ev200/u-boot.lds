@@ -35,7 +35,8 @@ SECTIONS
 	.text	:
 	{
 		__text_start = .;
-		arch/arm/cpu/hi3518ev200/start.o	(.text)
+		arch/arm/cpu/hi3518ev200/start.o (.text)
+		arch/arm/cpu/hi3518ev200/lowlevel_init_svb.o (.text)
 		drivers/ddr/ddr_training_impl.o (.text)
 		drivers/ddr/ddr_training_ctl.o (.text)
 		drivers/ddr/ddr_training_boot.o (.text)

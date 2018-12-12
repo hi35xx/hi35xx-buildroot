@@ -28,6 +28,7 @@ LIB	= $(obj)lib$(CPU).a
 START	:= start.o
 COBJS	:= chip.o
 COBJS	+= lowlevel_init_v300.o
+COBJS	+= lowlevel_init_svb.o
 COBJS	+= emmc_boot.o
 COBJS	+= cpu.o
 SOBJS	+= uart.o

@@ -656,9 +656,43 @@ HI_BOOL  HAL_DISP_SetIntfClip(HAL_DISP_INTF_E enIntf,
     return HI_TRUE;
 }
 
+HI_BOOL HAL_DISP_SetVtThdMode(HAL_DISP_OUTPUTCHANNEL_E enChan, HI_U32 uFieldMode)
+{    
+    volatile U_DHD0_VTTHD  DHD0_VTTHD;
+    volatile  HI_U32 addr_REG;
+    if(HAL_DISP_CHANNEL_DHD1 == enChan)
+    {
+        addr_REG = Vou_GetChnAbsAddr(enChan,(HI_U32)&(pVoReg->DHD0_VTTHD.u32));
+        DHD0_VTTHD.u32 = HAL_ReadReg((HI_U32*)addr_REG);
+        DHD0_VTTHD.bits.thd1_mode = uFieldMode;
+        HAL_WriteReg((HI_U32*)addr_REG, DHD0_VTTHD.u32); 
+    }   
+    else
+    {
+        HAL_PRINT("Error channel id found in %s: L%d\n",__FUNCTION__, __LINE__);
+        return HI_FALSE;
+    }
+    return HI_TRUE;
+}
 
-
-
+HI_BOOL HAL_VIDEO_SetLayerUpMode(HAL_DISP_LAYER_E enLayer, HI_U32 bUpMode)
+{
+    U_V0_CTRL V0_CTRL;
+    volatile  HI_U32 addr_REG; 
+    if(HAL_DISP_LAYER_VHD1 == enLayer)
+    {
+        addr_REG = Vou_GetAbsAddr(enLayer,(HI_U32)&(pVoReg->V0_CTRL.u32));
+        V0_CTRL.u32 = HAL_ReadReg((HI_U32*)addr_REG);
+        V0_CTRL.bits.vup_mode = bUpMode;
+        HAL_WriteReg((HI_U32*)addr_REG, V0_CTRL.u32); 
+    }
+    else
+    {
+        HAL_PRINT("Error layer id found in %s: L%d\n",__FUNCTION__, __LINE__);
+        return HI_FALSE;        
+    }
+    return HI_TRUE;
+}
 
 HI_BOOL HAL_DISP_SetClkGateEnable(HI_U32 u32Data)
 {
@@ -1262,7 +1296,6 @@ HI_BOOL HAL_GRAPHIC_SetGfxAddr(HAL_DISP_LAYER_E enLayer, HI_U32 u32LAddr)
 }
 
 
-/*ÅäÖÃÍ¼ÐÎ²ãstride*/
 HI_BOOL HAL_GRAPHIC_SetGfxStride(HAL_DISP_LAYER_E enLayer, HI_U16 u16pitch)
 {
     volatile U_G0_STRIDE G0_STRIDE;
@@ -1424,6 +1457,12 @@ HI_BOOL HAL_CBM_SetCbmBkg(HI_U32 bMixerId, HAL_DISP_BKCOLOR_S *pstBkg)
     return HI_TRUE;
 }
 
+HI_BOOL HAL_DISP_ClearIntStatus(HI_U32 u32IntMsk)
+{
+    /* read interrupt status */
+    HAL_WriteReg((HI_U32*)&(pVoReg->VOMSKINTSTA.u32), u32IntMsk);
+    return HI_TRUE;
+}
 
 HI_BOOL HAL_CBM_SetCbmMixerPrio(HAL_DISP_LAYER_E enLayer, HI_U8 u8Prio, HI_U8 u8MixerId)
 {

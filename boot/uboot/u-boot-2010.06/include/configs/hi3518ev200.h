@@ -85,6 +85,7 @@
 	#define CONFIG_ENV_IS_IN_SPI_FLASH
 	#define CONFIG_SPI_NOR_MAX_CHIP_NUM	2
 	#define CONFIG_SPI_NOR_QUIET_TEST
+	#define CONFIG_SPI_BLOCK_PROTECT
 #endif
 
 #ifdef CONFIG_HIFMC_SPI_NAND
@@ -243,7 +244,7 @@
 #define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
 
 #define CFG_DDR_PHYS_OFFSET MEM_BASE_DDR
-#define CFG_DDR_SIZE		(64 * 1024 * 1024) /* 64MB */
+#define CFG_DDR_SIZE		(64 * 1024 * 1024UL) /* 64MB */
 
 #define CONFIG_SYS_MEMTEST_START       \
 	(CFG_DDR_PHYS_OFFSET + sizeof(unsigned long))
@@ -303,28 +304,24 @@
 	#ifndef CONFIG_HIMCI_V200
 		#define CONFIG_HIMCI_V200
 	#endif
-	#define CONFIG_MMC			1
 #endif
 
 /*-----------------------------------------------------------------------
  * eMMC Flash Configuration
  * ----------------------------------------------------------------------*/
 #ifndef CONFIG_AUTO_SD_UPDATE /* Host0 is multiplex for sd/eMMC */
-#undef CONFIG_EMMC_SUPPORT
+#define CONFIG_EMMC_SUPPORT
 #ifdef CONFIG_EMMC_SUPPORT
 	#define CONFIG_HIMCI_V200
 	#define CONFIG_EMMC_PORT	1
-#else
-	#define CONFIG_HIMCI_V200
-	#define CONFIG_MMC		1
 #endif
 #endif
 
 #ifdef CONFIG_HIMCI_V200
-	#define CONFIG_MMC_DEVID	            0 /* emmc = 1; SD = 0 */
+	#define CONFIG_MMC_DEVID	            1 /* emmc = 1; SD = 0 */
 	#define CONFIG_MMC_BOOT_ADDR                0
-	#define CONFIG_MMC_POWER_OFF_TIMEOUT        50
-	#define CONFIG_MMC_POWER_ON_TIMEROUT        50
+	#define CONFIG_MMC_POWER_OFF_TIMEOUT        5
+	#define CONFIG_MMC_POWER_ON_TIMEROUT        40
 	#define CONFIG_MMC_RESET_LOW_TIMEOUT        10
 	#define CONFIG_MMC_RESET_HIGH_TIMEROUT      300
 	#define CONFIG_GENERIC_MMC
@@ -333,6 +330,7 @@
 	/* env in flash instead of CFG_ENV_IS_NOWHERE */
 	#define CONFIG_ENV_IS_IN_EMMC               1
 	#define CONFIG_CMD_MMC
+	#define CONFIG_MMC			1
 	#define CONFIG_EXT4
 	#define CONFIG_EXT4_SPARSE
 #endif /* CONFIG_GENERIC_MMC */
@@ -346,6 +344,11 @@
 #define CONFIG_LEGACY_USB_INIT_SEQ
 
 /*-----------------------------------------------------------------------
+ * SVB Configure
+ * ----------------------------------------------------------------------*/
+#define CONFIG_SVB_ENABLE
+
+/*-----------------------------------------------------------------------
  * DDR Training
  * ----------------------------------------------------------------------*/
 #define CONFIG_DDR_TRAINING_V2
@@ -357,12 +360,12 @@
 /*-----------------------------------------------------------------------
  * Snapshot boot support
  * ----------------------------------------------------------------------*/
-#define CONFIG_SNAPSHOT_BOOT	1
+#define CONFIG_SNAPSHOT_BOOT 1
 #ifdef CONFIG_SNAPSHOT_BOOT
 	/* enable MMU for fast decompress */
 	/* #define CONFIG_ARCH_MMU */
 
-	#define CONFIG_LZO
+	#define CONFIG_LZMA
 	#define CONFIG_SHA1
 	#define CONFIG_HW_DEC
 	#define CONFIG_USE_ARCH_MEMCPY

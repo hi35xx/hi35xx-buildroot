@@ -1,11 +1,20 @@
-/******************************************************************************
- *    SPI NAND Flash Controller v100 Device Driver
- *    Copyright (c) 2014 Hisilicon.
- *    All rights reserved.
- * ***
- *    Create By hisilicon
+/*
+ * Copyright (c) 2016 HiSilicon Technologies Co., Ltd.
  *
-******************************************************************************/
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #include <common.h>
 #include <nand.h>
@@ -20,6 +29,10 @@
 
 #ifdef CONFIG_HI3516A
 	#include "hisnfc100_hi3516a.c"
+#endif
+
+#ifdef CONFIG_ARCH_MMU
+#include <asm/cache-cp15.h>
 #endif
 
 #ifdef CONFIG_HI3536
@@ -79,6 +92,8 @@ static void hisnfc100_send_cmd_pageprog(struct hisnfc_host *host)
 		return;
 	}
 
+	host->set_system_clock(spi->write, ENABLE);
+
 	val = HISNFC100_INT_CLR_ALL;
 	hisfc_write(host, HISNFC100_INT_CLR, val);
 	if (DEBUG_WRITE)
@@ -120,6 +135,12 @@ static void hisnfc100_send_cmd_pageprog(struct hisnfc_host *host)
 	if (DEBUG_WRITE)
 		printf("  Set REG DMA_SADDR_OOB[%#x]%#x\n",
 			HISNFC100_DMA_SADDR_OOB, val);
+#ifdef CONFIG_ARCH_MMU
+	dcache_clean_range((unsigned int)host->dma_buffer,
+			(unsigned int)(host->dma_buffer +
+				host->pagesize + host->oobsize));
+#endif
+
 #endif
 
 	val = HISNFC100_OP_CTRL_WR_OPCODE(spi->write->cmd)
@@ -180,6 +201,8 @@ static void hisnfc100_send_cmd_readstart(struct hisnfc_host *host)
 			op_type, val);
 		return;
 	}
+
+	host->set_system_clock(spi->read, ENABLE);
 
 	val = HISNFC100_INT_CLR_ALL;
 	hisfc_write(host, HISNFC100_INT_CLR, val);
@@ -251,6 +274,13 @@ static void hisnfc100_send_cmd_readstart(struct hisnfc_host *host)
 	if (DEBUG_READ)
 		printf("  Set REG DMA_SADDR_OOB[%#x]%#x\n",
 			HISNFC100_DMA_SADDR_OOB, val);
+
+#ifdef CONFIG_ARCH_MMU
+	dcache_inv_range((unsigned int)host->dma_buffer,
+			(unsigned int)(host->dma_buffer +
+				host->pagesize + host->oobsize));
+#endif
+
 #endif
 
 	val = HISNFC100_OP_CTRL_RD_OPCODE(spi->read->cmd)
@@ -299,6 +329,8 @@ static void hisnfc100_send_cmd_erase(struct hisnfc_host *host)
 		spi_feature_op(host, GET_OP, STATUS_ADDR, &val);
 		printf("  Get feature addr[0xC0], val[%#x]\n", val);
 	}
+
+	host->set_system_clock(spi->erase, ENABLE);
 
 	val = HISNFC100_INT_CLR_ALL;
 	hisfc_write(host, HISNFC100_INT_CLR, val);
@@ -906,7 +938,7 @@ int hisnfc100_host_init(struct hisnfc_host *host)
 
 	host->set_system_clock   = hisnfc100_set_system_clock;
 
-	host->set_system_clock(host, ENABLE);
+	host->set_system_clock(NULL, ENABLE);
 
 	regval = hisfc_read(host, HISNFC100_CFG);
 	if (((regval & DEVICE_TYPE_MASK) >> DEVICE_TYPE_SHIFT)

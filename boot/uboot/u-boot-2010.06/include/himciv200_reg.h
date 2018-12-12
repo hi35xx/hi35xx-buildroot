@@ -39,6 +39,7 @@
 #define MCI_IDINTEN		0x90
 #define MCI_DSCADDR		0x94
 #define MCI_BUFADDR		0x98
+#define MMC_CARDTHRCTL          0x100
 #define MCI_UHS_REG_EXT         0x108
 
 #if defined(CONFIG_HIMCI_V100)
@@ -46,6 +47,10 @@
 #elif defined(CONFIG_HIMCI_V200)
 #  define MCI_FIFO_START	0x200
 #endif
+
+/* GPIO config */
+#define DTO_FIX_BYPASS          (0x1 << 23)
+#define CMD_OUT_EN_FIX_BYPASS   (0x1 << 8)
 
 /* MCI_BMOD(0x80) details */
 #define BMOD_SWR	(1<<0)
@@ -70,9 +75,20 @@
 #define DATA_TIMEOUT	(0xffffff<<8)	/*bit 31-8: data read timeout param*/
 #define RESPONSE_TIMEOUT 0xff		/* bit 7-0: response timeout param */
 
+/*MCI MMC_CARDTHRCTL(0x100) details*/
+#define RW_THRESHOLD_SIZE           0x2000005
+
 /* MCI_UHS_REG_EXT(0x108) details */
+#define DRV_PHASE_MASK             (0x7<<23)
+#define SMPL_PHASE_MASK            (0x7<<16)
 #define DRV_PHASE_SHIFT             (0x2<<23)
+#if (defined CONFIG_HI3516CV300 || defined CONFIG_ARCH_HI3519 || \
+		defined CONFIG_ARCH_HI3519V101 || defined CONFIG_ARCH_HI3559 || defined CONFIG_ARCH_HI3556 || \
+		defined CONFIG_ARCH_HI3516AV200)
+#define SMPL_PHASE_SHIFT            (0x0<<16)
+#else
 #define SMPL_PHASE_SHIFT            (0x2<<16)
+#endif
 
 /* bit 0: enable of card clk*/
 #define CCLK_ENABLE	(1<<0)
@@ -192,9 +208,10 @@
 #elif defined(CONFIG_HIMCI_V200)
 #  define MCI_VERID_VALUE	0x5342250A
 #  define MCI_VERID_VALUE2	0x5342270A
+#  define MCI_VERID_VALUE3	0x5342290A
 #endif
 /* MCI_IDINTEN(0x90) details */
-#define MCI_IDINTEN_MASK (0x00000337)
+#define MCI_IDINTEN_MASK (0x00000337UL)
 #define TI		(0x1<<0)
 #define RI		(0x1<<1)
 #define NI		(0x1<<8)

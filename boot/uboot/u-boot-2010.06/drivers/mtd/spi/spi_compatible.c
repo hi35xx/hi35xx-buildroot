@@ -1,10 +1,20 @@
-/******************************************************************************
-*    Copyright (c) 2009-2011 by CCC.
-*    All rights reserved.
-* ***
-*    Create by CCC. 2011-12-02
-*
-******************************************************************************/
+/*
+ * Copyright (c) 2016-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #include <common.h>
 #include <malloc.h>
@@ -36,7 +46,7 @@ extern struct spi_flash *hifmc100_spi_nor_probe(struct mtd_info_ex **);
 extern struct mtd_info_ex *hifmc100_get_spi_nor_info(struct spi_flash *);
 #endif
 
-#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+#ifdef CONFIG_SPI_BLOCK_PROTECT
 extern unsigned hisfc350_get_spi_lock_info(unsigned char *cmp,
 					unsigned char *level);
 extern void hisfc350_spi_lock(unsigned char cmp, unsigned char level);
@@ -105,19 +115,14 @@ void spi_flash_free(struct spi_flash *flash)
 }
 /*****************************************************************************/
 
-#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+#ifdef CONFIG_SPI_BLOCK_PROTECT
 void spi_flash_lock(unsigned char cmp, unsigned char level, unsigned char op)
 {
-#if defined(CONFIG_SPI_FLASH_HISFC350) || defined(CONFIG_HIFMC_SPI_NOR)
+#ifdef CONFIG_SPI_FLASH_HISFC350
 	if (BP_OP_GET == op) {
 		puts("Get spi lock information\n");
 		cmp = BP_CMP_UPDATE_FLAG;
-#ifdef CONFIG_SPI_FLASH_HISFC350
 		hisfc350_get_spi_lock_info(&cmp, &level);
-#endif
-#ifdef CONFIG_HIFMC_SPI_NOR
-		hifmc100_get_spi_lock_info(&cmp, &level);
-#endif
 		if (level) {
 			if (level == BP_LEVEL_MAX)
 				puts("all block is locked.\n");
@@ -137,25 +142,27 @@ void spi_flash_lock(unsigned char cmp, unsigned char level, unsigned char op)
 				puts("lock all block.\n");
 			} else
 				printf("Set lock level: %d, start of %s " \
-					"address\n", level,
-					(cmp ? "bottom" : "top"));
+						"address\n", level,
+						(cmp ? "bottom" : "top"));
 		} else {
 			cmp = BP_CMP_TOP;
 			puts("unlock all block.\n");
 		}
 
-#ifdef CONFIG_SPI_FLASH_HISFC350
 		hisfc350_spi_lock(cmp, level);
-#endif
-#ifdef CONFIG_HIFMC_SPI_NOR
-		hifmc100_spi_lock(cmp, level);
-#endif
 		return;
 	}
 
 	printf("%s ERROR: Invalid optin argument!", __func__);
 #endif
+
+#ifdef CONFIG_HIFMC_SPI_NOR
+	cmp = BP_CMP_BOTTOM;
+	if (spiflash->lock)
+		spiflash->lock(cmp, level, op);
+#endif
+	return;
 }
 /*****************************************************************************/
-#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+#endif /* CONFIG_SPI_BLOCK_PROTECT */
 

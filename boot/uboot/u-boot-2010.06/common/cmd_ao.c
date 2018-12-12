@@ -25,14 +25,21 @@
  */
 #include <common.h>
 #include <command.h>
+
+#if defined(CONFIG_ARCH_HI3559) || defined(CONFIG_ARCH_HI3556)
+#include "hi3559_ao.h"
+#elif defined(CONFIG_ARCH_HI3519)
+#include "hi3519_ao.h"
+#else
 #include "hi3516a_ao.h"
+#endif
 
 extern int acodec_i2s_set(AUDIO_SAMPLE_RATE_E enSample);
 extern int acodec_device_init(void);
 extern int acodec_device_exit(void);
 extern int start_ao(unsigned int u32Addr, unsigned int u32Size, 
 					AUDIO_SAMPLE_RATE_E enSample, unsigned int u32Vol);
-extern int stop_ao();
+extern int stop_ao(void);
 
 
 int do_startao(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])

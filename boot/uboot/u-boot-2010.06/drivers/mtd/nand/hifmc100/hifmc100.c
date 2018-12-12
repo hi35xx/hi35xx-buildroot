@@ -1,13 +1,23 @@
-/******************************************************************************
- *	Flash Memory Controller v100 Device Driver
- *	Copyright (c) 2014 - 2015 by Hisilicon
- *	All rights reserved.
- * ***
- *	Create by hisilicon
+/*
+ * The Flash Memory Controller v100 Device Driver for hisilicon
  *
- *****************************************************************************/
+ * Copyright (c) 2016-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
-/*****************************************************************************/
 #include <common.h>
 #include <nand.h>
 #include <asm/io.h>
@@ -20,19 +30,6 @@
 #include <hinfc_common.h>
 #include "../../hifmc_spi_ids.h"
 #include "hifmc100.h"
-
-/*****************************************************************************/
-#ifdef CONFIG_HI3521A
-	#include "hifmc100_hi3521a.c"
-#endif
-
-#ifdef CONFIG_HI3518EV200
-	#include "hifmc100_hi3518ev200.c"
-#endif
-
-#ifdef CONFIG_HI3531A
-	#include "hifmc100_hi3531a.c"
-#endif
 
 /*****************************************************************************/
 void hifmc100_ecc0_switch(struct hifmc_host *host, unsigned char op)
@@ -107,6 +104,13 @@ static void hifmc100_send_cmd_pageprog(struct hifmc_host *host)
 		goto end;
 	}
 
+	host->set_system_clock(spi->write, ENABLE);
+
+	if (ecc0_flag == 1) {
+		hifmc100_ecc0_switch(host, ENABLE);
+		hifmc_write(host, FMC_DMA_LEN, oobsize_real);
+	}
+
 	reg = FMC_INT_CLR_ALL;
 	hifmc_write(host, FMC_INT_CLR, reg);
 	FMC_PR(WR_DBG, "|-Set INT_CLR[%#x]%#x\n", FMC_INT_CLR, reg);
@@ -128,6 +132,9 @@ static void hifmc100_send_cmd_pageprog(struct hifmc_host *host)
 	     | ((page_num & REG_CNT_PAGE_NUM_MASK) << REG_CNT_PAGE_NUM_SHIFT);
 	hifmc_write(host, FMC_ADDRL, reg);
 	FMC_PR(WR_DBG, "|-Set ADDRL[%#x]%#x\n", FMC_ADDRL, reg);
+
+	if (ecc0_flag != 1)
+		*host->epm = 0x0000;
 
 #ifndef HIFMC100_SPI_NAND_SUPPORT_REG_WRITE
 	reg = host->dma_buffer;
@@ -152,11 +159,8 @@ static void hifmc100_send_cmd_pageprog(struct hifmc_host *host)
 
 	FMC_DMA_WAIT_INT_FINISH(host);
 
-	if (WR_DBG) {
-		reg = spi->driver->wait_ready(spi);
-		if (reg & STATUS_P_FAIL_MASK)
-			DB_MSG("Error: %s program failed reg: %#x\n", op, reg);
-	}
+	if (ecc0_flag == 1)
+		hifmc100_ecc0_switch(host, DISABLE);
 
 end:
 	hifmc_ip_user--;
@@ -203,6 +207,13 @@ static void hifmc100_send_cmd_readstart(struct hifmc_host *host)
 	if (reg) {
 		DB_MSG("Error: %s read wait ready fail! reg: %#x\n", op, reg);
 		goto end;
+	}
+
+	host->set_system_clock(spi->read, ENABLE);
+
+	if (ecc0_flag == 1 && (host->cmd_op.l_cmd != NAND_CMD_READOOB)) {
+		hifmc100_ecc0_switch(host, ENABLE);
+		hifmc_write(host, FMC_DMA_LEN, oobsize_real);
 	}
 
 	reg = FMC_INT_CLR_ALL;
@@ -276,6 +287,10 @@ static void hifmc100_send_cmd_readstart(struct hifmc_host *host)
 
 	FMC_DMA_WAIT_INT_FINISH(host);
 
+	if (ecc0_flag == 1 && (host->cmd_op.l_cmd != NAND_CMD_READOOB))
+		hifmc100_ecc0_switch(host, DISABLE);
+
+
 	host->cache_addr_value[0] = host->addr_value[0];
 	host->cache_addr_value[1] = host->addr_value[1];
 
@@ -305,7 +320,7 @@ static void hifmc100_send_cmd_erase(struct hifmc_host *host)
 	}
 
 	reg = spi->driver->wait_ready(spi);
-	FMC_PR(ER_DBG, "\t|-Erase get wait, reg: %#x\n", reg);
+	FMC_PR(ER_DBG, "\t|-Erase wait ready, reg: %#x\n", reg);
 	if (reg) {
 		DB_MSG("Error: Erase wait ready fail! status: %#x\n", reg);
 		goto end;
@@ -316,6 +331,8 @@ static void hifmc100_send_cmd_erase(struct hifmc_host *host)
 		DB_MSG("Error: Erase write enable failed! reg: %#x\n", reg);
 		goto end;
 	}
+
+	host->set_system_clock(spi->erase, ENABLE);
 
 	reg = FMC_INT_CLR_ALL;
 	hifmc_write(host, FMC_INT_CLR, reg);
@@ -355,7 +372,6 @@ end:
 static void hifmc100_send_cmd_status(struct hifmc_host *host)
 {
 	unsigned char status, addr = STATUS_ADDR;
-	unsigned char cmd = host->cmd_op.l_cmd;
 	struct hifmc_spi *spi = host->spi;
 
 	if (hifmc_ip_user) {
@@ -367,14 +383,11 @@ static void hifmc100_send_cmd_status(struct hifmc_host *host)
 		hifmc_ip_user++;
 	}
 
-	if ((cmd == NAND_CMD_ERASE1) || (cmd == NAND_CMD_PAGEPROG))
-		addr = PROTECTION_ADDR;
+	if (host->cmd_op.l_cmd == NAND_CMD_GET_FEATURES)
+		addr = PROTECT_ADDR;
 
 	status = spi_nand_feature_op(spi, GET_OP, addr, 0);
-	if (host->cmd_op.l_cmd == NAND_CMD_ERASE2)
-		FMC_PR(ER_DBG, "\t*-Erase get %#x reg: %#x\n", addr, status);
-	if (host->cmd_op.l_cmd == NAND_CMD_PAGEPROG)
-		FMC_PR(WR_DBG, "\t*-Write get %#x reg: %#x\n", addr, status);
+	FMC_PR((ER_DBG || WR_DBG), "\t*-Get status[%#x]: %#x\n", addr, status);
 
 	hifmc_ip_user--;
 }
@@ -394,7 +407,7 @@ static void hifmc100_send_cmd_readid(struct hifmc_host *host)
 
 	reg = READ_ID_ADDR;
 	hifmc_write(host, FMC_ADDRL, reg);
-	FMC_PR(BT_DBG, "\t|-Set ADDRL[%#x]%#x\n", FMC_ADDRL, reg);
+	FMC_PR(BT_DBG, "\t||-Set ADDRL[%#x]%#x\n", FMC_ADDRL, reg);
 
 	reg = OP_CFG_FM_CS(host->cmd_op.cs)
 		| OP_CFG_ADDR_NUM(READ_ID_ADDR_NUM);
@@ -411,6 +424,8 @@ static void hifmc100_send_cmd_readid(struct hifmc_host *host)
 		| FMC_OP_REG_OP_START;
 	hifmc_write(host, FMC_OP, reg);
 	FMC_PR(BT_DBG, "\t||-Set OP[%#x]%#x\n", FMC_OP, reg);
+
+	host->addr_cycle = 0x0;
 
 	FMC_CMD_WAIT_CPU_FINISH(host);
 
@@ -444,50 +459,50 @@ static void hifmc100_send_cmd_reset(struct hifmc_host *host)
 }
 
 /*****************************************************************************/
-static u_char hifmc100_read_byte(struct mtd_info *mtd)
+static unsigned char hifmc100_read_byte(struct mtd_info *mtd)
 {
-	unsigned char cmd, value = 0;
 	struct nand_chip *chip = mtd->priv;
 	struct hifmc_host *host = chip->priv;
+	unsigned char value, ret_val = 0;
 
-	cmd = host->cmd_op.l_cmd;
-
-	if (cmd == NAND_CMD_READID) {
-		value = readb(chip->IO_ADDR_R + host->offset);
+	if (host->cmd_op.l_cmd == NAND_CMD_READID) {
+		value = readb(host->iobase + host->offset);
 		host->offset++;
 		if (host->cmd_op.data_no == host->offset)
 			host->cmd_op.l_cmd = 0;
 		return value;
 	}
 
-	if ((cmd == NAND_CMD_ERASE1) || (cmd == NAND_CMD_PAGEPROG)) {
-		value = hifmc_read(host, FMC_STATUS);
-		FMC_PR(ER_DBG, "\t\tGet erase WP status: %#x\n", value);
-		FMC_PR(WR_DBG, "\t\tGet write WP status: %#x\n", value);
-		if (ANY_BP_ENABLE(value))
-			value &= ~NAND_STATUS_WP;
-		else
-			value |= NAND_STATUS_WP;
-
-		host->cmd_op.l_cmd = 0;
-
-		return value;
-	}
-
-	if (cmd == NAND_CMD_ERASE2) {
-		value = hifmc_read(host, FMC_STATUS);
-		FMC_PR(ER_DBG, "\t\tGet erase result status: %#x\n", value);
-		if (value & STATUS_E_FAIL_MASK)
-			value |= NAND_STATUS_FAIL;
-		return value;
-	}
-
 	if (host->cmd_op.cmd == NAND_CMD_STATUS) {
 		value = hifmc_read(host, FMC_STATUS);
-		return value;
+		if (host->cmd_op.l_cmd == NAND_CMD_GET_FEATURES) {
+			FMC_PR((ER_DBG || WR_DBG), "\t\tRead BP status: %#x\n",
+					value);
+			if (ANY_BP_ENABLE(value))
+				ret_val |= NAND_STATUS_WP;
+
+			host->cmd_op.l_cmd = NAND_CMD_STATUS;
+		}
+
+		if (!(value & STATUS_OIP_MASK))
+			ret_val |= NAND_STATUS_READY;
+
+		if ((chip->state == FL_ERASING)
+			&& (value & STATUS_E_FAIL_MASK)) {
+			FMC_PR(ER_DBG, "\t\tGet erase status: %#x\n", value);
+			ret_val |= NAND_STATUS_FAIL;
+		}
+
+		if ((chip->state == FL_WRITING)
+			&& (value & STATUS_P_FAIL_MASK)) {
+			FMC_PR(WR_DBG, "\t\tGet write status: %#x\n", value);
+			ret_val |= NAND_STATUS_FAIL;
+		}
+
+		return ret_val;
 	}
 
-	if (cmd == NAND_CMD_READOOB) {
+	if (host->cmd_op.l_cmd == NAND_CMD_READOOB) {
 		value = readb(host->dma_oob + host->offset);
 		host->offset++;
 		return value;
@@ -499,7 +514,7 @@ static u_char hifmc100_read_byte(struct mtd_info *mtd)
 }
 
 /*****************************************************************************/
-static u16 hifmc100_read_word(struct mtd_info *mtd)
+static unsigned short hifmc100_read_word(struct mtd_info *mtd)
 {
 	struct nand_chip *chip = mtd->priv;
 	struct hifmc_host *host = chip->priv;
@@ -561,28 +576,12 @@ static void hifmc100_select_chip(struct mtd_info *mtd, int chipselect)
 	if (chipselect > CONFIG_SPI_NAND_MAX_CHIP_NUM)
 		DB_BUG("Error: Invalid chipselect: %d\n", chipselect);
 
-	if (host->mtd != mtd) {
-		FMC_PR(BT_DBG, "\t*-Get MTD info struct[%#x]\n", (u_int)mtd);
+	if (host->mtd != mtd)
 		host->mtd = mtd;
-	}
 
 	if (!(chip->options & NAND_BROKEN_XD)) {
-		switch (chip->state) {
-		case FL_ERASING:
-			FMC_PR(ER_DBG, "\t\t* Set last cmd[%#x]\n",
-					NAND_CMD_ERASE1);
-			host->cmd_op.l_cmd = NAND_CMD_ERASE1;
-			break;
-
-		case FL_WRITING:
-			FMC_PR(WR_DBG, "\t\t* Set last cmd[%#x]\n",
-					NAND_CMD_PAGEPROG);
-			host->cmd_op.l_cmd = NAND_CMD_PAGEPROG;
-			break;
-
-		default:
-			break;
-		}
+		if ((chip->state == FL_ERASING) || (chip->state == FL_WRITING))
+			host->cmd_op.l_cmd = NAND_CMD_GET_FEATURES;
 	}
 }
 
@@ -634,13 +633,12 @@ static void hifmc100_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned ctrl)
 			break;
 
 		case NAND_CMD_ERASE2:
-			host->cmd_op.l_cmd = cmd;
 			host->send_cmd_erase(host);
 			break;
 
 		case NAND_CMD_READID:
-			memset((unsigned char *)(chip->IO_ADDR_R), 0,
-				MAX_SPI_NAND_ID_LEN);
+			memset((u_char *)(host->iobase), 0,
+					MAX_SPI_NAND_ID_LEN);
 			host->cmd_op.l_cmd = cmd;
 			host->cmd_op.data_no = MAX_SPI_NAND_ID_LEN;
 			host->send_cmd_readid(host);
@@ -648,12 +646,6 @@ static void hifmc100_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned ctrl)
 
 		case NAND_CMD_STATUS:
 			host->send_cmd_status(host);
-			break;
-
-		case NAND_CMD_SEQIN:
-			break;
-
-		case NAND_CMD_ERASE1:
 			break;
 
 		case NAND_CMD_READ0:
@@ -664,6 +656,8 @@ static void hifmc100_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned ctrl)
 			host->send_cmd_reset(host);
 			break;
 
+		case NAND_CMD_SEQIN:
+		case NAND_CMD_ERASE1:
 		default:
 			break;
 		}
@@ -688,13 +682,11 @@ static void hifmc100_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned ctrl)
 static int hifmc100_dev_ready(struct mtd_info *mtd)
 {
 	unsigned int reg;
-	unsigned long deadline = 1 << 14;
+	unsigned long deadline = 1 << 12;
 	struct nand_chip *chip = mtd->priv;
 	struct hifmc_host *host = chip->priv;
 
 	do {
-		hifmc_write(host, FMC_INT_CLR, FMC_INT_CLR_OP_DONE);
-
 		reg = OP_CFG_FM_CS(host->cmd_op.cs);
 		hifmc_write(host, FMC_OP_CFG, reg);
 
@@ -711,7 +703,9 @@ static int hifmc100_dev_ready(struct mtd_info *mtd)
 
 	} while (deadline--);
 
-	DB_MSG("Error: SPI Nand wait ready timeout, status: %#x\n", reg);
+#ifndef CONFIG_SYS_NAND_QUIET_TEST
+	printf("Warning: Wait SPI nand ready timeout, status: %#x\n", reg);
+#endif
 
 	return 0;
 }
@@ -724,17 +718,31 @@ static struct nand_ecclayout nand_ecc_default = {
 	.oobfree = {{2, 30} }
 };
 
+#ifdef CONFIG_FS_MAY_NOT_YAFFS2
+static struct nand_ecclayout nand_ecc_2k16bit = {
+	.oobfree = {{2, 6} }
+};
+
+static struct nand_ecclayout nand_ecc_4k16bit = {
+	.oobfree = {{2, 14} }
+};
+#endif
+
 /*****************************************************************************/
 static struct nand_config_info hifmc_spi_nand_config_table[] = {
 	{NAND_PAGE_4K,	NAND_ECC_24BIT,	200,	&nand_ecc_default},
-	{NAND_PAGE_4K,	NAND_ECC_16BIT,	144,	&nand_ecc_default},
-	{NAND_PAGE_4K,	NAND_ECC_8BIT,	88,	&nand_ecc_default},
-	{NAND_PAGE_4K,	NAND_ECC_0BIT,	32,	&nand_ecc_default},
+#ifdef CONFIG_FS_MAY_NOT_YAFFS2
+	{NAND_PAGE_4K,	NAND_ECC_16BIT,	128,	&nand_ecc_4k16bit},
+#endif
+	{NAND_PAGE_4K,	NAND_ECC_8BIT,	128,	&nand_ecc_default},
+	{NAND_PAGE_4K,	NAND_ECC_0BIT,	32,		&nand_ecc_default},
 
 	{NAND_PAGE_2K,	NAND_ECC_24BIT,	128,	&nand_ecc_default},
-	{NAND_PAGE_2K,	NAND_ECC_16BIT,	88,	&nand_ecc_default},
-	{NAND_PAGE_2K,	NAND_ECC_8BIT,	64,	&nand_ecc_default},
-	{NAND_PAGE_2K,	NAND_ECC_0BIT,	32,	&nand_ecc_default},
+#ifdef CONFIG_FS_MAY_NOT_YAFFS2
+	{NAND_PAGE_2K,	NAND_ECC_16BIT,	64,		&nand_ecc_2k16bit},
+#endif
+	{NAND_PAGE_2K,	NAND_ECC_8BIT,	64,		&nand_ecc_default},
+	{NAND_PAGE_2K,	NAND_ECC_0BIT,	32,		&nand_ecc_default},
 
 	{0,		0,		0,	NULL},
 };
@@ -813,8 +821,8 @@ static struct nand_config_info *hifmc100_force_ecc(struct mtd_info *mtd,
 static int hifmc100_ecc_probe(struct mtd_info *mtd, struct nand_chip *chip,
 		struct nand_flash_dev_ex *flash_dev_ex)
 {
-	unsigned char page_reg, pagetype, ecc_reg, ecctype;
-	unsigned int reg;
+	unsigned char page_reg, pagetype, ecc_reg, ecctype, block_reg = 0;
+	unsigned int reg, page_per_block;
 	char *start_type = "unknown";
 	struct nand_config_info *best = NULL;
 	struct hifmc_host *host = chip->priv;
@@ -826,6 +834,11 @@ static int hifmc100_ecc_probe(struct mtd_info *mtd, struct nand_chip *chip,
 
 #ifdef CONFIG_HIFMC100_AUTO_PAGESIZE_ECC
 	best = hifmc100_get_best_ecc(mtd);
+	if (!best) {
+		DB_BUG("Can't found any configure for SPI Nand Flash\n");
+		return -1;
+	}
+
 	start_type = "Auto";
 
 	pagetype = best->pagetype;
@@ -843,6 +856,27 @@ static int hifmc100_ecc_probe(struct mtd_info *mtd, struct nand_chip *chip,
 	reg |= FMC_CFG_ECC_TYPE(ecc_reg);
 	FMC_PR(BT_DBG, "\t|-%s Config best EccType: %s\n", start_type,
 			nand_ecc_name(best->ecctype));
+
+	page_per_block = mtd->erasesize / match_page_type_to_size(pagetype);
+	switch (page_per_block) {
+	case 64:
+		block_reg = BLOCK_SIZE_64_PAGE;
+		break;
+	case 128:
+		block_reg = BLOCK_SIZE_128_PAGE;
+		break;
+	case 256:
+		block_reg = BLOCK_SIZE_256_PAGE;
+		break;
+	case 512:
+		block_reg = BLOCK_SIZE_512_PAGE;
+		break;
+	default:
+		DB_MSG("Can't support block %#x and page %#x size\n",
+				mtd->erasesize, mtd->writesize);
+	}
+	reg &= ~BLOCK_SIZE_MASK;
+	reg |= FMC_CFG_BLOCK_SIZE(block_reg);
 
 	hifmc_write(host, FMC_CFG, reg);
 	FMC_PR(BT_DBG, "\t|-Set FMC_CFG[%#x] config: %#x\n", FMC_CFG, reg);
@@ -870,6 +904,11 @@ static int hifmc100_ecc_probe(struct mtd_info *mtd, struct nand_chip *chip,
 	FMC_PR(BT_DBG, "\t|-Check FMC_CFG Config with Hardware Config\n");
 	best = hifmc100_force_ecc(mtd, pagetype, ecctype,
 			"hardware config mode", 0);
+	if (!best) {
+		DB_BUG("Can't found any configure for SPI Nand Flash\n");
+		return -1;
+	}
+
 	start_type = "Hardware";
 #endif
 
@@ -889,6 +928,11 @@ static int hifmc100_ecc_probe(struct mtd_info *mtd, struct nand_chip *chip,
 
 	best = hifmc100_force_ecc(mtd, pagetype, NAND_ECC_0BIT,
 			"force config mode", 0);
+	if (!best) {
+		DB_BUG("Can't found any configure for SPI Nand Flash\n");
+		return -1;
+	}
+
 	start_type = "AutoForce";
 	FMC_PR(BT_DBG, "\t|-Check PageSize %s Config\n", start_type);
 
@@ -901,8 +945,13 @@ static int hifmc100_ecc_probe(struct mtd_info *mtd, struct nand_chip *chip,
 	FMC_PR(BT_DBG, "\t|-Save FMC_CFG config: %#x\n", reg);
 #endif /* End of CONFIG_HIFMC100_PAGESIZE_AUTO_ECC_NONE */
 
-	if (!best)
+	/*oobsize_real for ecc0 read and write*/
+	oobsize_real = mtd->oobsize;
+
+	if (!best) {
 		DB_BUG("Can't found any configure for SPI Nand Flash\n");
+		return -1;
+	}
 
 	if (best->ecctype != NAND_ECC_0BIT)
 		mtd->oobsize = best->oobsize;
@@ -920,8 +969,25 @@ static int hifmc100_ecc_probe(struct mtd_info *mtd, struct nand_chip *chip,
 	host->dma_oob = host->dma_buffer + host->pagesize;
 	host->bbm = (u_char *)(host->buffer + host->pagesize
 			+ HIFMC_BAD_BLOCK_POS);
+
+	/* EB bits locate in the bottom two of CTRL(30) */
 	host->epm = (u_short *)(host->buffer + host->pagesize
 			+ chip->ecc.layout->oobfree[0].offset + 28);
+
+#ifdef CONFIG_FS_MAY_NOT_YAFFS2
+	if (best->ecctype == NAND_ECC_16BIT) {
+		if (host->pagesize == _2K) {
+			/* EB bits locate in the bottom two of CTRL(4) */
+			host->epm = (u_short *)(host->buffer + host->pagesize
+					+ chip->ecc.layout->oobfree[0].offset + 4);
+		} else if (host->pagesize == _4K) {
+			/* EB bit locate in the bottom two of CTRL(14) */
+			host->epm = (u_short *)(host->buffer + host->pagesize
+					+ chip->ecc.layout->oobfree[0].offset + 12);
+		}
+	}
+#endif
+
 	host->fmc_cfg_ecc0 = (host->fmc_cfg & ~ECC_TYPE_MASK) | ECC_TYPE_0BIT;
 
 	if (mtd->writesize > SPI_NAND_MAX_PAGESIZE
@@ -998,7 +1064,6 @@ int hifmc100_host_init(struct hifmc_host *host)
 
 	if ((reg & OP_MODE_MASK) == OP_MODE_BOOT) {
 		reg |= FMC_CFG_OP_MODE(OP_MODE_NORMAL);
-		FMC_PR(BT_DBG, "\t|||-Controller enter normal mode\n");
 		hifmc_write(host, FMC_CFG, reg);
 		FMC_PR(BT_DBG, "\t|||-Set CFG[%#x]%#x\n", FMC_CFG, reg);
 	}
@@ -1017,6 +1082,9 @@ int hifmc100_host_init(struct hifmc_host *host)
 	host->addr_value[1] = 0;
 	host->cache_addr_value[0] = ~0;
 	host->cache_addr_value[1] = ~0;
+
+	/* ecc0_flag for ecc0 read/write */
+	ecc0_flag = 0;
 
 	FMC_PR(BT_DBG, "\t|||-Malloc memory for dma buffer\n");
 	host->buforg = kmalloc((HIFMC100_BUFFER_LEN + FMC_DMA_ALIGN),
@@ -1039,7 +1107,7 @@ int hifmc100_host_init(struct hifmc_host *host)
 	host->send_cmd_erase = hifmc100_send_cmd_erase;
 	host->send_cmd_readid = hifmc100_send_cmd_readid;
 	host->send_cmd_reset = hifmc100_send_cmd_reset;
-	host->set_system_clock = hifmc100_set_fmc_system_clock;
+	host->set_system_clock = hifmc_set_fmc_system_clock;
 
 	reg = TIMING_CFG_TCSH(CS_HOLD_TIME)
 		| TIMING_CFG_TCSS(CS_SETUP_TIME)
@@ -1067,10 +1135,12 @@ void hifmc100_spi_nand_init(struct hifmc_host *host)
 
 	FMC_PR(BT_DBG, "\t|*-Start hifmc100 SPI Nand init\n");
 
+	/* Set system clock and enable controller */
 	FMC_PR(BT_DBG, "\t||-Set system clock and Enable Controller\n");
 	if (host->set_system_clock)
-		host->set_system_clock(host, ENABLE);
+		host->set_system_clock(NULL, ENABLE);
 
+	/* Hifmc nand_chip struct init */
 	FMC_PR(BT_DBG, "\t||-Hifmc100 struct nand_chip init\n");
 	chip->priv = host;
 	hifmc100_chip_init(chip);

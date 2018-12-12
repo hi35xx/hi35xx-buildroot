@@ -11,6 +11,34 @@
 #include <ddr_interface.h>
 
 #define __common__
+
+/**
+ * ddr_training_delay
+ * @cnt
+ *
+ * 2GHz CPU run 2000 "nop" in 1 ns.
+ */
+static inline void ddr_training_delay(unsigned int cnt)
+{
+	while (cnt--)
+		asm("nop");
+}
+
+/**
+ * ddr_training_set_timing
+ * @base_dmc
+ * @timing
+ *
+ * set auto refresh
+ */
+void ddr_training_set_timing(unsigned int base_dmc, unsigned int timing)
+{
+	ddr_training_delay(DDR_AUTO_TIMING_DELAY);
+	REG_WRITE(timing, base_dmc + DDR_DMC_TIMING2);
+	/* need to delay 1 ns */
+	ddr_training_delay(DDR_AUTO_TIMING_DELAY);
+}
+
 #ifdef DDR_TRAINING_STAT_CONFIG
 /**
  * ddr_training_save
@@ -148,16 +176,17 @@ void ddr_training_save_reg(struct tr_relate_reg *relate_reg, unsigned int mask)
 		/* set new value */
 		switch (mask) {
 		case DDR_BYPASS_WL_MASK:
+		case DDR_BYPASS_LPCA_MASK:
 			/* disable auto refresh */
-			REG_WRITE(relate_reg->auto_ref_timing[i]
-				& DMC_AUTO_TIMING_DIS,
-				base_dmc + DDR_DMC_TIMING2);
+			ddr_training_set_timing(base_dmc,
+				relate_reg->auto_ref_timing[i]
+				& DMC_AUTO_TIMING_DIS);
 			break;
 		case DDR_BYPASS_GATE_MASK:
 			/* disable auto refresh */
-			REG_WRITE(relate_reg->auto_ref_timing[i]
-				& DMC_AUTO_TIMING_DIS,
-				base_dmc + DDR_DMC_TIMING2);
+			ddr_training_set_timing(base_dmc,
+				relate_reg->auto_ref_timing[i]
+				& DMC_AUTO_TIMING_DIS);
 
 			if (!(REG_READ(base_phy + DDR_PHY_DRAMCFG)
 					& PHY_DRAMCFG_MA2T)) /* set 1T */
@@ -176,6 +205,8 @@ void ddr_training_save_reg(struct tr_relate_reg *relate_reg, unsigned int mask)
 			base_dmc + DDR_DMC_CFG_PD);
 		REG_WRITE(relate_reg->misc_scramb[i] & PHY_MISC_SCRAMB_DIS,
 			base_phy + DDR_PHY_MISC);
+
+		DDR_DQSSWAP_SAVE_FUNC(relate_reg->swapdfibyte_en[i], base_phy);
 
 		ddr_phy_cfg_update(base_phy);
 	}
@@ -206,8 +237,8 @@ void ddr_training_restore_reg(struct tr_relate_reg *relate_reg)
 		ddr_training_get_base(i, &base_dmc, &base_phy);
 
 		/* enable auto refresh*/
-		REG_WRITE(relate_reg->auto_ref_timing[i],
-			base_dmc + DDR_DMC_TIMING2);
+		ddr_training_set_timing(base_dmc,
+			relate_reg->auto_ref_timing[i]);
 		REG_WRITE(relate_reg->power_down[i],
 			base_dmc + DDR_DMC_CFG_PD);
 		REG_WRITE(relate_reg->misc_scramb[i],
@@ -216,6 +247,9 @@ void ddr_training_restore_reg(struct tr_relate_reg *relate_reg)
 				& PHY_DRAMCFG_MA2T))
 			REG_WRITE(relate_reg->ac_phy_ctl[i],
 				base_phy + DDR_PHY_ACPHYCTL4);
+
+		DDR_DQSSWAP_RESTORE_FUNC(relate_reg->swapdfibyte_en[i],
+			base_phy);
 
 		ddr_phy_cfg_update(base_phy);
 	}
@@ -255,6 +289,7 @@ unsigned int ddr_dmc_get_reversed(unsigned int base_dmc)
 	return REG_READ(DDR_REG_BASE_SYSCTRL + offset);
 }
 
+#if defined(DDR_WL_TRAINING_CONFIG) || defined(DDR_MPR_TRAINING_CONFIG)
 /**
  * ddr_dmc_sfc_cmd
  * @base_dmc
@@ -290,6 +325,7 @@ static void ddr_dmc_sfc_cmd(unsigned int base_dmc, unsigned int sfc_cmd,
 	if (count >= DDR_HWR_WAIT_TIMEOUT)
 		DDR_ERROR("SFC cmd wait timeout.");
 }
+#endif
 
 /**
  * ddr_phy_cfg_update
@@ -401,9 +437,16 @@ int ddr_phy_get_dq_bdl(unsigned int base_phy, unsigned int bytenum,
  */
 unsigned int ddr_phy_get_byte_num(unsigned int base_dmc)
 {
+	unsigned int byte_num;
+
 	/* memery width -> byte number */
-	return ((REG_READ(base_dmc + DDR_DMC_CFG_DDRMODE)
+	byte_num = ((REG_READ(base_dmc + DDR_DMC_CFG_DDRMODE)
 		>> DMC_MEM_WIDTH_BIT) & DMC_MEM_WIDTH_MASK) << 1;
+
+	if (byte_num > DDR_PHY_BYTE_MAX)
+		byte_num = DDR_PHY_BYTE_MAX;
+
+	return byte_num;
 }
 
 #define __ddrt__
@@ -647,7 +690,7 @@ static unsigned int ddr_adjust_trend_check(unsigned int base_phy,
 	unsigned int dq_bdl = 0;
 	unsigned int size;
 
-	/* 32 BDL middle[13, 17]. 128 BDL middle[55, 71] */
+	/* 32 BDL middle[13, 17]. 128 BDL middle[40, 56] */
 	/* 1 Phase = (DDR_BDL_PHASE_TRANSFORM) BDL */
 	size = DDR_BDL_PHASE_TRANSFORM >> 1;
 
@@ -718,22 +761,27 @@ static int ddr_adjust_get_val(unsigned int base_phy, unsigned int byte_index,
 /**
  * ddr_adjust_set_val
  * @base_phy
+ * @base_dmc
  * @byte_index
  * @val
  * @mode
  *
  * Set value which need to adjust.
  */
-static void ddr_adjust_set_val(unsigned int base_phy,
+static void ddr_adjust_set_val(unsigned int base_phy, unsigned int base_dmc,
 			unsigned int byte_index, int val, unsigned int mode)
 {
-	int delay;
+	unsigned int delay;
 	if (DDR_MODE_READ == mode) {
 		delay = REG_READ(base_phy
 			+ DDR_PHY_DXNRDQSDLY(byte_index));
+
+		/* DDR4 RDQS MUST synchronize to RDM */
+		DDR_PHY_RDQS_SYNC_RDM(base_dmc, base_phy, delay, byte_index);
+
 		/* clear rdqs bdl */
 		delay = delay & (~PHY_RDQS_BDL_MASK);
-		REG_WRITE(delay | val,
+		REG_WRITE(delay | ((unsigned int)val),
 			base_phy + DDR_PHY_DXNRDQSDLY(byte_index));
 	} else {
 		delay = REG_READ(base_phy
@@ -822,11 +870,11 @@ static void ddr_adjust_move_win(struct training_data *training,
 			break;
 		}
 
-		ddr_adjust_set_val(training->base_phy,
+		ddr_adjust_set_val(training->base_phy, training->base_dmc,
 			byte_index, cur_val, mode);
 		if (ddr_dataeye_deskew(training, byte_index, mode)) {
 			ddr_adjust_set_val(training->base_phy,
-				byte_index, def_val, mode);
+				training->base_dmc, byte_index, def_val, mode);
 			/* MUST deskew dataeye after restore rdqs */
 			ddr_dataeye_deskew(training, byte_index, mode);
 			DDR_ERROR("Byte[%x] deskew fail, restore[%x].",
@@ -1786,6 +1834,7 @@ static void ddr_vref_restore_bdl(unsigned int base_phy, unsigned int bytenum,
 /**
  * ddr_vref_set
  * @base_phy
+ * @base_dmc
  * @byte_index
  * @val
  * @mode
@@ -1793,13 +1842,23 @@ static void ddr_vref_restore_bdl(unsigned int base_phy, unsigned int bytenum,
  *
  * Set DDR Vref value.
  */
-static void ddr_vref_set(unsigned int base_phy, unsigned int val,
-	unsigned int byte_index, unsigned int mode, unsigned int bytenum)
+static void ddr_vref_set(unsigned int base_phy, unsigned int base_dmc,
+	unsigned int val, unsigned int byte_index, unsigned int mode,
+	unsigned int bytenum)
 {
 	if (DDR_MODE_READ == mode) { /* HOST vref */
 		DDR_PHY_VREF_HOST_SET(base_phy, val, bytenum);
 	} else {	  /*DRAM vref */
+		unsigned int auto_ref_timing =
+			REG_READ(base_dmc + DDR_DMC_TIMING2);
+		/* disable auto refresh */
+		ddr_training_set_timing(base_dmc,
+			auto_ref_timing & DMC_AUTO_TIMING_DIS);
+
 		DDR_PHY_VREF_DRAM_SET(base_phy, val, byte_index);
+
+		/* enable auto refresh */
+		ddr_training_set_timing(base_dmc, auto_ref_timing);
 	}
 	DDR_INFO("byte[%x] mode[%x] set vref [%x]", byte_index, mode, val);
 }
@@ -1856,8 +1915,8 @@ static unsigned int ddr_vref_get_win(struct training_data *training,
 	else
 		vref_set = vref;
 
-	ddr_vref_set(training->base_phy, vref_set, byte_index, mode,
-		training->ddr_byte_num);
+	ddr_vref_set(training->base_phy, training->base_dmc, vref_set,
+		byte_index, mode, training->ddr_byte_num);
 
 	ddr_dataeye_deskew(training, byte_index, mode);
 
@@ -1891,7 +1950,7 @@ static unsigned int ddr_vref_find_best(struct training_data *training,
 		vref_max = DDR_VREF_DRAM_VAL_MAX;
 	}
 
-	max_win   = training->ddr_win_sum;
+	max_win   = 0;
 	cur_vref  = vref + step;
 
 	if (vref < vref_min)
@@ -1939,38 +1998,44 @@ static void ddr_vref_cal(struct training_data *training,
 {
 	unsigned int def_vref;
 	unsigned int best_vref;
-	unsigned int def_win;
 	unsigned int left_win;
 	unsigned int right_win;
 
 	def_vref  = ddr_vref_get(training->base_phy, byte_index, mode);
-	def_win   = ddr_vref_get_win(training, byte_index, mode, def_vref);
-	left_win  = ddr_vref_get_win(training, byte_index, mode, def_vref - 1);
-	right_win = ddr_vref_get_win(training, byte_index, mode, def_vref + 1);
+	left_win  = ddr_vref_get_win(training, byte_index, mode,
+		def_vref - DDR_VREF_COMPARE_STEP);
+	right_win = ddr_vref_get_win(training, byte_index, mode,
+		def_vref + DDR_VREF_COMPARE_STEP);
 
-	DDR_INFO("PHY[%x] byte[%x] vref[%x] win[%x][%x][%x] mode[%x]",
+	DDR_INFO("PHY[%x] byte[%x] vref[%x] win[%x][%x] mode[%x]",
 		training->base_phy, byte_index, def_vref, left_win,
-		def_win, right_win, mode);
+		right_win, mode);
 
 	/* With vref increments, WIN number is a parabola.
 	   So firstly determine the result on left or right.*/
 	/* parabola vertex */
-	if (def_win > left_win && def_win > right_win) {
-		best_vref = def_vref;
-	} else if (left_win < right_win) { /* the result on right*/
+	if (left_win < right_win) { /* the result on right */
 		best_vref = ddr_vref_find_best(training,
-			byte_index, mode, def_vref + 1, 1);
-	} else if (left_win > right_win) { /* the result on left*/
+			byte_index, mode, def_vref, 1);
+	} else if (left_win > right_win) { /* the result on left */
 		best_vref = ddr_vref_find_best(training,
-			byte_index, mode, def_vref - 1, -1);
+			byte_index, mode, def_vref, -1);
 	} else {
-		/* when [-1, 1] cat not determine the direction,
-		   the cur vref should be or very close to best vref */
-		best_vref = def_vref;
+		/* when (left_win == right_win), check def_vref */
+		unsigned int vref_max = DDR_VREF_HOST_VAL_MAX;
+		if (DDR_MODE_WRITE == mode)
+			vref_max = DDR_VREF_DRAM_VAL_MAX;
+
+		if (def_vref < (vref_max >> 1))
+			best_vref = ddr_vref_find_best(training, byte_index,
+				mode, def_vref, 1);
+		else
+			best_vref = ddr_vref_find_best(training, byte_index,
+				mode, def_vref, -1);
 	}
 
-	ddr_vref_set(training->base_phy, best_vref, byte_index, mode,
-		training->ddr_byte_num);
+	ddr_vref_set(training->base_phy, training->base_dmc, best_vref,
+		byte_index, mode, training->ddr_byte_num);
 }
 
 /**
@@ -2004,9 +2069,23 @@ int ddr_vref_training(unsigned int base_dmc, unsigned int base_phy,
 	if (DDR_MODE_READ == mode)
 		/* only check one byte */
 		ddr_vref_cal(training, 0, mode);
-	else
-		for (i = 0; i < training->ddr_byte_num; i++)
+	else {
+#ifdef DDR_PHY_T28_CONFIG
+		unsigned int bank_group;
+		bank_group = (REG_READ(base_dmc
+			+ DDR_DMC_CFG_RNKVOL(0)) >> DMC_CFG_MEM_BG_BIT)
+			& DMC_CFG_MEM_BG_MASK;
+
+		for (i = 0; i < training->ddr_byte_num; i++) {
+			/* byte1 and byte3 bypass when 2 Bank Group */
+			if ((DMC_CFG_MEM_2BG == bank_group)
+				&& ((1 == i) || (3 == i)))
+				continue;
+
 			ddr_vref_cal(training, i, mode);
+		}
+#endif
+	}
 
 	/* dataeye deskew again on best vref. */
 	for (i = 0; i < training->ddr_byte_num; i++)
@@ -2057,18 +2136,18 @@ static void ddr_bdl_sub(unsigned int *raw, unsigned int val)
  */
 static void ddr_phase_inc(unsigned int *raw)
 {
-	if ((*raw) < (PHY_WDQS_PHASE_MASK - 1)) {
 #ifdef DDR_PHY_T28_CONFIG
+	if ((*raw) < (PHY_WDQS_PHASE_MASK - 1)) {
 		if (((*raw) & 0x3) == 0x2)
 			*raw += 0x2;
 		else
 			*raw += 0x1;
+	}
 #else
+	if ((*raw) < PHY_WDQS_PHASE_MASK)
 		*raw += 0x1;
 #endif
-	}
 }
-
 
 /**
  * ddr_phase_dec
@@ -2078,16 +2157,17 @@ static void ddr_phase_inc(unsigned int *raw)
  */
 static void ddr_phase_dec(unsigned int *raw)
 {
-	if ((*raw) > 0x1) {
 #ifdef DDR_PHY_T28_CONFIG
+	if ((*raw) > 0x1) {
 		if (((*raw) & 0x3) == 0x3)
 			*raw -= 0x2;
 		else
 			*raw -= 0x1;
+	}
 #else
+	if ((*raw) > 0x0)
 		*raw -= 0x1;
 #endif
-	}
 }
 
 /**
@@ -2358,10 +2438,12 @@ static int ddr_wl_process(unsigned int base_phy, unsigned int byte_num,
 				& PHY_SWTRLT_WL_MASK;
 		REG_WRITE(0x0, base_phy + DDR_PHY_SWTWLDQS);
 
-		if (wl_result == ((1 << byte_num) - 1))
+		if ((wl_result & ((1 << byte_num) - 1)) == ((1 << byte_num) - 1))
 			break;
 
 		for (j = 0; j < byte_num; j++) {
+			DDR_INFO("type[0x%x] byte[0x%x] phase[0x%x] bdl[0x%x] wl_result[0x%x]",
+				type, j, wdqs->phase[j], wdqs->bdl[j], wl_result);
 			if (!(wl_result & (1 << j))) {
 				if (DDR_DELAY_PHASE == type)
 					ddr_phase_inc(&wdqs->phase[j]);
@@ -2375,7 +2457,7 @@ static int ddr_wl_process(unsigned int base_phy, unsigned int byte_num,
 		}
 	}
 
-	if (i == length) {   /* wl error, not find wdqs delay */
+	if (i > length) {   /* wl error, not find wdqs delay */
 		if (DDR_DELAY_BDL == type) {
 			DDR_FATAL("PHY[%x] WL fail, result[%x]",
 					base_phy, wl_result);
@@ -2547,7 +2629,7 @@ static int ddr_gate_find_bdl(unsigned int base_phy, unsigned int byte_num,
 		ddr_ddrt_test(DDRT_READ_ONLY_MODE, -1, -1);
 		gate_result = (REG_READ(base_phy + DDR_PHY_SWTRLT) >> 8)
 					& PHY_SWTRLT_GATE_MASK;
-		if (gate_result == ((1 << byte_num) - 1))
+		if ((gate_result & ((1 << byte_num) - 1)) == ((1 << byte_num) - 1))
 			break;
 
 		for (j = 0; j < byte_num; j++) {
@@ -2633,7 +2715,7 @@ int ddr_gate_training(unsigned int base_dmc, unsigned int base_phy)
 	}
 
 	ddr_phy_cfg_update(base_phy);
-	return 0;
+	return 0; /* use default value and not reset */
 }
 #endif /* DDR_GATE_TRAINING_CONFIG */
 
@@ -2956,3 +3038,548 @@ int ddr_ac_training(unsigned int base_dmc, unsigned int base_phy)
 	return 0;
 }
 #endif /* DDR_AC_TRAINING_CONFIG */
+
+#define __lpca_training__
+#ifdef DDR_LPCA_TRAINING_CONFIG
+
+/**
+ * ddr_lpca_reset
+ * @data
+ *
+ * Reset address bdl training data.
+ */
+static void ddr_lpca_reset(struct ca_data_st *data)
+{
+	unsigned int index;
+	for (index = 0; index < DDR_PHY_CA_MAX; index++) {
+		data->left[index] = -1;
+		data->right[index] = -1;
+	}
+
+	data->min = PHY_ACADDR_BDL_MASK;
+	data->max = 0;
+	data->done = 0;
+}
+
+/**
+ * ddr_lpca_get_bit
+ * @data
+ *
+ * Get ca bit relation.
+ */
+static void ddr_lpca_get_bit(struct ca_data_st *data)
+{
+	unsigned int index;
+	unsigned int swap_sel;
+
+	/* get ca bit in four register  */
+	for (index = 0; index < (DDR_PHY_CA_REG_MAX - 1); index++) {
+		REG_WRITE(index + 1, data->base_phy + DDR_PHY_CATSWAPINDEX);
+		swap_sel = REG_READ(data->base_phy + DDR_PHY_CATSWAPSEL);
+
+		data->bits[index * 2].bit_p =
+			swap_sel & PHY_CATSWAPSEL_BIT_MASK;
+		data->bits[index * 2].bit_n =
+			(swap_sel >> 8) & PHY_CATSWAPSEL_BIT_MASK;
+		data->bits[index * 2 + 1].bit_p =
+			(swap_sel >> 16) & PHY_CATSWAPSEL_BIT_MASK;
+		data->bits[index * 2 + 1].bit_n =
+			(swap_sel >> 24) & PHY_CATSWAPSEL_BIT_MASK;
+	}
+
+	/**
+	 * set ca bit for ca4 and ca9
+	 * ca4 = ca0, ca9 = ca5
+	 */
+	for (index = 8; index > 4; index--) {
+		data->bits[index].bit_p = data->bits[index - 1].bit_p;
+		data->bits[index].bit_n = data->bits[index - 1].bit_n;
+	}
+
+	data->bits[4].bit_p = data->bits[0].bit_p;
+	data->bits[4].bit_n = data->bits[0].bit_n;
+	data->bits[9].bit_p = data->bits[5].bit_p;
+	data->bits[9].bit_n = data->bits[5].bit_n;
+
+#if defined(DDR_TRAINING_CMD)
+	for (index = 0; index < DDR_PHY_CA_MAX; index++) {
+		DDR_INFO("CA[%x] bit_p[%x]", index, data->bits[index].bit_p);
+		DDR_INFO("CA[%x] bit_n[%x]", index, data->bits[index].bit_n);
+	}
+#endif
+}
+
+/**
+ * ddr_lpca_get_def
+ * @data
+ *
+ * Get address bdl default value.
+ */
+static void ddr_lpca_get_def(struct ca_data_st *data)
+{
+	unsigned int index;
+
+	for (index = 0; index < DDR_PHY_CA_REG_MAX; index++)
+		data->def[index] = REG_READ(data->base_phy
+			+ DDR_PHY_ACADDRBDL(index));
+}
+
+/**
+ * ddr_lpca_restore_def
+ * @data
+ *
+ * Restore address bdl default value.
+ */
+static void ddr_lpca_restore_def(struct ca_data_st *data)
+{
+	unsigned int index;
+
+	for (index = 0; index < DDR_PHY_CA_REG_MAX; index++)
+		REG_WRITE(data->def[index], data->base_phy
+			+ DDR_PHY_ACADDRBDL(index));
+
+	ddr_phy_cfg_update(data->base_phy);
+}
+
+/**
+ * ddr_lpca_set_bdl
+ * @base_phy
+ * @bdl
+ *
+ * Set address bdl value.
+ */
+static void ddr_lpca_set_bdl(unsigned int base_phy, unsigned int bdl)
+{
+	unsigned int index;
+	for (index = 0; index < DDR_PHY_CA_REG_MAX; index++)
+		REG_WRITE(bdl | (bdl << PHY_ACADDRBDL_ADDR1_BIT),
+			base_phy + DDR_PHY_ACADDRBDL(index));
+
+	ddr_phy_cfg_update(base_phy);
+}
+
+/**
+ * ddr_lpca_update_bdl
+ * @data
+ *
+ * Update address bdl value with training result.
+ */
+static void ddr_lpca_update_bdl(struct ca_data_st *data)
+{
+	unsigned int index;
+	unsigned int addr0, addr1;
+
+	for (index = 0; index < DDR_PHY_CA_REG_MAX; index++) {
+		addr0 = (data->left[index * 2] + data->right[index * 2]) >> 1;
+		addr1 = (data->left[index * 2 + 1]
+			+ data->right[index * 2 + 1]) >> 1;
+		REG_WRITE(addr0 | (addr1 << PHY_ACADDRBDL_ADDR1_BIT),
+			data->base_phy + DDR_PHY_ACADDRBDL(index));
+	}
+
+	ddr_phy_cfg_update(data->base_phy);
+}
+
+/**
+ * ddr_lpca_init
+ * @base_dmc
+ * @base_phy
+ * @data
+ *
+ * Init data before training.
+ */
+static void ddr_lpca_init(unsigned int base_dmc, unsigned int base_phy,
+	struct ca_data_st *data)
+{
+	data->base_dmc = base_dmc;
+	data->base_phy = base_phy;
+
+	/* gat ca bit relation */
+	ddr_lpca_get_bit(data);
+
+	/* get ac addr bdl default value */
+	ddr_lpca_get_def(data);
+
+	/* reset training data */
+	ddr_lpca_reset(data);
+}
+
+/**
+ * ddr_lpca_display
+ * @data
+ *
+ * Display training result.
+ */
+static void ddr_lpca_display(struct ca_data_st *data)
+{
+#if defined(DDR_TRAINING_CMD)
+	unsigned int index;
+
+	DDR_DEBUG("CA phase[%x = %x]",
+			data->base_phy + DDR_PHY_ADDRPHBOUND,
+			REG_READ(data->base_phy + DDR_PHY_ADDRPHBOUND));
+
+	for (index = 0; index < DDR_PHY_CA_MAX; index++)
+		DDR_DEBUG("CA[%x] left[%x] right[%x]",
+			index, data->left[index], data->right[index]);
+
+	DDR_DEBUG("min[%x] max[%x] done[%x]",
+		data->min, data->max, data->done);
+#endif
+}
+
+/**
+ * ddr_lpca_wait
+ * @ca
+ *
+ * Wait lpca command done.
+ */
+static void ddr_lpca_wait(volatile union U_PHY_CATCONFIG *ca)
+{
+	unsigned int count = 0;
+	while (count < DDR_LPCA_WAIT_TIMEOUT) {
+		if (1 == ca->bits.sw_cat_dqvalid) {
+			ca->bits.sw_cat_dqvalid = 0; /* clear */
+			break;
+		}
+
+		count++;
+	}
+
+	/* generally, count is 0 */
+	if (count >= DDR_LPCA_WAIT_TIMEOUT)
+		DDR_ERROR("LPCA wait timeout.");
+}
+
+/**
+ * ddr_lpca_compare
+ * @ca_bit
+ * @dq_result
+ * @pattern_p
+ * @pattern_n
+ * @index
+ *
+ * Compare dq result and pattern.
+ */
+static int ddr_lpca_compare(struct ca_bit_st *ca_bit,
+	unsigned int dq_result, unsigned int pattern_p,
+	unsigned int pattern_n, unsigned int index)
+{
+	if (((dq_result >> ca_bit->bit_p) & 0x1)
+		!= ((pattern_p >> index) & 0x1))
+		return -1;
+
+	if (((dq_result >> ca_bit->bit_n) & 0x1)
+		!= ((pattern_n >> index) & 0x1))
+		return -1;
+
+	return 0;
+}
+
+/**
+ * ddr_lpca_check
+ * @data
+ * @bdl
+ * @is_ca49
+ *
+ * Check each CA whether pass.
+ */
+static void ddr_lpca_check(struct ca_data_st *data, unsigned int bdl,
+	unsigned int is_ca49)
+{
+	unsigned int dq_result = REG_READ(data->base_phy + DDR_PHY_PHYDQRESULT);
+	unsigned int pattern_p = REG_READ(data->base_phy
+		+ DDR_PHY_SWCATPATTERN_P) & PHY_CAT_PATTERN_MASK;
+	unsigned int pattern_n = REG_READ(data->base_phy
+		+ DDR_PHY_SWCATPATTERN_N) & PHY_CAT_PATTERN_MASK;
+	unsigned int index;
+
+	for (index = 0; index < DDR_PHY_CA_MAX; index++) {
+		if (is_ca49) {
+			if (4 != index && 9 != index)
+				continue;
+		} else {
+			if (4 == index && 9 == index)
+				continue;
+		}
+
+		/* compare result and pattern */
+		if (!ddr_lpca_compare(&data->bits[index],
+				dq_result, pattern_p, pattern_n, index)) {
+			/* pass */
+			if (-1 == data->left[index]) {
+				data->left[index] = bdl;
+				/* set min left bound */
+				if (bdl < data->min)
+					data->min = bdl;
+			}
+
+			/* unstable border value or abnormal value */
+			if ((-1 != data->right[index])
+				&& ((bdl - data->right[index]) > 1))
+				DDR_WARNING("CA[%x] bdl[%x] right[%x] ph[%x]",
+					index, bdl, data->right[index],
+					REG_READ(data->base_phy
+					+ DDR_PHY_ADDRPHBOUND));
+
+			data->right[index] = bdl;
+			data->done |= (0x1 << index);
+
+			/* set max right bound */
+			if (data->right[index] > data->max)
+				data->max = data->right[index];
+		}
+	}
+}
+
+/**
+ * ddr_lpca_excute
+ * @data
+ * @bdl
+ * @is_ca49
+ *
+ * Excute lpca command and check result.
+ */
+static void ddr_lpca_excute(struct ca_data_st *data, unsigned int bdl,
+	unsigned int is_ca49)
+{
+	volatile union U_PHY_CATCONFIG *ca = (union U_PHY_CATCONFIG *)
+		(data->base_phy + DDR_PHY_CATCONFIG);
+
+	if (is_ca49)
+		ca->bits.sw_cat_mrw48 = 1;
+	else
+		ca->bits.sw_cat_mrw41 = 1;
+
+	ddr_lpca_wait(ca);
+	ca->bits.sw_cat_cke_low = 1;
+	ddr_lpca_wait(ca);
+	ca->bits.sw_cat_strobe = 1;
+	ddr_lpca_wait(ca);
+
+	/* check PHYDQRESULT */
+	ddr_lpca_check(data, bdl, is_ca49);
+
+	ca->bits.sw_cat_cke_high = 1;
+	ddr_lpca_wait(ca);
+	ca->bits.sw_cat_mrw42 = 1;
+	ddr_lpca_wait(ca);
+}
+
+/**
+ * ddr_lpca_find_bdl
+ * @data
+ *
+ * Find address bdl.
+ */
+static int ddr_lpca_find_bdl(struct ca_data_st *data)
+{
+	unsigned int bdl;
+
+	for (bdl = 0; bdl <= PHY_ACADDR_BDL_MASK; bdl++) {
+		/* update bdl */
+		ddr_lpca_set_bdl(data->base_phy, bdl);
+
+		/* ca0~ca3, ca5~ca8 */
+		ddr_lpca_excute(data, bdl, DDR_FALSE);
+
+		/* ca4, ca9 */
+		ddr_lpca_excute(data, bdl, DDR_TRUE);
+	}
+
+	if (PHY_CAT_PATTERN_MASK == data->done)
+		return 0;
+
+	return -1;
+}
+
+/**
+ * ddr_lpca_loop_phase
+ * @data
+ * @step
+ *
+ * Loop phase to find valid bdl and phase.
+ */
+static int ddr_lpca_loop_phase(struct ca_data_st *data, int step)
+{
+	volatile union U_PHY_ADDRPHBOUND *ph = (union U_PHY_ADDRPHBOUND *)
+		(data->base_phy + DDR_PHY_ADDRPHBOUND);
+	unsigned int phase;
+	unsigned int addrph_def = ph->bits.addrph_a;
+	int addrph = addrph_def;
+
+	for (phase = 0; phase <= PHY_ADDRPH_MASK; phase++) {
+		/* reset ca training data */
+		ddr_lpca_reset(data);
+
+		/* find bdl */
+		if (!ddr_lpca_find_bdl(data))
+			return 0;
+
+		addrph += step;
+		if (addrph < 0 || addrph > PHY_ADDRPH_MASK)
+			break;
+
+		ph->bits.addrph_a = addrph;
+		ddr_phy_cfg_update(data->base_phy);
+	}
+
+	/* restore default value */
+	DDR_DEBUG("current phase[%x = %x], restore default[%x]",
+		ph, *ph, addrph_def);
+	ph->bits.addrph_a = addrph_def;
+	return -1;
+}
+
+/**
+ * ddr_lpca_find_phase
+ * @data
+ *
+ * Find a valid phase.
+ */
+static int ddr_lpca_find_phase(struct ca_data_st *data)
+{
+	/* increase default value to find */
+	if (!ddr_lpca_loop_phase(data, 1))
+		return 0;
+
+	/* decrease default value to find */
+	if (!ddr_lpca_loop_phase(data, -1))
+		return 0;
+
+	return -1;
+}
+
+/**
+ * ddr_lpca_set_step
+ * @data
+ *
+ * Set step to adjust address window.
+ */
+static int ddr_lpca_set_step(struct ca_data_st *data)
+{
+	/* max window, no need to found */
+	if (0 == data->min && PHY_ACADDR_BDL_MASK == data->max)
+		return 0;
+
+	if (0 == data->min)
+		return -1; /* window on left, move to right */
+	else
+		return 1; /* window on right, move to left */
+}
+
+/**
+ * ddr_lpca_adjust
+ * @data
+ *
+ * Adjust address window via change phase.
+ * Increase phase, window will move to left.
+ */
+static void ddr_lpca_adjust(struct ca_data_st *data)
+{
+	int step = 0;
+	volatile union U_PHY_ADDRPHBOUND *ph = (union U_PHY_ADDRPHBOUND *)
+		(data->base_phy + DDR_PHY_ADDRPHBOUND);
+	unsigned int phase;
+	unsigned int addrph_last = ph->bits.addrph_a;
+	int addrph_cur = addrph_last;
+
+	/* set step to increase or decrease phase */
+	step = ddr_lpca_set_step(data);
+
+	if (!step)
+		return;
+
+	for (phase = 0; phase <= PHY_ADDRPH_MASK; phase++) {
+		addrph_cur += step;
+		if (addrph_cur < 0 || addrph_cur > PHY_ADDRPH_MASK)
+			return;
+
+		ph->bits.addrph_a = addrph_cur;
+		ddr_phy_cfg_update(data->base_phy);
+
+		/* reset ca training data */
+		ddr_lpca_reset(data);
+
+		if (ddr_lpca_find_bdl(data)) {
+			/* not find bdl, restore last value */
+			addrph_cur -= step;
+			ddr_lpca_find_bdl(data);
+			return;
+		}
+
+		/* max window: ------- */
+		if (0 == data->min && PHY_ACADDR_BDL_MASK == data->max)
+			return;
+
+		/* last window: -----xx */
+		if (0 == data->min && 1 == step) {
+			/* last value is best */
+			addrph_cur -= step;
+			ph->bits.addrph_a = addrph_cur;
+			ddr_phy_cfg_update(data->base_phy);
+			ddr_lpca_reset(data);
+			ddr_lpca_find_bdl(data);
+			return;
+		}
+
+		/* best window: x-----x */
+		if (0 < data->min && -1 == step)
+			return;
+	}
+}
+
+/**
+ * ddr_lpca_training
+ * @base_dmc
+ * @base_phy
+ * @ddrtr_result
+ *
+ * Low power DDR CA training.
+ */
+int ddr_lpca_training(unsigned int base_dmc, unsigned int base_phy,
+	void *ddrtr_result)
+{
+	volatile union U_PHY_CATCONFIG *ca = (union U_PHY_CATCONFIG *)
+		(base_phy + DDR_PHY_CATCONFIG);
+
+	struct ca_data_st data;
+	int ret = -1;
+
+	DDR_DEBUG("DDR LPCA training.");
+
+	/* init data */
+	ddr_lpca_init(base_dmc, base_phy, &data);
+
+	/* enable sw ca training, wait 62.5ns */
+	ca->bits.sw_cat_en = 1;
+
+	/* find a valid phase first*/
+	ret = ddr_lpca_find_phase(&data);
+
+	/* display training result */
+	ddr_lpca_display(&data);
+
+	if (ret) {
+		/* restore default value when fail */
+		ddr_lpca_restore_def(&data);
+		DDR_ERROR("PHY[%x] found phase fail, result[%x].",
+			base_phy, data.done);
+		ddr_training_stat(DDR_ERR_LPCA, base_phy, -1, -1);
+	} else {
+		/* adjust window via phase */
+		ddr_lpca_adjust(&data);
+		ddr_lpca_display(&data);
+		/* set training result */
+		ddr_lpca_update_bdl(&data);
+	}
+
+	/* disable sw ca training */
+	ca->bits.sw_cat_en = 0;
+
+	/* save lpca result data to printf */
+	ddr_lpca_data_save(ddrtr_result, &data);
+
+	return ret;
+}
+#endif /* DDR_LPCA_TRAINING_CONFIG */

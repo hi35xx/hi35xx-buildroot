@@ -1,11 +1,22 @@
-/******************************************************************************
- *	Flash Memory Controller v100 Device Driver
- *	Copyright (c) 2014 - 2015 by Hisilicon
- *	All rights reserved.
- * ***
- *	Create by hisilicon
+/*
+ * The Flash Memory Controller v100 Device Driver for hisilicon
  *
- *****************************************************************************/
+ * Copyright (c) 2016-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 /*****************************************************************************/
 /* SpanSion SPI Nor Flash "S25FL256S" Bank Address Register command */
@@ -87,13 +98,13 @@ static int spi_s25fl256s_entry_4addr(struct hifmc_spi *spi, int enable)
 	bank = spi_general_get_flash_register(spi, SS_SPI_CMD_BRRD);
 	FMC_PR(AC_DBG, "\t  Read Bank Register[%#x]%#x\n", SS_SPI_CMD_BRRD,
 			bank);
-	if (SS_SPI_NOR_GET_EAE_BY_BR(bank) == enable)
-		FMC_PR(AC_DBG, "\t  %s 4byte success, bank:%#x.\n",
-				str[enable], bank);
-	else
+	if (SS_SPI_NOR_GET_EAE_BY_BR(bank) != enable) {
 		DB_MSG("Error: %s 4bytes failed! bank: %#x\n", str[enable],
 				bank);
+		return bank;
+	}
 
+	FMC_PR(AC_DBG, "\t  %s 4byte success, bank:%#x.\n", str[enable], bank);
 	FMC_PR(AC_DBG, "\t* End SpanSion SPI Nor %s 4-byte mode.\n",
 			str[enable]);
 

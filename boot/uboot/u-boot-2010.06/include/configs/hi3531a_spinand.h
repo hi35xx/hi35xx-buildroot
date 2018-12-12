@@ -52,17 +52,7 @@
 
 #define CONFIG_HI3531A		1
 
-/* #define CONFIG_SVB_ENABLE */
-
-#define CONFIG_CMD_BDI		/* bdinfo			*/
-#define CONFIG_CMD_BOOTD	/* bootd			*/
-#define CONFIG_CMD_ECHO		/* echo arguments		*/
-#define CONFIG_CMD_EDITENV	/* editenv			*/
-#define CONFIG_CMD_MISC		/* Misc functions like sleep etc */
-#define CONFIG_CMD_RUN		/* run command in env variable	*/
-#define CONFIG_CMD_SOURCE	/* "source" command support	*/
-
-#define CONFIG_PREBOOT		/* enable preboot variable	*/
+#define CONFIG_SVB_ENABLE
 
 /*-----------------------------------------------------------------------
  * Hisilicon Flash Memory Controller Configuration
@@ -246,7 +236,7 @@
  ------------------------------------------------------------------------*/
 #define CONFIG_VERSION_VARIABLE  1 /*used in common/main.c*/
 #define CONFIG_SYS_PROMPT  "hisilicon # "	/* Monitor Command Prompt */
-#define CONFIG_SYS_CBSIZE  2048            /* Console I/O Buffer Size  */
+#define CONFIG_SYS_CBSIZE  1024            /* Console I/O Buffer Size  */
 #define CONFIG_SYS_PBSIZE  (CONFIG_SYS_CBSIZE + sizeof(CONFIG_SYS_PROMPT) + 16)
 
 #define CFG_LONGHELP
@@ -258,13 +248,8 @@
 #define CONFIG_AUTO_COMPLETE    1
 #define CFG_CMDLINE_HISTORYS    8
 #define CONFIG_CMDLINE_EDITING
-
-#define CONFIG_SYS_LONGHELP		/* undef to save memory */
-#define CONFIG_SYS_HUSH_PARSER		/* use "hush" command parser */
-#define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
-
 #define CFG_DDR_PHYS_OFFSET	MEM_BASE_DDR
-#define CFG_DDR_SIZE		(512 * 1024 * 1024) /* 512MB */
+#define CFG_DDR_SIZE		(512 * 1024 * 1024UL) /* 512MB */
 
 #define CONFIG_SYS_MEMTEST_START       \
 	(CFG_DDR_PHYS_OFFSET + sizeof(unsigned long))
@@ -339,7 +324,7 @@
 
 #define CONFIG_OSD_ENABLE
 
-/* #define CONFIG_PRODUCT_HDMI_PHY */
+#define CONFIG_PRODUCT_HDMI_PHY
 
 #endif	/* __CONFIG_H */
 

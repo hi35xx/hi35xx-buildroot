@@ -226,6 +226,8 @@ pcie_slave_hold:
 	ldr	r1, =0x7964616f		/* yindao flag */
 	cmp	r1, r2
 	bne	pcie_slave_hold
+	ldr	r1, =0x0
+	str     r1, [r0, #HI3531A_SYSBOOT9]
 	mov	pc, #0x0
 	nop
 	nop

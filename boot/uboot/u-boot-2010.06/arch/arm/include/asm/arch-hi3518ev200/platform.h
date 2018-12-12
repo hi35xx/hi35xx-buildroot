@@ -42,17 +42,22 @@
 #define REG_CRG12				0x30
 #define REG_CRG46			0xb8
 #define FMC_CRG48			0xc0
+#define FMC_CRG65			0x104
 /*-----------------------------------------------------------------------
  * PERI_CRG48 FMC REG
  * ----------------------------------------------------------------------*/
-#define FMC_CLK_SEL_MASK			(0x3 << 2)
+#define FMC_CLK_SEL_MASK		(0x3 << 2)
 #define FMC_CRG48_CLK_SEL(_clk)		(((_clk) & 0x3) << 2)
+#define GET_FMC_CLK_TYPE(_reg)          (((_reg) >> 2) & 0x3)
 #define FMC_CLK_SEL_24M			FMC_CRG48_CLK_SEL(0x0)
 #define FMC_CLK_SEL_148_5M		FMC_CRG48_CLK_SEL(0x1)
 #define FMC_CLK_SEL_125M		FMC_CRG48_CLK_SEL(0x2)
 #define FMC_CLK_SEL_198M		FMC_CRG48_CLK_SEL(0x3)
-#define FMC_CRG48_CLK_EN			(1 << 1)
+#define FMC_CRG48_CLK_EN		(1 << 1)
 #define FMC_CRG48_SOFT_RST_REQ		(1 << 0)
+
+#define GET_FMC_MUXIO_CLK(_clk)		(((_clk) >> 5) & 0x1)
+#define FMC_MUXIO_CLK_SEL(_clk)		((_clk) & (~(0x1 << 5)))
 
 #define REG_CRG49			0xc4
 #define SDIO0_CLK_SEL_MASK		(0x3 << 10)
@@ -105,6 +110,9 @@
 /* bit[3]=1; bit[7]: SPI nand I/O widthe; bit[7]=(0: 1-I/O | 1: 4-I/O */
 #define SPI_NAND_IO_WIDTHE_MASK			(0x1 << MULTIMODE_SHIFT)
 
+#define GET_SPI_NOR_ADDR_MODE(_reg) (((_reg) & SPI_NOR_ADDRESS_MODE_MASK)\
+		>> MULTIMODE_SHIFT)
+
 #define BOOT_FROM_FMC	0
 #define BOOT_FROM_EMMC	1
 
@@ -134,5 +142,11 @@
 #define MMC_IOMUX_CTRL_MASK		(1<<0)
 #define MMC_IOMUX_CTRL			1
 
+/* for fast boot*/
+#define GZIP_REG_BASE			0x206B0000
+#define REG_SNAPSHOT_IMAGE_MAGIC	0x200500a4
+#define REG_SNAPSHOT_IMAGE_START	0x200500a8
+#define REG_SNAPSHOT_IMAGE_SIZE		0x200500ac
+#define HW_DEC_INTR		(56)
 #endif /* End of __HI_CHIP_REGS_H__ */
 

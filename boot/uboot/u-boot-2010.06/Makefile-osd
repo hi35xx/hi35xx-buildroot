@@ -26,7 +26,6 @@ endif
 
 ifeq ($(CONFIG_PRODUCTNAME), "hi3516a")
 LIBS += ./product/hiosd/vo/hi3516a/libvo.a
-LIBS += ./product/hiosd/dec/libjpegd.a
 endif
 
 ifeq ($(CONFIG_PRODUCTNAME), "hi3536")
@@ -39,6 +38,34 @@ ifeq ($(CONFIG_PRODUCTNAME), "hi3521a")
 LIBS += ./product/hiosd/vo/hi3521a/libvo.a
 LIBS += ./product/hiosd/hdmi/hi3521a/libhdmi.a
 LIBS += ./product/hiosd/dec/libjpegd.a
+endif
+
+ifeq ($(CONFIG_PRODUCTNAME), "hi3531a")
+LIBS += ./product/hiosd/vo/hi3531a/libvo.a
+LIBS += ./product/hiosd/hdmi/hi3531a/libhdmi.a
+LIBS += ./product/hiosd/dec/libjpegd.a
+endif
+
+ifeq ($(CONFIG_PRODUCTNAME), "hi3536c")
+LIBS += ./product/hiosd/vo/hi3536c/libvo.a
+LIBS += ./product/hiosd/hdmi/hi3536c/libhdmi.a
+LIBS += ./product/hiosd/dec/libjpegd.a
+endif
+
+ifeq ($(CONFIG_PRODUCTNAME), "hi3519")
+LIBS += ./product/hiosd/vo/hi3519/libvo.a
+endif
+
+ifeq ($(CONFIG_PRODUCTNAME), "hi3519v101")
+LIBS += ./product/hiosd/vo/hi3519v101/libvo.a
+endif
+
+ifeq ($(CONFIG_PRODUCTNAME), "hi3559")
+LIBS += ./product/hiosd/vo/hi3559/libvo.a
+endif
+
+ifeq ($(CONFIG_PRODUCTNAME), "hi3556")
+LIBS += ./product/hiosd/vo/hi3559/libvo.a
 endif
 
 endif

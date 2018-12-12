@@ -28,7 +28,8 @@ int find_dev_and_part(const char *id, struct mtd_device **dev,
 #endif
 #if !(defined(CONFIG_NAND_FLASH_HISNFC100) \
 		|| defined(CONFIG_NAND_FLASH_HINFC610) \
-		|| defined(CONFIG_HIFMC_SPI_NAND))
+		|| defined(CONFIG_HIFMC_SPI_NAND) \
+		|| defined(CONFIG_HIFMC_NAND))
 #define DEBUG 0
 #define _512B                               (512)
 #define _2K                                 (2048)
@@ -137,7 +138,7 @@ static unsigned int hisnfc100_support_yaffs2[] = {
 	0,
 };
 
-#ifdef CONFIG_HIFMC_SPI_NAND
+#if defined(CONFIG_HIFMC_SPI_NAND) || defined(CONFIG_HIFMC_NAND)
 static unsigned int hifmc100_support_yaffs2[] = {
 	SET_HINFC_VER(HIFMC_VER_100, _2K, et_ecc_4bit),
 	SET_HINFC_VER(HIFMC_VER_100, _2K, et_ecc_8bit),
@@ -146,6 +147,14 @@ static unsigned int hifmc100_support_yaffs2[] = {
 	SET_HINFC_VER(HIFMC_VER_100, _4K, et_ecc_4bit),
 	SET_HINFC_VER(HIFMC_VER_100, _4K, et_ecc_8bit),
 	SET_HINFC_VER(HIFMC_VER_100, _4K, et_ecc_24bit1k),
+
+	SET_HINFC_VER(HIFMC_VER_100, _8K, et_ecc_24bit1k),
+	SET_HINFC_VER(HIFMC_VER_100, _8K, et_ecc_40bit1k),
+	SET_HINFC_VER(HIFMC_VER_100, _8K, et_ecc_64bit1k),
+
+	SET_HINFC_VER(HIFMC_VER_100, _16K, et_ecc_40bit1k),
+	SET_HINFC_VER(HIFMC_VER_100, _16K, et_ecc_64bit1k),
+
 	0,
 };
 #endif
@@ -165,7 +174,7 @@ static unsigned int *get_support_yaffs2(unsigned int nandip)
 		return hinfc610_support_yaffs2;
 	case HISNFC_VER_100:
 		return hisnfc100_support_yaffs2;
-#ifdef CONFIG_HIFMC_SPI_NAND
+#if defined(CONFIG_HIFMC_SPI_NAND) || defined(CONFIG_HIFMC_NAND)
 	case HIFMC_VER_100:
 		return hifmc100_support_yaffs2;
 #endif
@@ -188,7 +197,7 @@ static unsigned int get_yaffs2_version(unsigned int nandip, int pagesize,
 	return 0;
 }
 
-#ifdef CONFIG_HIFMC_SPI_NAND
+#if defined(CONFIG_HIFMC_SPI_NAND) || defined(CONFIG_HIFMC_NAND)
 	extern unsigned int hifmc_ip_ver;
 #else
 	extern unsigned int nand_ip_version;
@@ -199,15 +208,20 @@ static unsigned int get_yaffs2_version(unsigned int nandip, int pagesize,
 static int yaffs_tag_check(unsigned char *buffer, unsigned int writesize,
 	unsigned int length)
 {
-#ifdef CONFIG_HIFMC_SPI_NAND
+#if defined(CONFIG_HIFMC_SPI_NAND) || defined(CONFIG_HIFMC_NAND)
 	unsigned int ip_version = hifmc_ip_ver;
 #else
 	unsigned int ip_version = nand_ip_version;
 #endif
 	unsigned int hinfc_yaff_ver;
 	unsigned int yaffs_yaff_ver;
+#if defined(CONFIG_HIFMC_SPI_NAND) || defined(CONFIG_HIFMC_NAND)
+	static char *ecctype_str[] = { "0bit", "4bit", "8bit", "24bits/1K",
+		"28bits/1K", "40bits/1K", "64bits/1K", "unknown"};
+#else
 	static char *ecctype_str[] = { "None", "1bit", "4Bytes", "8Bytes",
 		"24bits/1K", "40bits/1K", "64bits/1K", "unknown"};
+#endif
 
 	/* this follow must be consistent with mkyaffs2image !!! */
 	struct yaffs2_tag {
@@ -220,7 +234,15 @@ static int yaffs_tag_check(unsigned char *buffer, unsigned int writesize,
 	};
 
 	struct yaffs2_tag *tags = (struct yaffs2_tag *)buffer;
-	unsigned int ecctype = nand_get_ecctype();
+	unsigned int ecctype;
+	int ret;
+
+	ret = nand_get_ecctype();
+	if (ret < 0) {
+		printf("Cannot get corret ecctype. \n");
+		return -1;
+	}
+	ecctype = (unsigned int)ret;
 
 	if (length < 512) {
 		printf("buffer length is too short.\n");
@@ -717,6 +739,16 @@ int do_nand(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
 				ret = nand_write_yaffs_skip_bad(nand, off,
 						&rw_size, (u_char *)addr);
 			}
+		} else if (s != NULL && !strcmp(s, ".ecc0")) {
+			ecc0_flag = 1;
+			if (read) {
+				ret = nand_read_yaffs_skip_bad(nand, off,
+					&rw_size, (u_char *)addr);
+			} else {
+				ret = nand_write_yaffs_skip_bad(nand, off,
+						&rw_size, (u_char *)addr);
+			}
+			ecc0_flag = 0;
 		} else if (s != NULL && !strcmp(s, ".yaffsuc")) {
 			if (read) {
 				printf("not support\n");

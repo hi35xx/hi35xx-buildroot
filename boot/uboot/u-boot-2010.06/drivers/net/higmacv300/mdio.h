@@ -6,16 +6,6 @@ struct higmac_mdio_local {
 	unsigned long iobase_phys;
 };
 
-/*FIXME*/
-#define HIGMAC0_MDIO_IO_BASE			HIGMAC0_IOBASE
-
-#if (CONFIG_GMAC_NUMS == 2)
-	#define HIGMAC1_MDIO_IO_BASE			HIGMAC1_IOBASE
-#endif
-
-#define HIGMAC_MDIO_IO_SIZE			(0x10000)
-#define HIGMAC_MDIO_FRQDIV			(0)
-
 #define	REG_MDIO_SINGLE_CMD			0x000003C0
 #define	REG_MDIO_SINGLE_DATA			0x000003C4
 #define	REG_MDIO_RDATA_STATUS			0x000003D0

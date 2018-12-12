@@ -1,13 +1,23 @@
-/******************************************************************************
- *	Flash Memory Controller v100 Device Driver
- *	Copyright (c) 2014 - 2015 by Hisilicon
- *	All rights reserved.
- * ***
- *	Create by hisilicon
+/*
+ * The Flash Memory Controller v100 Device Driver for hisilicon
  *
- *****************************************************************************/
+ * Copyright (c) 2016-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
-/*****************************************************************************/
 #include <common.h>
 #include <linux/mtd/nand.h>
 #include <hifmc_common.h>
@@ -60,6 +70,30 @@ static void hifmc100_driver_probe(struct nand_chip *chip, unsigned char cs)
 }
 
 /*****************************************************************************/
+static int hifmc100_spi_nand_pre_probe(struct nand_chip *chip)
+{
+	uint8_t nand_maf_id;
+	struct hifmc_host *host = chip->priv;
+
+	/* Reset the chip first */
+	host->send_cmd_reset(host);
+	udelay(10000);
+
+	/* Check the ID */
+	host->offset = 0;
+	memset((unsigned char *)(chip->IO_ADDR_R), 0, 0x10);
+	host->send_cmd_readid(host);
+	nand_maf_id = readb(chip->IO_ADDR_R);
+
+	if (nand_maf_id == 0x00 || nand_maf_id == 0xff) {
+		 printf("Cannot found a valid SPI Nand Device\n");
+		 return 1;
+	}
+
+	return 0;
+}
+
+/*****************************************************************************/
 int board_nand_init(struct nand_chip *chip)
 {
 	unsigned char chip_num = CONFIG_SPI_NAND_MAX_CHIP_NUM;
@@ -75,6 +109,12 @@ int board_nand_init(struct nand_chip *chip)
 		hifmc100_driver_probe(chip, cs);
 		chip_num--;
 	}
+
+	if (chip_num)
+		return 1;
+
+	if (hifmc100_spi_nand_pre_probe(chip))
+		return 1;
 
 	return 0;
 }
@@ -95,10 +135,6 @@ static int hifmc100_spi_nand_get_ecctype(void)
 /*****************************************************************************/
 int nand_get_ecctype(void)
 {
-#ifdef CONFIG_HIFMC_SPI_NAND
 	return hifmc100_spi_nand_get_ecctype();
-#endif
-
-	return -1;
 }
 

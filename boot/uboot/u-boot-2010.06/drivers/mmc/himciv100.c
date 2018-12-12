@@ -32,7 +32,7 @@
 /*************************************************************************/
 #define DRIVER_NAME "HIMCI_V100"
 
-int select_boot_part(struct mmc *mmc, int boot_part)
+int select_boot_part(struct mmc *mmc, unsigned int boot_part)
 {
 	return 0;
 }
@@ -76,8 +76,6 @@ static struct himci_dma_des hi_dma_des[MAX_DMA_DES] \
 /* reset MMC host controler */
 static void hi_mci_sys_reset(struct himci_host *host)
 {
-	unsigned int tmp_reg;
-
 	HIMCI_DEBUG_FUN("Function Call");
 	HIMCI_ASSERT(host);
 
@@ -435,17 +433,6 @@ static int hi_mci_cmd_done(struct himci_host *host, unsigned int stat)
 			HIMCI_DEBUG_INFO("CMD Response of card is %08x",
 				 cmd->response[0]);
 		}
-#if 0
-		if ((cmd->resp_type == MMC_RSP_R1)
-			 || (cmd->resp_type == MMC_RSP_R1b)) {
-			if (cmd->response[0] & MMC_CS_ERROR_MASK) {
-				HIMCI_DEBUG_ERR("Card status stat = 0x%x"
-					" is card error!",
-					 cmd->response[0]);
-				return -1;
-			}
-		}
-#endif
 	}
 
 	if (stat & RTO_INT_STATUS) {

@@ -25,7 +25,7 @@
 #include <command.h>
 #include <mmc.h>
 
-extern int select_boot_part(struct mmc *mmc, int boot_part);
+extern int select_boot_part(struct mmc *mmc, unsigned int boot_part);
 extern void emmc_bootmode_read(void *ptr, unsigned int size);
 extern int print_mmc_reg(int dev_num, int show_ext_csd);
 
@@ -117,7 +117,8 @@ static void print_mmcinfo(struct mmc *mmc)
 			(mmc->version >> 4) & 0xf, mmc->version & 0xf);
 
 	printf("High Capacity: %s\n", mmc->high_capacity ? "Yes" : "No");
-	printf("Capacity: %lld\n", mmc->capacity);
+	/* hitool need it to get capacity finished by \r\n for emmc erasing*/
+	print_to_hitool("Capacity: %lld\r\n", mmc->capacity);
 
 	printf("Bus Width: %d-bit\n", mmc->bus_width);
 }

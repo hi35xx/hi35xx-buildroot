@@ -46,7 +46,11 @@
 #define DDRT_CFG_START		0x1
 #define DDRT_CFG_BURST_CFG_DATAEYE	0x4f
 #define DDRT_CFG_BURST_CFG_GATE	0x43
-#define DDRT_CFG_BURST_NUM	0x7f
+#ifdef CFG_EDA_VERIFY
+#define DDRT_CFG_BURST_NUM 0x5 /* ddrt test number */
+#else
+#define DDRT_CFG_BURST_NUM 0x7f /* ddrt test number */
+#endif
 #define DDRT_CFG_SEED		0x6d6d6d6d
 #define DDRT_CFG_REVERSED	0x55aa55aa
 #ifndef DDRT_CFG_BASE_ADDR

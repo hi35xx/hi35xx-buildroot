@@ -4,9 +4,9 @@
 #include "hieth.h"
 #include "mac.h"
 
-static int _set_linkstat(struct hieth_netdev_local *ld, int mode)
+static u32 _set_linkstat(struct hieth_netdev_local *ld, u32 mode)
 {
-	int old;
+	u32 old;
 
 	old = hieth_readl_bits(ld, UD_REG_NAME(MAC_PORTSET), BITS_MACSTAT); 
 	hieth_writel_bits(ld, mode, UD_REG_NAME(MAC_PORTSET), BITS_MACSTAT); 
@@ -14,9 +14,9 @@ static int _set_linkstat(struct hieth_netdev_local *ld, int mode)
 	return old; 
 }
 
-static int _set_negmode(struct hieth_netdev_local *ld, int mode)
+static u32 _set_negmode(struct hieth_netdev_local *ld, u32 mode)
 {
-	int old;
+	u32 old;
 
 	old = hieth_readl_bits(ld, UD_REG_NAME(MAC_PORTSEL), BITS_NEGMODE);
 	hieth_writel_bits(ld, mode, UD_REG_NAME(MAC_PORTSEL), BITS_NEGMODE);
@@ -24,18 +24,18 @@ static int _set_negmode(struct hieth_netdev_local *ld, int mode)
 	return old;
 }
 
-static int _get_negmode(struct hieth_netdev_local *ld)
+static u32 _get_negmode(struct hieth_netdev_local *ld)
 {
-	int old;
+	u32 old;
 
 	old = hieth_readl_bits(ld, UD_REG_NAME(MAC_PORTSEL), BITS_NEGMODE);
 
 	return old;
 }
 
-int hieth_set_linkstat(struct hieth_netdev_local *ld, int mode)
+u32 hieth_set_linkstat(struct hieth_netdev_local *ld, u32 mode)
 {
-	unsigned long old;
+	u32 old;
 
 	local_lock(ld);
 	old = _set_linkstat(ld, mode);
@@ -44,9 +44,9 @@ int hieth_set_linkstat(struct hieth_netdev_local *ld, int mode)
 	return old;
 }
 
-int hieth_get_linkstat(struct hieth_netdev_local *ld)
+u32 hieth_get_linkstat(struct hieth_netdev_local *ld)
 {
-	unsigned long old;
+	u32 old;
 
 	local_lock(ld);
 	old = hieth_readl_bits(ld, UD_REG_NAME(MAC_RO_STAT), BITS_MACSTAT);
@@ -55,9 +55,9 @@ int hieth_get_linkstat(struct hieth_netdev_local *ld)
 	return old;
 }
 
-int hieth_set_mac_leadcode_cnt_limit(struct hieth_netdev_local *ld, int cnt)
+u32 hieth_set_mac_leadcode_cnt_limit(struct hieth_netdev_local *ld, u32 cnt)
 {
-	int old;
+	u32 old;
 
 	local_lock(ld);
 	old = hieth_readl_bits(ld, UD_REG_NAME(MAC_TX_IPGCTRL), BITS_PRE_CNT_LIMIT);
@@ -67,10 +67,10 @@ int hieth_set_mac_leadcode_cnt_limit(struct hieth_netdev_local *ld, int cnt)
 	return old;
 }
 
-int hieth_set_mac_trans_interval_bits(struct hieth_netdev_local *ld, int nbits)
+u32 hieth_set_mac_trans_interval_bits(struct hieth_netdev_local *ld, u32 nbits)
 {
-	int old;
-	int linkstat, negmode;
+	u32 old;
+	u32 linkstat, negmode;
 
 	local_lock(ld);
 
@@ -90,9 +90,9 @@ int hieth_set_mac_trans_interval_bits(struct hieth_netdev_local *ld, int nbits)
 	return old;
 }
 
-int hieth_set_mac_fc_interval(struct hieth_netdev_local *ld, int para)
+u32 hieth_set_mac_fc_interval(struct hieth_netdev_local *ld, u32 para)
 {
-	int old;
+	u32 old;
 
 	local_lock(ld);
 	old = hieth_readl_bits(ld, UD_REG_NAME(MAC_TX_IPGCTRL), BITS_FC_INTER); 
@@ -102,9 +102,9 @@ int hieth_set_mac_fc_interval(struct hieth_netdev_local *ld, int para)
 	return old;
 }
 
-int hieth_set_negmode(struct hieth_netdev_local *ld, int mode)
+u32 hieth_set_negmode(struct hieth_netdev_local *ld, u32 mode)
 {
-	int old;
+	u32 old;
 
 	local_lock(ld);
 	old = _set_negmode(ld, mode);
@@ -113,9 +113,9 @@ int hieth_set_negmode(struct hieth_netdev_local *ld, int mode)
 	return old;
 }
 
-int hieth_get_negmode(struct hieth_netdev_local *ld)
+u32 hieth_get_negmode(struct hieth_netdev_local *ld)
 {
-	int old;
+	u32 old;
 
 	local_lock(ld);
 	old = _get_negmode(ld);
@@ -124,9 +124,9 @@ int hieth_get_negmode(struct hieth_netdev_local *ld)
 	return old;
 }
 
-int hieth_set_mii_mode(struct hieth_netdev_local *ld, int mode)
+u32 hieth_set_mii_mode(struct hieth_netdev_local *ld, u32 mode)
 {
-	int old;
+	u32 old;
 
 	local_lock(ld);
 	old = hieth_readl_bits(ld, UD_REG_NAME(MAC_PORTSEL), BITS_MII_MODE);

@@ -133,15 +133,22 @@ struct nand_flash_dev nand_flash_ids[] = {
 *	Manufacturer ID list
 */
 struct nand_manufacturers nand_manuf_ids[] = {
-	{NAND_MFR_TOSHIBA, "Toshiba"},
-	{NAND_MFR_SAMSUNG, "Samsung"},
-	{NAND_MFR_FUJITSU, "Fujitsu"},
-	{NAND_MFR_NATIONAL, "National"},
-	{NAND_MFR_RENESAS, "Renesas"},
-	{NAND_MFR_STMICRO, "ST Micro"},
-	{NAND_MFR_HYNIX, "Hynix"},
-	{NAND_MFR_MICRON, "Micron"},
-	{NAND_MFR_AMD, "AMD"},
-	{NAND_MFR_GD, "GD"},
-	{0x0, "Unknown"}
+	{NAND_MFR_TOSHIBA,	"Toshiba"},
+	{NAND_MFR_SAMSUNG,	"Samsung"},
+	{NAND_MFR_FUJITSU,	"Fujitsu"},
+	{NAND_MFR_NATIONAL,	"National"},
+	{NAND_MFR_RENESAS,	"Renesas"},
+	{NAND_MFR_ST_MICRO,	"ST/Micro"},
+	{NAND_MFR_HYNIX,	"Hynix"},
+	{NAND_MFR_MICRON,	"Micron"},
+	{NAND_MFR_AMD,		"AMD/Spansion"},
+	{NAND_MFR_MACRONIX,	"Macronix"},
+	{NAND_MFR_GD_ESMT,	"GD/ESMT"},
+	{NAND_MFR_EON,		"Eon"},
+	{NAND_MFR_WINBOND,	"Winbond"},
+	{NAND_MFR_ATO,		"ATO"},
+	{NAND_MFR_MXIC,		"MXIC"},
+	{NAND_MFR_ALL_FLASH,	"All-flash"},
+	{NAND_MFR_PARAGON,	"Paragon"},
+	{0x0,			"Unknown"}
 };

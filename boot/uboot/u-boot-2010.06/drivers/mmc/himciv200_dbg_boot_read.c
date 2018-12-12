@@ -38,8 +38,21 @@ static u32 mmc_base;
 static int mmc_step1(void)
 {
 	int i, ret = -1;
-	mmc_base = SDIO1_BASE_REG;
 
+#ifdef CONFIG_ARCH_HI3536
+	mmc_base = SDIO1_BASE_REG;
+#endif
+
+#ifdef CONFIG_HI3518EV200
+	mmc_base = SDIO0_BASE_REG;
+#endif
+
+#if (defined CONFIG_HI3516CV300 || defined CONFIG_ARCH_HI3519 || \
+		defined CONFIG_ARCH_HI3519V101 || \
+		defined CONFIG_ARCH_HI3559 || defined CONFIG_ARCH_HI3556 || \
+		defined CONFIG_ARCH_HI3516AV200)
+	mmc_base = EMMC_BASE_REG;
+#endif
 	/* power off */
 	mmc_reg_set(MCI_PWREN, DISABLE);
 
@@ -161,13 +174,17 @@ static int mmc_step9(void)
 	mmc_reg_set(MCI_FIFOTH, val);
 
 	val = reg_get(REG_BASE_SCTL + REG_SYSSTAT);
+#if !defined(CONFIG_HI3516CV300)
 	if (val & NF_BOOTBW_MASK) {
 		/* 8bit */
 		mmc_reg_set(MCI_CTYPE, CARD_WIDTH_8BIT);
 	} else {
+#endif
 		/* 4bit */
 		mmc_reg_set(MCI_CTYPE, CARD_WIDTH_4BIT);
+#if !defined(CONFIG_HI3516CV300)
 	}
+#endif
 
 	return 0;
 }
@@ -209,7 +226,7 @@ static int mmc_init(void)
 
 	for (index = MMC_IOMUX_START_ADDR;
 			index <= MMC_IOMUX_END_ADDR; index += 4) {
-#if	CONFIG_ARCH_HI3536
+#ifdef	CONFIG_ARCH_HI3536
 		if (index == IOMUX_REG47)
 			continue;
 #endif

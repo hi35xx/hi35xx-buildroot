@@ -26,6 +26,7 @@
 #define DDR_CMD_DATAEYE_STR         "dataeye"
 #define DDR_CMD_VREF_STR            "vref"
 #define DDR_CMD_AC_STR              "ac"
+#define DDR_CMD_LPCA_STR            "lpca"
 #define DDR_CMD_LOG_STR             "log"
 #define DDR_CMD_BOOT_STR            "boot"
 
@@ -114,6 +115,8 @@ static int cmd_ddr_match(const char *str, int *cmd)
 		*cmd = DDR_TRAINING_CMD_VREF;
 	} else if (!strncmp(str, DDR_CMD_AC_STR, sizeof(DDR_CMD_AC_STR))) {
 		*cmd = DDR_TRAINING_CMD_AC;
+	} else if (!strncmp(str, DDR_CMD_LPCA_STR, sizeof(DDR_CMD_LPCA_STR))) {
+		*cmd = DDR_TRAINING_CMD_LPCA;
 	} else {
 		printf("Command [ddr %s] is unsupport.\n", str);
 		return -1;
@@ -176,14 +179,23 @@ static int cmd_ddr_dispatch(int cmd)
 	result = cmd_ddr_handle(cmd);
 	switch (cmd) {
 	case DDR_TRAINING_CMD_SW:
-	case DDR_TRAINING_CMD_DATAEYE:
 	case DDR_TRAINING_CMD_SW_NO_WL:
+		ddr_cmd_result_display(&ddrtr_result_st,
+			DDR_TRAINING_CMD_DATAEYE
+			| DDR_TRAINING_CMD_LPCA);
+		break;
+	case DDR_TRAINING_CMD_DATAEYE:
 	case DDR_TRAINING_CMD_VREF:
-		ddr_cmd_result_display(&ddrtr_result_st);
+		ddr_cmd_result_display(&ddrtr_result_st,
+			DDR_TRAINING_CMD_DATAEYE);
 		break;
 	case DDR_TRAINING_CMD_WL:
 	case DDR_TRAINING_CMD_GATE:
 	case DDR_TRAINING_CMD_HW:
+		break;
+	case DDR_TRAINING_CMD_LPCA:
+		ddr_cmd_result_display(&ddrtr_result_st,
+			DDR_TRAINING_CMD_LPCA);
 		break;
 	default:
 		break;
@@ -253,7 +265,8 @@ static int cmd_ddr_display_boot_result(const char *str)
 
 	/* if have not saved when boot, it will be crash */
 	ddr_cmd_result_display(
-		(struct ddr_training_result_st *)DDR_TRAINING_BOOT_RESULT_ADDR);
+		(struct ddr_training_result_st *)DDR_TRAINING_BOOT_RESULT_ADDR,
+		DDR_TRAINING_CMD_DATAEYE);
 
 	ddr_reg_result_display(&ddr_reg_st);
 
@@ -392,6 +405,7 @@ U_BOOT_CMD(
 	"ddr hw          - DDR hardware training.\n"
 	"ddr mpr         - DDR Multi-Purpose Register training.\n"
 	"ddr ac          - DDR address command training.\n"
+	"ddr lpca        - LPDDR command address training.\n"
 	"ddr log [level] - DDR log level. [info,debug,warning,error,fatal]\n"
 #ifdef DDR_TRAINING_DEBUG
 	"ddr boot        - Display boot DDR training reslut.\n"

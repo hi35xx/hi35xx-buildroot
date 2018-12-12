@@ -29,6 +29,13 @@
 
 #include <asm/io.h>
 
+#if defined(CONFIG_NAND_FLASH_HINFC610) \
+	|| defined(CONFIG_NAND_FLASH_HISNFC100) \
+	|| defined(CONFIG_HIFMC_SPI_NAND) \
+	|| defined(CONFIG_HIFMC_NAND)
+extern const char *nand_ecc_name(int type);
+#endif
+
 /*****************************************************************************/
 
 int do_getinfo(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[])
@@ -120,8 +127,9 @@ print_info:
 			printf("OOB:%sB ", ultohstr(mtd_info->oobsize));
 #if defined(CONFIG_NAND_FLASH_HINFC610) \
 	|| defined(CONFIG_NAND_FLASH_HISNFC100) \
-	|| defined(CONFIG_HIFMC_SPI_NAND)
-			printf("ECC:%s ", get_ecctype_str(mtd_info->ecctype));
+	|| defined(CONFIG_HIFMC_SPI_NAND) \
+	|| defined(CONFIG_HIFMC_NAND)
+			printf("ECC:%s ", nand_ecc_name(mtd_info->ecctype));
 #else
 			printf("ECC:%s ", get_ecctype_str((mtd_info->ecctype & 0x7)));
 #endif

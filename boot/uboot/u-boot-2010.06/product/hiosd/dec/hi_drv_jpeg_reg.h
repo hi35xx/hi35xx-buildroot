@@ -45,6 +45,10 @@ Date				Author        		Modification
 	#define JPGD_IRQ_NUM				      (71)
 	#define JPGD_REG_BASEADDR			      (0x13060000)
 	#define JPGD_CRG_REG_PHYADDR		      (0x12040064)
+#elif defined CONFIG_HI3536C
+	#define JPGD_IRQ_NUM				      (66)
+	#define JPGD_REG_BASEADDR			      (0x13070000)
+	#define JPGD_CRG_REG_PHYADDR		      (0x120400d4)
 #elif defined CONFIG_HI3535
     #define JPGD_IRQ_NUM				      (70)
 	#define JPGD_REG_BASEADDR			      (0x20670000)
@@ -53,6 +57,10 @@ Date				Author        		Modification
        #define JPGD_IRQ_NUM				      (66)
 	#define JPGD_REG_BASEADDR			      (0x13070000)
 	#define JPGD_CRG_REG_PHYADDR		      (0x12040054)
+#elif defined CONFIG_HI3531A
+    #define JPGD_IRQ_NUM				      (66)
+	#define JPGD_REG_BASEADDR			      (0x13070000)
+	#define JPGD_CRG_REG_PHYADDR		      (0x120400d4)
 #elif defined(CONFIG_HI3531) || defined(CONFIG_HI3532) || defined(CONFIG_HI3521) || defined(CONFIG_HI3520A)
     #define JPGD_IRQ_NUM				      (95)
 	#define JPGD_REG_BASEADDR			      (0x10170000)
@@ -205,6 +213,8 @@ Date				Author        		Modification
 #endif
 	
 	#define JPGD_REG_SAMPLINGFACTOR			     0x124
+
+	#define JPGD_REG_DRI			     0x128
 
 	/** dqt set register */
 	/** CNcomment:Á¿»¯±í¼Ä´æÆ÷ */

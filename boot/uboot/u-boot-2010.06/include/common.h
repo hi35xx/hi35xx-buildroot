@@ -477,6 +477,7 @@ void	serial_setbrg (void);
 void	serial_putc   (const char);
 void	serial_putc_raw(const char);
 void	serial_puts   (const char *);
+void	serial_puts_to_hitool(const char *);
 int	serial_getc   (void);
 int	serial_tstc   (void);
 
@@ -687,6 +688,7 @@ void	puts(const char *s);
 void	printf(const char *fmt, ...)
 		__attribute__ ((format (__printf__, 1, 2)));
 void	vprintf(const char *fmt, va_list args);
+void	print_to_hitool(const char *fmt, ...);
 
 /* stderr */
 #define eputc(c)		fputc(stderr, c)

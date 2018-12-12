@@ -78,7 +78,8 @@
 
 #if defined(CONFIG_NAND_FLASH_HISNFC100) \
 	|| defined(CONFIG_NAND_FLASH_HINFC610) \
-	|| defined(CONFIG_HIFMC_SPI_NAND)
+	|| defined(CONFIG_HIFMC_SPI_NAND) \
+	|| defined(CONFIG_HIFMC_NAND)
 /*****************************************************************************/
 enum ecc_type {
 	et_ecc_none    = 0x00,
@@ -128,7 +129,7 @@ struct nand_flash_dev_ex {
 
 #define NAND_RANDOMIZER        0x01 /* nand chip need randomizer */
 #define NAND_HW_AUTO           0x02 /*controller support hardware auto config*/
-#define NAND_SYNCHRONOUS       0x04 /* nand chip support syncronous */
+#define NAND_SYNCHRONOUS       0x04 /* nand chip support synchronous */
 #define NAND_ASYNCHRONOUS      0x08 /* nand chip support asynchronous */
 #define NAND_SYNCHRONOUS_BOOT  0x10 /* nand boot from synchronous mode */
 #define NAND_CONFIG_DONE       0x20 /* current controller config finish */

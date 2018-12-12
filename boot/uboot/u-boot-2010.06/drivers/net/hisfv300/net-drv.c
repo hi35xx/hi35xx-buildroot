@@ -217,7 +217,7 @@ static void phy_print_status(struct hieth_netdev_local *ld, int stat)
 
 static void hieth_adjust_link(struct hieth_netdev_local *ld)
 {
-	int stat = 0;
+	u32 stat = 0;
 	int timeout_us = 1000;
     /*this env phy_link_time used to solve the difference phy auto-negotiation time of  various phys*/
     char* timeout = getenv("phy_link_time");
@@ -225,12 +225,6 @@ static void hieth_adjust_link(struct hieth_netdev_local *ld)
         timeout_us = simple_strtol(timeout,0, 10);
         if(timeout_us < 0)
             timeout_us = 1000;
-    }
-    {
-        u16 reg = 0;
-        miiphy_read(UD_REG_NAME(PHY_NAME), UD_REG_NAME(PHY_ADDR), PHY_ANAR, &reg);
-        reg |= 0x1E0;
-        miiphy_write(UD_REG_NAME(PHY_NAME), UD_REG_NAME(PHY_ADDR), PHY_ANAR, reg);
     }
 retry:
 	udelay(1);
@@ -314,14 +308,12 @@ static int hieth_init(void)
 	/*get mdio interface from env.FORMAT: mdio_intf=mii or mdio_intf=rmii*/
 	mdio_intf = getenv("mdio_intf");
 	if (mdio_intf) {
-		if (strncmp(mdio_intf, "mii", 3)
-				&& strncmp(mdio_intf, "rmii", 4)) {
-			printf("Invalid mdio intface assignment");
-			printf("mii, rmii ). Set default to mii\n");
-		} else if (!strncmp(mdio_intf, "mii", 3))
+		if (!strncmp(mdio_intf, "mii", 3))
 			g_interface_mode = INTERFACE_MODE_MII;
 		else if (!strncmp(mdio_intf, "rmii", 4))
 			g_interface_mode = INTERFACE_MODE_RMII;
+		else
+			printf("Invalid mdio_intf, should be mii or rmii.\n");
 	}
 
 	/*get phy addr of up port*/
@@ -346,7 +338,8 @@ static int hieth_init(void)
 	set_inner_phy_addr(U_PHY_ADDR);
 	#endif
 
-	sprintf(U_PHY_NAME, "eth0:%d", U_PHY_ADDR);
+	/* MAX_PHY_NAME_LEN is 6, be carefull to make U_PHY_NAME */
+	sprintf(U_PHY_NAME, "0:%d", U_PHY_ADDR);
 
 	/*get phy addr of down port*/
 	phyaddr = getenv("phyaddrd");
@@ -365,7 +358,7 @@ static int hieth_init(void)
 		D_PHY_ADDR = INNER_PHY_ADDR_D;
 		#endif
 	}
-	sprintf(D_PHY_NAME, "eth1:%d", D_PHY_ADDR);
+	sprintf(D_PHY_NAME, "1:%d", D_PHY_ADDR);
 
 	printf(OSDRV_MODULE_VERSION_STRING"\n");
 

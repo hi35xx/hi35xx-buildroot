@@ -9,6 +9,10 @@
 #include <net.h>
 #include <miiphy.h>
 
+#define BIT(nr)		(1UL << (nr))
+
+#define GMAC_AT_LEAST_2PORT	(CONFIG_GMAC_NUMS >= 2)
+
 /* board parameters */
 #define DEFAULT_PHY_LINK_TIMES	20000
 
@@ -59,16 +63,16 @@ enum {/* DEFAULT: DUPLEX_FULL */
 #define PORT_MOD_100M_RGMII		4
 #define PORT_MOD_1000M_RGMII		5
 
-#define HIGMAC_LINKED       (1 << 0)
-#define HIGMAC_DUP_FULL     (1 << 1)
-#define HIGMAC_SPD_10M      (1 << 2)
-#define HIGMAC_SPD_100M     (1 << 3)
-#define HIGMAC_SPD_1000M    (1 << 4)
+#define HIGMAC_LINKED       BIT(0)
+#define HIGMAC_DUP_FULL     BIT(1)
+#define HIGMAC_SPD_10M      BIT(2)
+#define HIGMAC_SPD_100M     BIT(3)
+#define HIGMAC_SPD_1000M    BIT(4)
 
-#define RX_OUTCFF_WR_DESC_ENA	(1<<3)
-#define RX_CFF_RD_DESC_ENA	(1<<2)
-#define TX_OUTCFF_WR_DESC_ENA	(1<<1)
-#define TX_CFF_RD_DESC_ENA	(1<<0)
+#define RX_OUTCFF_WR_DESC_ENA	BIT(3)
+#define RX_CFF_RD_DESC_ENA	BIT(2)
+#define TX_OUTCFF_WR_DESC_ENA	BIT(1)
+#define TX_CFF_RD_DESC_ENA	BIT(0)
 
 #define SZ_1K			1024
 
@@ -83,7 +87,10 @@ enum {/* DEFAULT: DUPLEX_FULL */
 
 #define MAX_RX_POOLS		(SZ_1K)
 #define HIETH_MAX_FRAME_SIZE	(SZ_1K*2)
-#define HIETH_BUFFER_SIZE	(1536)
+/* mac rx buffer size should be no less than 1600,
+ * reserve more 64 bytes for the max frame length 1518.
+ */
+#define HIETH_BUFFER_SIZE	(1600)
 #define SKB_SIZE		(HIETH_MAX_FRAME_SIZE)
 
 #define DESC_VLD_FREE		0

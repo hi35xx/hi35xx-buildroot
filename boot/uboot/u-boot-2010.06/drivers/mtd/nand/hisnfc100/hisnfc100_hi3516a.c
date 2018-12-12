@@ -1,7 +1,20 @@
-/******************************************************************************
-*    Copyright (c) 2014 by Hisilicon.
-*    All rights reserved.
-******************************************************************************/
+/*
+ * Copyright (c) 2016 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #include <common.h>
 #include <asm/io.h>
@@ -18,29 +31,36 @@
 
 #define SPI_NAND_CLK_SEL_MASK				(0x3 << 6)
 
-#define CLK_24M						0x00
-#define CLK_75M						0x01
-#define CLK_125M					0x10
+#define CLK_24M						0
+#define CLK_75M						1
+#define CLK_125M					2
 
 #define SPI_NAND_CLK_SEL_24M	HISNFC100_CRG48_SPI_NAND_CLK_SEL(CLK_24M)
 #define SPI_NAND_CLK_SEL_75M	HISNFC100_CRG48_SPI_NAND_CLK_SEL(CLK_75M)
 #define SPI_NAND_CLK_SEL_125M	HISNFC100_CRG48_SPI_NAND_CLK_SEL(CLK_125M)
 
 /*****************************************************************************/
-void hisnfc100_set_system_clock(struct hisnfc_host *host, int clk_en)
+void hisnfc100_set_system_clock(struct spi_op_info *op, int clk_en)
 {
-	unsigned regval = readl(CRG_REG_BASE + HISNFC100_CRG48);
+	unsigned int base = CRG_REG_BASE;
+	unsigned int regval, old_val;
 
-	if (!(regval & SPI_NAND_CLK_SEL_MASK))
-			regval |= SPI_NAND_CLK_SEL_75M;
+	old_val = regval = readl(base + HISNFC100_CRG48);
+
+	regval &= ~SPI_NAND_CLK_SEL_MASK;
+
+	if (op && op->clock)
+		regval |= op->clock &  SPI_NAND_CLK_SEL_MASK;
+	else
+		regval |= SPI_NAND_CLK_SEL_24M;
 
 	if (clk_en)
 		regval |= HISNFC100_CRG48_SPI_NAND_CLK_EN;
 	else
 		regval &= ~HISNFC100_CRG48_SPI_NAND_CLK_EN;
 
-	if (readl(CRG_REG_BASE + HISNFC100_CRG48) != regval)
-		writel(regval, (CRG_REG_BASE + HISNFC100_CRG48));
+	if (regval != old_val)
+		writel(regval, (base + HISNFC100_CRG48));
 }
 
 /*****************************************************************************/

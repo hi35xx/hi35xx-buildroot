@@ -1,13 +1,23 @@
-/******************************************************************************
- *	Flash Memory Controller v100 Device Driver
- *	Copyright (c) 2014 - 2015 by Hisilicon
- *	All rights reserved.
- * ***
- *	Create by hisilicon
+/*
+ * The Flash Memory Controller v100 Device Driver for hisilicon
  *
- *****************************************************************************/
+ * Copyright (c) 2016-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
-/*****************************************************************************/
 /*
   Get status/config register value from SPI Nor flash
 */
@@ -122,7 +132,6 @@ static int spi_general_write_enable(struct hifmc_spi *spi)
 
 	FMC_CMD_WAIT_CPU_FINISH(host);
 
-#if WE_DBG
 	spi->driver->wait_ready(spi);
 
 	reg = spi_general_get_flash_register(spi, SPI_CMD_RDSR);
@@ -132,7 +141,6 @@ static int spi_general_write_enable(struct hifmc_spi *spi)
 		DB_MSG("Error: Write Enable failed! status: %#x\n", reg);
 		return status;
 	}
-#endif
 
 	FMC_PR(WE_DBG, "\t  * End Write Enable\n");
 
@@ -186,20 +194,18 @@ static int spi_general_entry_4addr(struct hifmc_spi *spi, int enable)
 
 	host->set_host_addr_mode(host, enable);
 
-	if (AC_DBG) {
-		spi->driver->wait_ready(spi);
+	spi->driver->wait_ready(spi);
 
-		status = spi_general_get_flash_register(spi, SPI_CMD_RDSR3);
-		FMC_PR(AC_DBG, "\t  Read SR-3[%#x]:%#x\n", SPI_CMD_RDSR3,
-				status);
-		if (SPI_NOR_GET_4BYTE_BY_CR(status) == enable)
-			FMC_PR(AC_DBG, "\t  %s 4-byte success, SR3:%#x\n",
-					str[enable], status);
-		else
-			DB_MSG("Error: %s 4-byte failed! SR3:%#x\n",
-					str[enable], status);
+	status = spi_general_get_flash_register(spi, SPI_CMD_RDSR3);
+	FMC_PR(AC_DBG, "\t  Read SR-3[%#x]:%#x\n", SPI_CMD_RDSR3,
+			status);
+	if (SPI_NOR_GET_4BYTE_BY_CR(status) != enable) {
+		DB_MSG("Error: %s 4-byte failed! SR3:%#x\n",
+				str[enable], status);
+		return status;
 	}
 
+	FMC_PR(AC_DBG, "\t  %s 4-byte success, SR3:%#x\n", str[enable], status);
 	FMC_PR(AC_DBG, "\t* End SPI Nor flash %s 4-byte mode.\n", str[enable]);
 
 	return 0;
@@ -211,15 +217,19 @@ static int spi_general_entry_4addr(struct hifmc_spi *spi, int enable)
 */
 int spi_is_quad(struct hifmc_spi *spi)
 {
-	const char *if_str[] = {"STD", "DUAL", "DIO", "QUAD", "QIO"};
+	char *const if_str[] = {"STD", "DUAL", "DIO", "QUAD", "QIO", "DTR"};
 
-	FMC_PR(QE_DBG, "\t\t*-SPI read iftype: %s write iftype: %s\n",
+	FMC_PR(QE_DBG, "\t\t|*-SPI read iftype: %s write iftype: %s\n",
 		if_str[spi->read->iftype], if_str[spi->write->iftype]);
 
 	if ((IF_TYPE_QUAD == spi->read->iftype)
 	    || (IF_TYPE_QIO == spi->read->iftype)
 	    || (IF_TYPE_QUAD == spi->write->iftype)
-	    || (IF_TYPE_QIO == spi->write->iftype))
+	    || (IF_TYPE_QIO == spi->write->iftype)
+#ifdef CONFIG_DTR_MODE_SUPPORT
+	    || (IF_TYPE_DTR == spi->read->iftype)
+#endif
+	    )
 		return 1;
 
 	return 0;
@@ -307,3 +317,67 @@ static int spi_do_not_qe_enable(struct hifmc_spi *spi)
 	return 0;
 }
 
+/*****************************************************************************/
+/*
+ * some chip set the mux HOLD#/RESET#/IO3 pin to RESET#, as it is HOLD# default.
+ */
+static void spi_nor_reset_pin_enable(struct hifmc_spi *spi, int enable)
+{
+	unsigned char config;
+	unsigned int regval;
+	const char *str[] = {"HOLD#", "RESET#"};
+	struct hifmc_host *host = (struct hifmc_host *)spi->host;
+
+	config = spi_general_get_flash_register(spi, SPI_CMD_RDSR3);
+	FMC_PR(RST_DB, "\t|-Read SR-3[%#x], val: %#x\n",
+			SPI_CMD_RDSR3, config);
+
+	if (SPI_NOR_GET_RST_HOLD_BY_CR(config) == enable) {
+		FMC_PR(RST_DB, " Device has worked on %s.\n", str[enable]);
+		return;
+	}
+
+	FMC_PR(RST_DB, " Start to enable %s function.\n", str[enable]);
+	spi->driver->write_enable(spi);
+
+	if (enable)
+		config = SPI_NOR_SET_RST_BY_CR(config);
+	else
+		config = SPI_NOR_SET_HOLD_BY_CR(config);
+
+	writeb(config, host->iobase);
+	FMC_PR(RST_DB, "\t|-Write IO[%#x]%#x\n", (uint)host->iobase,
+			*(unsigned char *)host->iobase);
+
+	regval = FMC_CMD_CMD1(SPI_CMD_WRSR3);
+	hifmc_write(host, FMC_CMD, regval);
+	FMC_PR(RST_DB, "\t|-Set CMD[%#x]%#x\n", FMC_CMD, regval);
+
+	regval = OP_CFG_FM_CS(spi->chipselect);
+	hifmc_write(host, FMC_OP_CFG, regval);
+	FMC_PR(RST_DB, "\t|-Set OP_CFG[%#x]%#x\n",
+			FMC_OP_CFG, regval);
+
+	regval = FMC_DATA_NUM_CNT(SPI_NOR_CR_LEN);
+	hifmc_write(host, FMC_DATA_NUM, regval);
+	FMC_PR(RST_DB, "\t|-Set DATA_NUM[%#x]%#x\n",
+			FMC_DATA_NUM, regval);
+
+	regval = FMC_OP_CMD1_EN(ENABLE)
+		| FMC_OP_WRITE_DATA_EN(ENABLE)
+		| FMC_OP_REG_OP_START;
+	hifmc_write(host, FMC_OP, regval);
+	FMC_PR(RST_DB, "\t|-Set OP[%#x]%#x\n", FMC_OP, regval);
+
+	FMC_CMD_WAIT_CPU_FINISH(host);
+
+	spi->driver->wait_ready(spi);
+
+	config = spi_general_get_flash_register(spi, SPI_CMD_RDSR3);
+	FMC_PR(RST_DB, "\t|-Read SR-3[%#x], val: %#x\n",
+			SPI_CMD_RDSR3, config);
+	if (SPI_NOR_GET_RST_HOLD_BY_CR(config) == enable)
+		FMC_PR(RST_DB, "\t|- Set the MUX pin to RESET# success!\n");
+	else
+		FMC_PR(RST_DB, "\t|- The MUX pin works on HOLD# or DNU!\n");
+}

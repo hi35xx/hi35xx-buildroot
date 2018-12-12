@@ -179,6 +179,7 @@ HI_VOID VouSetDispMaxSize(VO_DEV VoDev, VO_INTF_SYNC_E enVoOutMode)
             u32MaxHeight = 2160;
             break;
         case VO_OUTPUT_2560x1440_30 :
+        case VO_OUTPUT_2560x1440_60 :
             u32MaxWidth = 2560;
             u32MaxHeight = 1440;
             break;    
@@ -188,6 +189,8 @@ HI_VOID VouSetDispMaxSize(VO_DEV VoDev, VO_INTF_SYNC_E enVoOutMode)
             break;
         case VO_OUTPUT_3840x2160_30 :
         case VO_OUTPUT_3840x2160_60 :
+        case VO_OUTPUT_3840x2160_25 :
+        case VO_OUTPUT_3840x2160_50 :
             u32MaxWidth = 3840;
             u32MaxHeight = 2160;
             break;            
@@ -205,8 +208,6 @@ HI_VOID VouSetDispMaxSize(VO_DEV VoDev, VO_INTF_SYNC_E enVoOutMode)
 
 int start_vo(unsigned int dev, unsigned int type, unsigned int sync)
 {
-    int i;
-    
     if (g_bInited == HI_FALSE)
     {   
         SYS_HAL_DDRConifg();
@@ -303,7 +304,6 @@ int start_videolayer(unsigned int layer, unsigned addr, unsigned int strd,
     enLayer = VideoLayerConvert(layer);
     HAL_LAYER_SetLayerDataFmt(layer, VOU_LAYER_PIXERL_FORMAT_SPYCbCr_420);
 
-    /*复制模式*/
     HAL_VIDEO_SetIfirMode(layer, 1);
     HAL_VIDEO_SetLayerDispRect(layer, &stMaxRect);
     HAL_VIDEO_SetLayerVideoRect(layer, &stMaxRect);
@@ -311,9 +311,9 @@ int start_videolayer(unsigned int layer, unsigned addr, unsigned int strd,
     HAL_LAYER_SetLayerInRect(layer, &stMaxRect);
     HAL_LAYER_SetLayerGalpha(layer, 255);
 
-    /*关闭视频层缩放，且默认将滤波模式全部设置为复制模式*/
+
     HAL_LAYER_SetZmeEnable(layer, HAL_DISP_ZMEMODE_ALL, HI_FALSE);
-    /*420->422->444(复制模式)，不支持缩放 */
+
     HAL_LAYER_SetZmeMscEnable(layer, HAL_DISP_ZMEMODE_VERC, HI_TRUE);
     HAL_LAYER_SetVerRatio(layer, 0x1000);
 

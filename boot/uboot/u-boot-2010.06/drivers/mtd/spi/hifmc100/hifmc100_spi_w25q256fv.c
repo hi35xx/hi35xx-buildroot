@@ -1,11 +1,22 @@
-/******************************************************************************
- *	Flash Memory Controller v100 Device Driver
- *	Copyright (c) 2014 - 2015 by Hisilicon
- *	All rights reserved.
- * ***
- *	Create by hisilicon
+/*
+ * The Flash Memory Controller v100 Device Driver for hisilicon
  *
- *****************************************************************************/
+ * Copyright (c) 2016-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 /*****************************************************************************/
 #define W25Q256FV_CR_4BYTE_MASK		0x1
@@ -60,6 +71,8 @@ static int spi_w25q256fv_entry_4addr(struct hifmc_spi *spi, int enable)
 
 		FMC_CMD_WAIT_CPU_FINISH(host);
 
+		spi->driver->wait_ready(spi);
+
 		status = spi_general_get_flash_register(spi, SPI_CMD_RDSR3);
 		FMC_PR(AC_DBG, "\t  Get Status Register 3[%#x]:%#x\n",
 				SPI_CMD_RDSR3, status);
@@ -100,6 +113,8 @@ static int spi_w25q256fv_entry_4addr(struct hifmc_spi *spi, int enable)
 		FMC_CMD_WAIT_CPU_FINISH(host);
 
 		FMC_PR(AC_DBG, "\tnow W25Q256FV start software reset\n");
+
+		udelay(30);
 	}
 
 	host->set_host_addr_mode(host, enable);
@@ -129,7 +144,7 @@ static int spi_w25q256fv_qe_enable(struct hifmc_spi *spi)
 			status);
 	if (SPI_NOR_GET_QE_BY_CR(status) == op) {
 		FMC_PR(QE_DBG, "\t* Quad was %s status:%#x\n", str[op], status);
-		return op;
+		goto QE_END;
 	}
 
 	spi->driver->write_enable(spi);
@@ -138,6 +153,7 @@ static int spi_w25q256fv_qe_enable(struct hifmc_spi *spi)
 		status |= SPI_NOR_CR_QE_MASK;
 	else
 		status &= ~SPI_NOR_CR_QE_MASK;
+
 	writeb(status, host->iobase);
 	FMC_PR(QE_DBG, "\t  Write IO[%#x]%#x\n", (unsigned int)host->iobase,
 			*(unsigned char *)host->iobase);
@@ -163,19 +179,23 @@ static int spi_w25q256fv_qe_enable(struct hifmc_spi *spi)
 
 	FMC_CMD_WAIT_CPU_FINISH(host);
 
-	if (QE_DBG) {
-		spi->driver->wait_ready(spi);
+	/* wait the flash have switched quad mode success */
+	spi->driver->wait_ready(spi);
 
-		status = spi_general_get_flash_register(spi, SPI_CMD_RDSR2);
-		FMC_PR(QE_DBG, "\t  Read Status Register-2[%#x]:%#x\n",
-				SPI_CMD_RDSR2, status);
-		if (SPI_NOR_GET_QE_BY_CR(status) == op)
-			FMC_PR(QE_DBG, "\t  %s Quad success. status:%#x\n",
-					str[op], status);
-		else
-			DB_MSG("Error: %s Quad failed! reg:%#x\n", str[op],
-					status);
-	}
+	status = spi_general_get_flash_register(spi, SPI_CMD_RDSR2);
+	FMC_PR(QE_DBG, "\t  Read Status Register-2[%#x]:%#x\n",
+			SPI_CMD_RDSR2, status);
+	if (SPI_NOR_GET_QE_BY_CR(status) == op)
+		FMC_PR(QE_DBG, "\t  %s Quad success. status:%#x\n",
+				str[op], status);
+	else
+		DB_MSG("Error: %s Quad failed! reg:%#x\n", str[op],
+				status);
+
+QE_END:
+	/* Enable the reset pin when working on dual mode for 8PIN */
+	if (!op)
+		spi_nor_reset_pin_enable(spi, ENABLE);
 
 	FMC_PR(QE_DBG, "\t* End SPI Nor W25Q(128/256)FV %s Quad.\n", str[op]);
 

@@ -94,7 +94,7 @@ static int usb_hub_probe(struct usb_device *dev, int ifnum);
  * wait_ms
  */
 
-void wait_ms(unsigned long ms)
+inline void wait_ms(unsigned long ms)
 {
 	while (ms-- > 0)
 		udelay(1000);
@@ -106,7 +106,7 @@ void wait_ms(unsigned long ms)
 
 int usb_init(void)
 {
-	int result;
+	int result = -1;
 
 	running = 0;
 	dev_index = 0;

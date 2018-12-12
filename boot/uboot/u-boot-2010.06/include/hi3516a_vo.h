@@ -56,7 +56,7 @@ typedef enum hiVO_DEV_E
     VOU_DEV_BUTT
 } VO_DEV_E;
 
-/*  所有物理资源层的枚举，需要与HAL层的资源枚举一一对应*/
+
 typedef enum
 {
     VOU_LAYER_VHD1  = 0,

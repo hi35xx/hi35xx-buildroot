@@ -29,6 +29,9 @@
 
 #include <common.h>
 #include <watchdog.h>
+#ifdef CONFIG_HIUDC
+#include <usb/hi_udc.h>
+#endif
 
 #include "serial_pl01x.h"
 
@@ -166,9 +169,21 @@ void serial_putc (const char c)
 
 void serial_puts (const char *s)
 {
+#ifdef CONFIG_HIUDC
+	udc_puts(s);
+#endif
 	while (*s) {
 		serial_putc (*s++);
 	}
+}
+
+void serial_puts_to_hitool(const char *s)
+{
+#ifdef CONFIG_HIUDC
+	udc_puts(s);
+#endif
+	while (*s)
+		pl01x_putc(CONSOLE_PORT, *s++);
 }
 
 int serial_getc (void)

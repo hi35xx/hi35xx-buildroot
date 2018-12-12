@@ -24,7 +24,8 @@ int (*nand_oob_resize)(struct mtd_info *mtd, struct nand_chip *chip,
 /*****************************************************************************/
 #if defined(CONFIG_NAND_FLASH_HISNFC100) \
 	|| defined(CONFIG_NAND_FLASH_HINFC610) \
-	|| defined(CONFIG_HIFMC_SPI_NAND)
+	|| defined(CONFIG_HIFMC_SPI_NAND) \
+	|| defined(CONFIG_HIFMC_NAND)
 static struct match_type_str ecc2name[] = {
 	{NAND_ECC_0BIT,  "none"     },
 	{NAND_ECC_8BIT,  "4bit/512" },
@@ -104,6 +105,8 @@ unsigned char match_ecc_type_to_yaffs(unsigned char type)
 static struct match_t page_table[] = {
 	{NAND_PAGE_2K,	PAGE_SIZE_2KB,	"2K"},
 	{NAND_PAGE_4K,	PAGE_SIZE_4KB,	"4K"},
+	{NAND_PAGE_8K,	PAGE_SIZE_8KB,	"8K"},
+	{NAND_PAGE_16K,	PAGE_SIZE_16KB,	"16K"},
 };
 
 unsigned char match_page_reg_to_type(unsigned char reg)
@@ -131,6 +134,8 @@ static struct match_t ecc_table[] = {
 	{NAND_ECC_16BIT,	ECC_TYPE_16BIT,	"8bit/512"},
 	{NAND_ECC_24BIT,	ECC_TYPE_24BIT,	"24bit/1K"},
 	{NAND_ECC_28BIT,	ECC_TYPE_28BIT,	"28bit/1K"},
+	{NAND_ECC_40BIT,	ECC_TYPE_40BIT,	"40bit/1K"},
+	{NAND_ECC_64BIT,	ECC_TYPE_64BIT,	"64bit/1K"},
 };
 
 unsigned char match_ecc_reg_to_type(unsigned char reg)

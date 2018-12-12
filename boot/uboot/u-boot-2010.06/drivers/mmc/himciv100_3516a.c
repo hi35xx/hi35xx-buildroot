@@ -32,7 +32,6 @@ static void hi_mci_ctr_undo_reset(void)
 static void hi_mci_sys_init(void)
 {
 	unsigned int reg_value;
-	unsigned int value;
 
 	/* set detect polarity */
 	reg_value = himci_readl(SYS_PERIPHCTRL4);

@@ -36,22 +36,22 @@
 #define HIETH_LINKED	(1<<1)
 #define HIETH_DUP_FULL	1
 
-int hieth_set_mac_leadcode_cnt_limit(struct hieth_netdev_local *ld, int cnt);
-int hieth_set_mac_trans_interval_bits(struct hieth_netdev_local *ld, int nbits);
-int hieth_set_mac_fc_interval(struct hieth_netdev_local *ld, int para);
+u32 hieth_set_mac_leadcode_cnt_limit(struct hieth_netdev_local *ld, u32 cnt);
+u32 hieth_set_mac_trans_interval_bits(struct hieth_netdev_local *ld, u32 nbits);
+u32 hieth_set_mac_fc_interval(struct hieth_netdev_local *ld, u32 para);
 
-int hieth_set_linkstat(struct hieth_netdev_local *ld, int mode);
-int hieth_get_linkstat(struct hieth_netdev_local *ld);
+u32 hieth_set_linkstat(struct hieth_netdev_local *ld, u32 mode);
+u32 hieth_get_linkstat(struct hieth_netdev_local *ld);
 
 #define HIETH_NEGMODE_CPUSET	1
 #define HIETH_NEGMODE_AUTO	0
 
-int hieth_set_negmode(struct hieth_netdev_local *ld, int mode);
-int hieth_get_negmode(struct hieth_netdev_local *ld);
+u32 hieth_set_negmode(struct hieth_netdev_local *ld, u32 mode);
+u32 hieth_get_negmode(struct hieth_netdev_local *ld);
 
 #define HIETH_MII_MODE		0
 #define HIETH_RMII_MODE		1
 
-int hieth_set_mii_mode(struct hieth_netdev_local *ld, int mode);
+u32 hieth_set_mii_mode(struct hieth_netdev_local *ld, u32 mode);
 
 #endif

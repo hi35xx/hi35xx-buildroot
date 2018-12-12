@@ -35,7 +35,19 @@ COBJS-$(CONFIG_HAS_DATAFLASH) += dataflash.o
 COBJS-$(CONFIG_FLASH_CFI_LEGACY) += jedec_flash.o
 COBJS-$(CONFIG_MW_EEPROM) += mw_eeprom.o
 COBJS-$(CONFIG_SPEARSMI) += spr_smi.o
+ifdef CONFIG_HIFMC
 COBJS-$(CONFIG_HIFMC) += hifmc_common.o
+COBJS-$(CONFIG_HI3521A) += hifmc_hi3521a.o
+COBJS-$(CONFIG_HI3518EV200) += hifmc_hi3518ev200.o
+COBJS-$(CONFIG_HI3516CV300) += hifmc_hi3516cv300.o
+COBJS-$(CONFIG_HI3531A) += hifmc_hi3531a.o
+COBJS-$(CONFIG_HI3536C) += hifmc_hi3536c.o
+COBJS-$(CONFIG_HI3519) += hifmc_hi3519.o
+COBJS-$(CONFIG_HI3519V101) += hifmc_hi3519.o
+COBJS-$(CONFIG_HI3559) += hifmc_hi3559.o
+COBJS-$(CONFIG_HI3556) += hifmc_hi3559.o
+COBJS-$(CONFIG_HI3516AV200) += hifmc_hi3516av200.o
+endif
 
 COBJS	:= $(COBJS-y)
 SRCS	:= $(COBJS:.o=.c)

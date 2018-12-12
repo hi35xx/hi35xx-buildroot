@@ -25,7 +25,11 @@ include $(TOPDIR)/config.mk
 
 LIB	= $(obj)libhiupdate.a
 
-COBJS	:=   auto_update.o
+ifdef CONFIG_AUTO_UPDATE_ADAPTATION
+COBJS	:=   auto_update_adaptation.o
+else
+COBJS   :=   auto_update.o
+endif
 SOBJS	:=
 
 SRCS	:= $(SOBJS:.o=.S) $(COBJS:.o=.c)

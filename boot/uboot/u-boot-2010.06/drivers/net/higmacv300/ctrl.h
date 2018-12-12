@@ -1,24 +1,6 @@
 #ifndef __HIGMAC_CTRL_H
 #define __HIGMAC_CTRL_H
 
-#define CRG_GMAC					REG_ETH_CRG
-#define SYSCTL_MAC_IF					REG_ETH_MAC_IF
-
-#define RESET_CTRL					CRG_GMAC
-#define HIGMAC_MACIF0_CTRL			(HIGMAC0_IOBASE + 0x300c)
-#define HIGMAC_MACIF1_CTRL			(HIGMAC0_IOBASE + 0x3010)
-
-#define HIGMAC_DUAL_MAC_CRF_ACK_TH		(HIGMAC0_IOBASE + 0x3004)
-
-/* bit define for CRG_GMAC register */
-#define BIT_GSF_SOFT_RESET				0
-#define BIT_GSF_CLK_EN					1
-#define BIT_GSF_MAC_IF_SOFT_RESET			2
-#define BIT_GSF_MAC_IF_EN				3
-#define BIT_RMII_CLK_SELECT				4
-#define BIT_EXT_PHY_RESET				5
-#define BIT_EXT_PHY_CLK_SELECT				6
-
 #define STATION_ADDR_LOW				0x0000
 #define STATION_ADDR_HIGH				0x0004
 #define MAC_DUPLEX_HALF_CTRL				0x0008
@@ -224,7 +206,7 @@
 #define  RAW_INT_ALL_MASK 0xffffffff
 
 void higmac_set_macif(struct higmac_netdev_local *ld,
-		int mode, int speed);
+		int mode, unsigned int speed);
 int higmac_hw_set_macaddress(struct higmac_netdev_local *ld,
 		unsigned char *mac);
 int higmac_hw_get_macaddress(struct higmac_netdev_local *ld,
@@ -246,8 +228,8 @@ int higmac_clear_irqstatus(struct higmac_netdev_local *ld, int irqs);
 int higmac_read_irqstatus(struct higmac_netdev_local *ld);
 int higmac_irq_enable(struct higmac_netdev_local *ld, int irqs);
 int higmac_irq_disable(struct higmac_netdev_local *ld, int irqs);
-int higmac_desc_enable(struct higmac_netdev_local *ld, int desc_ena);
-int higmac_desc_disable(struct higmac_netdev_local *ld, int desc_dis);
+u32 higmac_desc_enable(struct higmac_netdev_local *ld, u32 desc_ena);
+u32 higmac_desc_disable(struct higmac_netdev_local *ld, u32 desc_dis);
 void higmac_desc_flush(struct higmac_netdev_local *ld);
 
 #endif

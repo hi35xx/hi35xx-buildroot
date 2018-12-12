@@ -47,6 +47,12 @@ static void hiusb_ohci_enable_clk(void)
 	writel(0xc26, MISC_USB);
 	mdelay(5);
 
+	/* usb2.0 phy eye pattern */
+	/* open USB2 pre-emphasis */
+	writel(0x0, MISC_USB);
+	udelay(10);
+	writel(0x1c20, MISC_USB);
+	mdelay(5);
 #if 0
 	/* usb2.0 phy eye pattern */
 	writel(0x1c00, MISC_USB);

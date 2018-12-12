@@ -2626,7 +2626,8 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 #if	!defined(CONFIG_NAND_FLASH_HINFC504) \
 	&& !defined(CONFIG_NAND_FLASH_HINFC610) \
 	&& !defined(CONFIG_NAND_FLASH_HISNFC100) \
-	&& !defined(CONFIG_HIFMC_SPI_NAND)
+	&& !defined(CONFIG_HIFMC_SPI_NAND) \
+	&& !defined(CONFIG_HIFMC_NAND)
 	int ecctype = -1;
 #endif
 	struct nand_flash_dev_ex flash_dev_ex = {{0}, 0};
@@ -2676,7 +2677,8 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 #if defined(CONFIG_NAND_FLASH_HINFC504) \
 	|| defined(CONFIG_NAND_FLASH_HINFC610) \
 	|| defined(CONFIG_NAND_FLASH_HISNFC100) \
-	|| defined(CONFIG_HIFMC_SPI_NAND)
+	|| defined(CONFIG_HIFMC_SPI_NAND) \
+	|| defined(CONFIG_HIFMC_NAND)
 	if (nand_get_spl_flash_type
 			&& nand_get_spl_flash_type(mtd, chip, &flash_dev_ex)) {
 #else
@@ -2689,7 +2691,8 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 #if defined(CONFIG_NAND_FLASH_HINFC504) \
 	|| defined(CONFIG_NAND_FLASH_HINFC610) \
 	|| defined(CONFIG_NAND_FLASH_HISNFC100) \
-	|| defined(CONFIG_HIFMC_SPI_NAND)
+	|| defined(CONFIG_HIFMC_SPI_NAND) \
+	|| defined(CONFIG_HIFMC_NAND)
 				type = &flash_dev_ex.flash_dev;
 #endif
 				if (!mtd->name)
@@ -2701,7 +2704,8 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 #if defined(CONFIG_NAND_FLASH_HINFC504) \
 	|| defined(CONFIG_NAND_FLASH_HINFC610) \
 	|| defined(CONFIG_NAND_FLASH_HISNFC100) \
-	|| defined(CONFIG_HIFMC_SPI_NAND)
+	|| defined(CONFIG_HIFMC_SPI_NAND) \
+	|| defined(CONFIG_HIFMC_NAND)
 				mtd->oobsize   = flash_dev_ex.oobsize;
 #else
 				mtd->oobsize   = *(unsigned long *)&type[1];
@@ -2768,7 +2772,8 @@ find_type:
 #if defined(CONFIG_NAND_FLASH_HINFC504) \
 	|| defined(CONFIG_NAND_FLASH_HINFC610) \
 	|| defined(CONFIG_NAND_FLASH_HISNFC100) \
-	|| defined(CONFIG_HIFMC_SPI_NAND)
+	|| defined(CONFIG_HIFMC_SPI_NAND) \
+	|| defined(CONFIG_HIFMC_NAND)
 		if (nand_oob_resize
 				&& nand_oob_resize(mtd, chip, &flash_dev_ex))
 			return ERR_PTR(-ENODEV);
@@ -2814,15 +2819,14 @@ find_type:
 #if defined(CONFIG_NAND_FLASH_HINFC504) \
 	|| defined(CONFIG_NAND_FLASH_HINFC610) \
 	|| defined(CONFIG_NAND_FLASH_HISNFC100) \
-	|| defined(CONFIG_HIFMC_SPI_NAND)
+	|| defined(CONFIG_HIFMC_SPI_NAND) \
+	|| defined(CONFIG_HIFMC_NAND)
 			nand_info_ex.ecctype   = flash_dev_ex.ecctype;
 #else
 			nand_info_ex.ecctype   = ecctype;
 #endif
 #if !defined(CONFIG_NAND_FLASH_HISNFC100) \
 	&& !defined(CONFIG_HIFMC_SPI_NAND)
-			nand_info_ex.id_length = 8;
-#elif defined(CONFIG_HIFMC_SPI_NAND)
 			nand_info_ex.id_length = 8;
 #else
 			nand_info_ex.id_length = 2;
@@ -2953,7 +2957,8 @@ int nand_scan_ident(struct mtd_info *mtd, int maxchips)
 	printf("OOB:%sB ", ultohstr(mtd->oobsize));
 #if defined(CONFIG_NAND_FLASH_HISNFC100) \
 	|| defined(CONFIG_NAND_FLASH_HINFC610) \
-	|| defined(CONFIG_HIFMC_SPI_NAND)
+	|| defined(CONFIG_HIFMC_SPI_NAND) \
+	|| defined(CONFIG_HIFMC_NAND)
 	printf("ECC:%s ", nand_ecc_name(nand_info_ex.ecctype));
 #else
 	printk("ECC:%s ", get_ecctype_str(nand_info_ex.ecctype));
@@ -3090,8 +3095,7 @@ int nand_scan_tail(struct mtd_info *mtd)
 		break;
 
 	case NAND_ECC_NONE:
-		/* printf("NAND_ECC_NONE selected by board driver. "
-				"This is not recommended !!\n"); */
+		printf("ECC provided by Flash Memory Controller\n");
 		chip->ecc.read_page = nand_read_page_raw;
 		chip->ecc.write_page = nand_write_page_raw;
 		chip->ecc.read_oob = nand_read_oob_std;

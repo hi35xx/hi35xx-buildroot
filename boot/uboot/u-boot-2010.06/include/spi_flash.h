@@ -26,34 +26,50 @@
 #include <spi.h>
 #include <linux/types.h>
 
-#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+#ifdef CONFIG_SPI_BLOCK_PROTECT
 #define BP_OP_SET	0
 #define BP_OP_GET	1
 
-#define BP_CMP_TOP	0
-#define BP_CMP_BOTTOM	1
-#define BP_CMP_UPDATE_FLAG	0xff
+#define BT_LOC_RDSR	0
+#define BT_LOC_RDCR	1
+
+#define BP_CMP_TOP      0
+#define BP_CMP_BOTTOM   1
+#define BP_CMP_UPDATE_FLAG      0xff
 
 enum block_protection_level {
-	BP_LEVEL_0	= 0,
-	BP_LEVEL_1	= 1,
-	BP_LEVEL_2	= 2,
-	BP_LEVEL_3	= 3,
-	BP_LEVEL_4	= 4,
-	BP_LEVEL_5	= 5,
-	BP_LEVEL_6	= 6,
-	BP_LEVEL_7	= 7,
-	BP_LEVEL_8	= 8,
-	BP_LEVEL_9	= 9,
-	BP_LEVEL_10	= 10,
+	BP_LEVEL_0      = 0,
+	BP_LEVEL_1      = 1,
+	BP_LEVEL_2      = 2,
+	BP_LEVEL_3      = 3,
+	BP_LEVEL_4      = 4,
+	BP_LEVEL_5      = 5,
+	BP_LEVEL_6      = 6,
+	BP_LEVEL_7      = 7,
+	BP_LEVEL_8      = 8,
+	BP_LEVEL_9      = 9,
+	BP_LEVEL_10     = 10,
 	BP_LEVEL_END,
 };
 
-#define BP_LEVEL_MAX	(BP_LEVEL_END - 1)
+#define BP_LEVEL_MAX    (BP_LEVEL_END - 1)
+
+#define MID_SPANSION    0x01    /* Spansion Manufacture ID */
+#define MID_WINBOND     0xef    /* Winbond  Manufacture ID */
+#define MID_MXIC        0xc2    /* MXIC Manufacture ID */
+#define MID_MICRON      0x20    /* Micron Manufacture ID */
+#define MID_GD          0xc8    /* GD Manufacture ID */
+#define MID_ESMT        0x8c    /* ESMT Manufacture ID */
+#define MID_CFEON       0x1c    /* CFeon Manufacture ID */
+#define MID_MICRON      0x20    /* Micron Manufacture ID */
+#define MID_PARAGON     0xe0    /* Paragon Manufacture ID */
+
+#define BP_NUM_3	3
+#define BP_NUM_4	4
 
 void spi_flash_lock(unsigned char cmp, unsigned char level, unsigned char op);
 
-#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+#endif /* CONFIG_SPI_BLOCK_PROTECT */
 
 struct spi_flash_region {
 	unsigned int	count;
@@ -66,6 +82,13 @@ struct spi_flash {
 	const char	*name;
 
 	u32		size;
+
+#if (defined CONFIG_SPI_BLOCK_PROTECT && defined CONFIG_HIFMC_SPI_NOR)
+	unsigned int	bp_level_max;
+
+	void		(*lock)(unsigned char cmp, unsigned char level,
+				unsigned char op);
+#endif
 
 	int		(*read)(struct spi_flash *flash, u32 offset,
 				size_t len, void *buf);

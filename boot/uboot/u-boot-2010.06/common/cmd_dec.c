@@ -51,8 +51,16 @@
 #include <hi3536_vo.h>
 #endif
 
+#ifdef CONFIG_HI3536C
+#include <hi3536c_vo.h>
+#endif
+
 #ifdef CONFIG_HI3521A
 #include <hi3521a_vo.h>
+#endif
+
+#ifdef CONFIG_HI3531A
+#include <hi3531a_vo.h>
 #endif
 
 extern int load_jpeg(void);

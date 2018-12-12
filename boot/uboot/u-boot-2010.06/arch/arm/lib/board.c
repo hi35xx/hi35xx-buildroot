@@ -343,12 +343,24 @@ void start_armboot (void)
 #endif /* CONFIG_LCD */
 
 #ifdef CONFIG_CMD_SF
+#if (defined CONFIG_ARCH_HI3559 || defined CONFIG_ARCH_HI3556)
+    if(get_boot_media() == BOOT_MEDIA_SPIFLASH) {
+#endif
 	spi_flash_probe(0, 0, 0, 0);
+#if (defined CONFIG_ARCH_HI3559 || defined CONFIG_ARCH_HI3556)
+    }
+#endif
 #endif
 
 /* it is not needed in A7 in A17-A7  */
 #ifdef CONFIG_CMD_NAND
+#if (defined CONFIG_ARCH_HI3559 || defined CONFIG_ARCH_HI3556)
+    if(get_boot_media() == BOOT_MEDIA_NAND) {
+#endif
 	nand_init();		/* go init the NAND */
+#if (defined CONFIG_ARCH_HI3559 || defined CONFIG_ARCH_HI3556)
+    }
+#endif
 #endif
 
 #if defined(CONFIG_CMD_ONENAND)
@@ -360,12 +372,66 @@ void start_armboot (void)
 	dataflash_print_info();
 #endif
 
-#if defined(CONFIG_ARCH_HI3536) || defined(CONFIG_HI3518EV200)
+#if defined(CONFIG_ARCH_HI3536) \
+	|| defined(CONFIG_HI3518EV200) \
+	|| defined(CONFIG_HI3516CV300) \
+	|| defined(CONFIG_ARCH_HI3519) \
+	|| defined(CONFIG_ARCH_HI3519V101) \
+	|| defined(CONFIG_ARCH_HI3516AV200) \
+	|| defined(CONFIG_ARCH_HI3559) || defined(CONFIG_ARCH_HI3556)
 #ifdef CONFIG_GENERIC_MMC
-	puts("MMC:   ");
-	mmc_initialize(0);
-	mmc_flash_init(0);
+#if (defined CONFIG_ARCH_HI3559 || defined CONFIG_ARCH_HI3556)
+    if(get_boot_media() == BOOT_MEDIA_EMMC) {
 #endif
+        puts("MMC:   ");
+        mmc_initialize(0);
+        mmc_flash_init(0);
+#if (defined CONFIG_ARCH_HI3559 || defined CONFIG_ARCH_HI3556)
+    }
+#endif
+#endif
+#if ((defined(CONFIG_ARCH_HI3559) || defined(CONFIG_ARCH_HI3556))&& defined(CONFIG_AUTO_SD_UPDATE))
+	extern int auto_update_flag;
+	extern int bare_chip_program;
+	extern int is_auto_update(void);
+	extern int is_bare_program(void);
+
+	/* auto update flag */
+	if(is_auto_update())
+		auto_update_flag = 1;
+	else
+		auto_update_flag = 0;
+
+	/* bare chip program flag */
+	if(is_bare_program())
+		bare_chip_program = 1;
+	else
+		bare_chip_program = 0;
+	printf("bare_chip_program=%0d,auto_update_flag=%0d",bare_chip_program,auto_update_flag);
+    if(bare_chip_program==0 && auto_update_flag==0)
+        printf("\n");
+
+    /* init SD card */
+	if(auto_update_flag || bare_chip_program) {
+        /*
+         * because bootrom code init mmc and sd card,
+         * wait some ms here before reinit!
+         */
+#define mdelay(n) ({unsigned long msec = (n); while (msec--) udelay(1000); })
+        if(bare_chip_program == 1)
+            mdelay(1000);
+        mmc_initialize(2);
+		mmc_flash_init(2);
+	}
+#endif
+
+#if (defined(CONFIG_HI3516CV300) || defined(CONFIG_ARCH_HI3519)\
+		|| defined(CONFIG_ARCH_HI3519V101) || defined(CONFIG_ARCH_HI3516AV200))\
+	&& defined(CONFIG_AUTO_SD_UPDATE)
+	mmc_initialize(2);
+	mmc_flash_init(2);
+#endif
+
 #else
 #ifdef CONFIG_GENERIC_MMC
 	puts("MMC:   ");
@@ -460,7 +526,7 @@ extern void davinci_eth_set_mac_addr (const u_int8_t *addr);
 #endif
 #endif
 
-#if defined(CONFIG_BOOTROM_SUPPORT)
+#if defined(CONFIG_BOOTROM_SUPPORT) && (!defined(CONFIG_ARCH_HI3559) && !defined(CONFIG_ARCH_HI3556))
 	extern void download_boot(const int (*handle)(void));
 	download_boot(NULL);
 #endif

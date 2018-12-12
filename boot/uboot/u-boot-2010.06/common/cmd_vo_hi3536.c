@@ -92,7 +92,8 @@ int check_vo_support(unsigned int dev, unsigned int type, unsigned int sync)
         if ((sync < VO_OUTPUT_1080P24)
             || (sync >= VO_OUTPUT_3840x2160_30)
             || (VO_OUTPUT_1920x2160_30 == sync)
-            || (VO_OUTPUT_2560x1440_30 == sync))
+            || (VO_OUTPUT_2560x1440_30 == sync)
+            || (VO_OUTPUT_2560x1440_60 == sync))
         {
             printf("Vo%d's intfsync %d illegal!\n", dev, sync);
             return -1;

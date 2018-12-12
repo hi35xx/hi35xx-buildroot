@@ -171,9 +171,13 @@ reset:
 	mov	r1, #0x0                 /* flags: 0->normal 1->pm */
 	bl	init_registers           /* init PLL/DDRC/... */
 
+	ldr	sp, =STACK_TRAINING
+#ifdef CONFIG_SVB_ENABLE
+	bl	start_svb
+#endif
+
 	/* after ziju, we need ddr traning */
 #ifdef CONFIG_DDR_TRAINING_V2
-	ldr	sp, =STACK_TRAINING
 	ldr	r0, =REG_BASE_SCTL
 	bl	start_ddr_training       /* DDR training */
 #endif
@@ -196,7 +200,7 @@ reset:
 
 normal_start_flow:
 	/* init serial and printf a string. */
-	ldr		sp, =STACK_TRAINING
+	ldr	sp, =STACK_TRAINING
 	bl      uart_early_init
 	bl      msg_main_cpu_startup
 
@@ -246,6 +250,10 @@ do_clr_remap:
 	add     r0, r0, r1
 	mov     r1, #0          /* flags: 0->normal 1->pm */
 	bl      init_registers
+#ifdef CONFIG_SVB_ENABLE
+	bl	start_svb
+#endif
+
 #ifdef CONFIG_DDR_TRAINING_V2
 	ldr	r0, =REG_BASE_SCTL
 	bl	start_ddr_training       /* DDR training */

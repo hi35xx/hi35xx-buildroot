@@ -38,6 +38,7 @@ defined(CONFIG_CMDLINE_TAG) || \
 defined(CONFIG_INITRD_TAG) || \
 defined(CONFIG_SERIAL_TAG) || \
 defined(CONFIG_REVISION_TAG) || \
+defined(CONFIG_ETH_TAG) || \
 defined(CONFIG_ETHADDR_TAG) || \
 defined(CONFIG_ETHMDIO_INF) || \
 defined(CONFIG_NANDID_TAG) || \
@@ -54,6 +55,13 @@ static void setup_initrd_tag (bd_t *bd, ulong initrd_start,
 			      ulong initrd_end);
 # endif
 static void setup_end_tag (bd_t *bd);
+
+# if defined(CONFIG_ETH_TAG)
+#define TAG_PHYINTF_VAL		0x726d6d80
+#define TAG_PHYADDR_VAL		(TAG_PHYINTF_VAL + 1)
+#define TAG_PHYMDIO_VAL		(TAG_PHYINTF_VAL + 2)
+static void setup_eth_use_mdio_tag(bd_t *bd, char *use_mdio);
+#endif
 
 # if defined(CONFIG_ETHMDIO_INF)
 static void setup_eth_mdiointf_tag(bd_t *bd, char *mdio_intf);
@@ -130,6 +138,9 @@ int do_bootm_linux(int flag, int argc, char *argv[], bootm_headers_t *images)
 #ifdef CONFIG_INITRD_TAG
 	if (images->rd_start && images->rd_end)
 		setup_initrd_tag (bd, images->rd_start, images->rd_end);
+#endif
+#if defined(CONFIG_ETH_TAG)
+	setup_eth_use_mdio_tag(bd, getenv("use_mdio"));
 #endif
 #if defined(CONFIG_ETHMDIO_INF)
 	setup_eth_mdiointf_tag(bd, getenv("mdio_intf"));
@@ -233,6 +244,19 @@ static void setup_commandline_tag (bd_t *bd, char *commandline)
 
 	params = tag_next (params);
 }
+#if defined(CONFIG_ETH_TAG)
+static void setup_eth_use_mdio_tag(bd_t *bd, char *use_mdio)
+{
+	if (!use_mdio)
+		return ;
+	params->hdr.tag = TAG_PHYMDIO_VAL;
+	params->hdr.size = 4;
+
+	memset(&params->u, '\0', strlen(use_mdio)+1);
+	memcpy(&params->u, use_mdio, strlen(use_mdio));
+	params = tag_next(params);
+}
+#endif
 #ifdef CONFIG_ETHMDIO_INF
 static void setup_eth_mdiointf_tag(bd_t *bd, char *mdio_intf)
 {
@@ -391,7 +415,7 @@ extern void restore_processor_state_ext(void *, unsigned long);
 
 static void printf_ss_info(unsigned s, unsigned c)
 {
-#if !defined(CONFIG_HI3518EV200)
+#if __ARM_ARCH__ >= 7
 	unsigned int tmp;
 	asm volatile ("mrc p15, 0, %0, c0, c2, 4" : "=r"(tmp) : : "memory");
 	if (((tmp >> 16) & 0xf) != 1)
@@ -423,7 +447,7 @@ void ss_jump_to_resume_ext(unsigned long func, unsigned long data)
 	/* MMU off, flush all, invalidate all */
 	cleanup_before_linux();
 
-#if !defined(CONFIG_HI3518EV200)
+#if __ARM_ARCH__ >= 7
 	/* memory/data/instruction barriers */
 	asm volatile ("dmb" : : : "memory");
 	asm volatile ("dsb" : : : "memory");

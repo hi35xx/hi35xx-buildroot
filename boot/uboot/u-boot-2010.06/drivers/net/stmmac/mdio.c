@@ -113,6 +113,10 @@ static int stmmac_mdiobus_write(char *devname, unsigned char addr,
 	return 0;
 }
 
+#define PHY_ID_KSZ8051		0x00221550
+#define PHY_ID_KSZ8081		0x00221560
+#define PHY_ID_MASK		0xFFFFFFF0
+
 unsigned int get_phy_device(char *devname, unsigned char phyaddr)
 {
 	u32 phy_id;
@@ -129,8 +133,13 @@ unsigned int get_phy_device(char *devname, unsigned char phyaddr)
 			|| phy_id == 0xFFFF || phy_id == 0xFFFF0000)
 		return 1;
 
-	/* PHY-KSZ8051MNL */
-	if ((phy_id & 0xFFFFFFF0) == 0x221550) {
+#ifndef CONFIG_HI3536_A7
+	/* only need fix KSZ phy when mode is RMII */
+	if (g_interface_mode != INTERFACE_MODE_RMII)
+		return 0;
+#endif
+	/* PHY-KSZ8051RNL */
+	if ((phy_id & PHY_ID_MASK) == PHY_ID_KSZ8051) {
 		unsigned short reg;
 		miiphy_read(devname, phyaddr, 0x1F, &reg);
 		/* set phy RMII 50MHz clk; */
@@ -141,6 +150,21 @@ unsigned int get_phy_device(char *devname, unsigned char phyaddr)
 		miiphy_read(devname, phyaddr, 0x16, &reg);
 		reg |= (1 << 1);
 		miiphy_write(devname, phyaddr, 0x16, reg);
+	}
+
+	/* PHY-KSZ8081 */
+	if ((phy_id & PHY_ID_MASK) == PHY_ID_KSZ8081) {
+		unsigned short val;
+
+		if (miiphy_read(devname, phyaddr, 0x1F, &val) != 0) {
+			printf("PHY 0x1F read failed\n");
+			return -1;
+		};
+		val |= (1 << 7);       /* set phy RMII 50MHz clk; */
+		if (miiphy_write(devname, phyaddr, 0x1F, val) != 0) {
+			printf("PHY 0x1F write failed\n");
+			return -1;
+		}
 	}
 
 	return 0;

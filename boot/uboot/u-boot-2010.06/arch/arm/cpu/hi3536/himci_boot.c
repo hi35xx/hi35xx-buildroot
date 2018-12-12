@@ -291,14 +291,15 @@ static void emmc_read(void *ptr, unsigned int size, unsigned int hcs)
 
 		/*start to read data*/
 		while (1) {
+			val = (DCRC_INT_STATUS | DRTO_INT_STATUS | HTO_INT_STATUS
+				 | FRUN_INT_STATUS | HLE_INT_STATUS | SBE_INT_STATUS
+				 | EBE_INT_STATUS);
 			tmp_reg = himci_readl(mmc_base + MCI_RINTSTS);
-			if (tmp_reg & RXDR_INT_STATUS)
-				break;
-
-			val = (DRTO_INT_STATUS | HTO_INT_STATUS
-				 | HLE_INT_STATUS | EBE_INT_STATUS);
 			if (tmp_reg & val)
 				return;
+
+			if (tmp_reg & RXDR_INT_STATUS)
+				break;
 		}
 		himci_writel(ALL_INT_CLR, mmc_base + MCI_RINTSTS);
 

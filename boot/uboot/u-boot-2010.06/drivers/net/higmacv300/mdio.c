@@ -99,14 +99,14 @@ int higmac1_mdio_write(char *devname, unsigned char phy,
 
 void higmac_mdiobus_driver_init(void)
 {
-	higmac_mdio0.iobase_phys = HIGMAC0_MDIO_IO_BASE;
-	higmac_mdio0.iobase = HIGMAC0_MDIO_IO_BASE;
+	higmac_mdio0.iobase_phys = HIGMAC0_IOBASE;
+	higmac_mdio0.iobase = HIGMAC0_IOBASE;
 	higmac_mdio_init(&higmac_mdio0);
 
-#if (CONFIG_GMAC_NUMS == 2)
+#if GMAC_AT_LEAST_2PORT
 	higmac_mdio_init(&higmac_mdio1);
-	higmac_mdio1.iobase_phys = HIGMAC1_MDIO_IO_BASE;
-	higmac_mdio1.iobase = HIGMAC1_MDIO_IO_BASE;
+	higmac_mdio1.iobase_phys = HIGMAC1_IOBASE;
+	higmac_mdio1.iobase = HIGMAC1_IOBASE;
 #endif
 }
 
@@ -116,6 +116,6 @@ void higmac_mdiobus_driver_exit(void)
 		return;
 
 	higmac_mdio_exit(&higmac_mdio0);
-	if (CONFIG_GMAC_NUMS == 2)
+	if GMAC_AT_LEAST_2PORT
 		higmac_mdio_exit(&higmac_mdio1);
 }

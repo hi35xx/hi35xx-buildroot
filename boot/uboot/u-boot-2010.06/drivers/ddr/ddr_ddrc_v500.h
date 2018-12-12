@@ -14,15 +14,23 @@
 #define DDR_DMC_CFG_PD			0x28   /* PowerDown */
 #define DDR_DMC_CFG_DDRMODE		0x50
 #define DDR_DMC_CFG_EMRS01		0x70
-#define DDR_DMC_TIMING2			0x108
+#define DDR_DMC_TIMING2			0x88
 #define DDR_DMC_SFCREQ			0xc
 #define DDR_DMC_SFCCMD			0x210
 #define DDR_DMC_SFCADDR			0x214   /* read col and row */
 #define DDR_DMC_SFCBANK			0x218
+#ifndef DDR_DMC_SFC_RDATA0
 #define DDR_DMC_SFC_RDATA0		0x4A8   /* SFC read data[127:96] */
+#endif
+#ifndef DDR_DMC_SFC_RDATA1
 #define DDR_DMC_SFC_RDATA1		0x4AC   /* SFC read data[95:64] */
+#endif
+#ifndef DDR_DMC_SFC_RDATA2
 #define DDR_DMC_SFC_RDATA2		0x4B0   /* SFC read data[63:32] */
+#endif
+#ifndef DDR_DMC_SFC_RDATA3
 #define DDR_DMC_SFC_RDATA3		0x4B4   /* SFC read data[31:0] */
+#endif
 
 /* register mask */
 #define DMC_CMD_MRS_MASK		0xffff
@@ -89,7 +97,7 @@
 #define DDR_AXI_REGION_ATTRIB1           0x114  /* region 1 */
 
 /* register mask */
-#define AXI_REGION_ATTRIB_CH_MASK        0xffff0000 /* channel mask */
+#define AXI_REGION_ATTRIB_CH_MASK        0xfffffff0 /* channel mask */
 
 /* register value */
 /* Map to the single channel, independent address */

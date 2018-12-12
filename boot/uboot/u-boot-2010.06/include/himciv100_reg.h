@@ -167,7 +167,7 @@
 #define TX_WMARK	0x8
 
 /* MCI_IDINTEN(0x90) details */
-#define MCI_IDINTEN_MASK (0x00000337)
+#define MCI_IDINTEN_MASK (0x00000337UL)
 #define TI		(0x1<<0)
 #define RI		(0x1<<1)
 #define NI		(0x1<<8)

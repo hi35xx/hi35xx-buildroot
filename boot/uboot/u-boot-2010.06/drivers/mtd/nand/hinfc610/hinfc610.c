@@ -1,11 +1,20 @@
-/******************************************************************************
- *    NAND Flash Controller V610 Device Driver
- *    Copyright (c) 2009-2010 by Hisilicon.
- *    All rights reserved.
+/*
+ * Copyright (c) 2016 HiSilicon Technologies Co., Ltd.
  *
- *    Create By Hisilicon.
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
  *
-******************************************************************************/
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #include <common.h>
 #include <nand.h>
@@ -178,7 +187,7 @@ static void hinfc610_dma_transfer(struct hinfc_host *host, int todev)
 		| HINFC610_DMA_CTRL_BURST16_EN
 		| ((host->addr_cycle == 4 ? 1 : 0)
 		   << HINFC610_DMA_CTRL_ADDR_NUM_SHIFT)
-		| ((host->chipselect & HINFC610_DMA_CTRL_CS_MASK)
+		| (((unsigned int)host->chipselect & HINFC610_DMA_CTRL_CS_MASK)
 		   << HINFC610_DMA_CTRL_CS_SHIFT));
 
 	if (todev)
@@ -474,7 +483,7 @@ static int hinfc610_send_cmd_erase(struct hinfc_host *host)
 		 | HINFC610_OP_CMD2_EN
 		 | HINFC610_OP_CMD1_EN
 		 | HINFC610_OP_ADDR_EN
-		 | ((host->chipselect & HINFC610_OP_NF_CS_MASK)
+		 | (((unsigned int)host->chipselect & HINFC610_OP_NF_CS_MASK)
 		    << HINFC610_OP_NF_CS_SHIFT)
 		 | ((host->addr_cycle & HINFC610_OP_ADDR_CYCLE_MASK)
 		    << HINFC610_OP_ADDR_CYCLE_SHIFT);
@@ -502,7 +511,7 @@ static int hinfc610_send_cmd_readid(struct hinfc_host *host)
 		 | HINFC610_OP_ADDR_EN
 		 | HINFC610_OP_READ_DATA_EN
 		 | HINFC610_OP_WAIT_READY_EN
-		 | ((host->chipselect & HINFC610_OP_NF_CS_MASK)
+		 | (((unsigned int)host->chipselect & HINFC610_OP_NF_CS_MASK)
 		    << HINFC610_OP_NF_CS_SHIFT)
 		 | (1 << HINFC610_OP_ADDR_CYCLE_SHIFT);
 
@@ -551,7 +560,7 @@ static int hinfc610_send_cmd_status(struct hinfc_host *host)
 	regval = HINFC610_OP_CMD1_EN
 		 | HINFC610_OP_READ_DATA_EN
 		 | HINFC610_OP_WAIT_READY_EN
-		 | ((host->chipselect & HINFC610_OP_NF_CS_MASK)
+		 | (((unsigned int)host->chipselect & HINFC610_OP_NF_CS_MASK)
 		    << HINFC610_OP_NF_CS_SHIFT);
 
 	hinfc_write(host, regval, HINFC610_OP);
@@ -819,9 +828,11 @@ static int hinfc610_ecc_probe(struct mtd_info *mtd, struct nand_chip *chip,
 	}
 #endif /* CONFIG_HINFC610_PAGESIZE_AUTO_ECC_NONE */
 
-	if (!best)
+	if (!best) {
 		DBG_BUG(ERSTR_HARDWARE
 			"Please configure Nand Flash pagesize and ecctype!\n");
+		return -1;
+	}
 
 	if (best->ecctype != NAND_ECC_0BIT)
 		mtd->oobsize = best->oobsize;
@@ -1042,6 +1053,29 @@ static int hinfc610_version_check(void)
 }
 /*****************************************************************************/
 
+static int hinfc610_nand_pre_probe(struct nand_chip *chip)
+{
+	uint8_t nand_maf_id;
+	struct hinfc_host *host = chip->priv;
+
+	/* Reset the chip first */
+	host->send_cmd_reset(host, 0);
+
+	/* Check the ID */
+	host->offset = 0;
+	memset((unsigned char *)(chip->IO_ADDR_R), 0, 0x10);
+	host->send_cmd_readid(host);
+	nand_maf_id = readb(chip->IO_ADDR_R);
+
+	if (nand_maf_id == 0x00 || nand_maf_id == 0xff) {
+		 printf("Cannot found a valid Nand Device\n");
+		 return 1;
+	}
+
+	return 0;
+}
+/*****************************************************************************/
+
 int board_nand_init(struct nand_chip *chip)
 {
 	printf("Check Nand Flash Controller v610 ... ");
@@ -1072,6 +1106,9 @@ int board_nand_init(struct nand_chip *chip)
 	}
 
 	nand_spl_ids_register();
+
+	if (hinfc610_nand_pre_probe(chip))
+		return 1;
 
 	return 0;
 }

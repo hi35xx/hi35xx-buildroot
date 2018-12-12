@@ -188,11 +188,13 @@ HAL_DISP_SYNCINFO_S g_stSyncTiming[VO_OUTPUT_BUTT] =
     //{1,   1,   2,  1200,  42,  3,  1920, 536, 136,   1,    1,   1,  1, 200,  6,  0,  1,  0},    /* 1920*1200@60Hz */
     {1,   1,   2,  1200,  32,  3,  1920, 112,  48,   1,    1,   1,  1,  32,  6,  0,  1,  0},    /* 1920*1200@60Hz CVT (Reduced Blanking) */
 
-    {0,   1,   1,  1440,  37,  3,  2560, 80,   48,   1,    1,   1,  1,  32,  6,  0,  0,  0},    /* 2560*1440@30Hz*/ 
-    {0,   1,   2,  1600,  55,  3,  2560, 94,   24,   1,    1,   1,  1,  35,  6,  0,  0,  0},   /* 2560*1600@60Hz*/
+    {0,   1,   1,  1440,  40,  1,  2560, 96,   32,   1,    1,   1,  1,  32,  3,  0,  0,  0},    /* 2560*1440@30Hz*/
+    {0,   1,   1,  1440,  40,  1,  2560, 96,   32,   1,    1,   1,  1,  32,  3,  0,  0,  0},    /* 2560*1440@60Hz*/
+    {0,   1,   2,  1600,  43,  3,  2560, 112,  48,   1,    1,   1,  1,  32,  6,  0,  0,  0},    /* 2560*1600@60Hz CVT (Reduced Blanking)*/
+    {0,   1,   1,  2160,  82,  8,  3840, 384,  1056,  1,    1,   1,  1,  88,  10, 0,  0,  0},   /* 3840*2160@25Hz*/
     {0,   1,   1,  2160,  82,  8,  3840, 384,  176,  1,    1,   1,  1,  88,  10, 0,  0,  0},   /* 3840*2160@30Hz*/
+    {0,   1,   1,  2160,  82,  8,  3840, 384,  1056,  1,    1,   1,  1,  88,  10, 0,  0,  0},   /* 3840*2160@50Hz*/
     {0,   1,   1,  2160,  82,  8,  3840, 384,  176,  1,    1,   1,  1,  88,  10, 0,  0,  0},   /* 3840*2160@60Hz*/
-
     {}/* User */
 };
 
@@ -279,7 +281,7 @@ static inline HI_BOOL VouDrvIsMultiIntf(VO_INTF_TYPE_E enMuxIntf)
     return ((u32Num <= 1) ? HI_FALSE : HI_TRUE);
 }
 
-/* 中断中视频层寄存器更新方式 */
+
 HI_VOID VOU_DRV_IntRegUpMode(VO_LAYER VoLayer, VOU_INT_MODE_E IntMode)
 {
     HAL_VIDEO_SetLayerUpMode(VoLayer, IntMode);
@@ -350,7 +352,7 @@ HI_VOID VOU_DRV_DateSetting(VO_DEV VoDev, VO_INTF_SYNC_E enOutSync)
             return;
     }
     HAL_DISP_SetDateCoeff(VoDev, u32Data);
-    HAL_DISP_DATE_OutCtrl(VoDev, 0x111111);//针对 DATE V300
+    HAL_DISP_DATE_OutCtrl(VoDev, 0x111111);//DATE V300
     return;
 }
 
@@ -464,7 +466,6 @@ HI_S32 VOU_DRV_CalcCscMatrix(HI_U32 u32Luma, HI_U32 u32Contrast,
     s32Hue      = (HI_S32)u32Hue * 60 / 100;
     s32Satu     = ((HI_S32)u32Satuature - 50) * 2 + 100;    
 
-    /* 选择色彩空间转换的常系数矩阵 */
     switch (enCscMode)
     {
         case HAL_CSC_MODE_BT601_TO_BT601:
@@ -501,14 +502,11 @@ HI_S32 VOU_DRV_CalcCscMatrix(HI_U32 u32Luma, HI_U32 u32Contrast,
     pstCstCoef->csc_out_dc1 = pstCscTmp->csc_out_dc1;
     pstCstCoef->csc_out_dc2 = pstCscTmp->csc_out_dc2;
 
-    /* C_ratio的调节范围一般是0～1.99, C_ratio=s32Contrast/100
-    *  S的调节范围一般为0~1.99,S=s32Satu/100
-    *  色调调节参数的范围一般为-30°~30°,通过查表法求得COS和SIN值并/1000
-    */
+
     if ((HAL_CSC_MODE_BT601_TO_RGB_PC == enCscMode) || (HAL_CSC_MODE_BT709_TO_RGB_PC == enCscMode)
         || (HAL_CSC_MODE_BT601_TO_RGB_TV == enCscMode) || (HAL_CSC_MODE_BT709_TO_RGB_TV == enCscMode))
     {
-        /* 此公式仅用于YUV->RGB转换，RGB->YUV转换不可用此公式 */
+        /* only to YUV->RGB*/
         pstCstCoef->csc_coef00 = (s32Contrast * pstCscTmp->csc_coef00) / 100;
         pstCstCoef->csc_coef01 = (s32Contrast * s32Satu * ((pstCscTmp->csc_coef01*COS_TABLE[s32Hue] - pstCscTmp->csc_coef02*SIN_TABLE[s32Hue]) /1000)) / 10000;
         pstCstCoef->csc_coef02 = (s32Contrast * s32Satu * ((pstCscTmp->csc_coef01*SIN_TABLE[s32Hue] + pstCscTmp->csc_coef02*COS_TABLE[s32Hue]) /1000)) / 10000;
@@ -522,8 +520,7 @@ HI_S32 VOU_DRV_CalcCscMatrix(HI_U32 u32Luma, HI_U32 u32Contrast,
     }
     else
     {    
-        /* 此公式仅用于RGB->YUV转换，YUV->RGB转换不可用此公式，
-        *  YUV->YUV仅调节图像效果可用此公式，因为常量矩阵为单位矩阵 */
+        /*RGB->YUV */
         pstCstCoef->csc_coef00 = (s32Contrast * pstCscTmp->csc_coef00) / 100;
         pstCstCoef->csc_coef01 = (s32Contrast * pstCscTmp->csc_coef01) / 100;
         pstCstCoef->csc_coef02 = (s32Contrast * pstCscTmp->csc_coef02) / 100;
@@ -670,11 +667,11 @@ HI_VOID VOU_DRV_IntfCscConfig(VO_INTF_TYPE_E enIntfType, VO_CSC_S *pstIntfCSC)
 
 HI_VOID VOU_DRV_DefLayerBindDev(HI_VOID)
 {
-    /* MUX3可混合VHD2/G4*/
+
     HAL_CBM_SetCbmMixerPrio(VOU_LAYER_VHD1, VOU_MIX_PRIO0, VOU_DEV_DHD1);
     HAL_CBM_SetCbmMixerPrio(VOU_LAYER_VP, VOU_MIX_PRIO1, VOU_DEV_DHD1);
 
-    /* MUX4可混合VSD0/G1/HC0 */
+
     HAL_CBM_SetCbmMixerPrio(VOU_LAYER_VSD0, VOU_MIX_PRIO0, VOU_DEV_DSD0);
 
     HAL_CBM_SetCbmMixerPrio(HAL_DISP_LAYER_GFX4, VOU_MIX_PRIO2, HAL_CBMMIX2);
@@ -1044,7 +1041,7 @@ HI_VOID VOU_DRV_Open(HI_S32 VoDev)
 
     #if 0
     if ((0 == stSyncInfo.bIop) && VOU_IS_HD_HW_DEV(VoDev)
-        && !(VO_INTF_BT656 & g_stHalDevCfg[VoDev].enIntfType))  //HD BT656采取逐行报中断，不过也可以隔行报
+        && !(VO_INTF_BT656 & g_stHalDevCfg[VoDev].enIntfType)) 
     #else
     if ((0 == stSyncInfo.bIop) && (/*(VOU_DEV_DHD0==(VoDev)) || */(VOU_DEV_DHD1==(VoDev))))
     #endif

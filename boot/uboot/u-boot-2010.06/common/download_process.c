@@ -2,6 +2,9 @@
 #include <watchdog.h>
 #include <command.h>
 #include <boot/customer.h>
+#ifdef CONFIG_HIUDC
+#include <usb/hi_udc.h>
+#endif
 
 #define dump_buf(buf, len) do{\
 	int i;\
@@ -183,14 +186,39 @@ retry:
 
 void download_boot(int (*handle)(void))
 {
+#if defined(CONFIG_HIUDC) && (defined(CONFIG_ARCH_HI3559) || defined(CONFIG_ARCH_HI3556))
+	int ret;
+
+	extern int is_auto_update(void);
+	if (is_auto_update()) {
+		ret = udc_connect();
+		if (!ret) {
+			printf("start download process.\n");
+			for (;;) {
+				udc_irq_poll();
+			}
+		}
+	}
+#endif
 	if(CONFIG_START_MAGIC == (*(volatile unsigned int *)(REG_START_FLAG))){
 		/* clear flag */
 		*(volatile unsigned int *)(REG_START_FLAG) = 0;
-		serial_puts("start download process.\n");
 
-		/* wait cmd from pc */
-		for (;;) {
-			download_process();
+#if defined(CONFIG_HIUDC) && defined(CONFIG_HI3516CV300)
+		if (*((volatile unsigned int *)REG_USB_UART_FLAG) ==
+				SELF_BOOT_TYPE_USBDEV) {
+			udc_init();
+			printf("start download process.\n");
+			for (;;)
+				udc_irq_poll();
+		} else
+#endif
+		{
+			serial_puts("start download process.\n");
+
+			/* wait cmd from pc */
+			for (;;)
+				download_process();
 		}
 	}
 

@@ -517,6 +517,7 @@ int hdmi_display(unsigned int vosync, unsigned int input, unsigned int output)
     if(hdmi_dvi_mode){
 	    SendAVIInfoFrame();
 	    EnableInfoFrame(AVI_TYPE);
+
     }
     
     TX_SetHDMIMode(hdmi_dvi_mode);    //for hdmi 

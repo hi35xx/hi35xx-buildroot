@@ -114,7 +114,7 @@ void start_svb(void)
 	if (core_aver_recorder >=  215)
 		writel(0x7400c7, HI_PMC_CTL_REG); /* 1.05V */
 	else if (core_aver_recorder >= 185)
-		writel(0x6000c7, HI_PMC_CTL_REG); /* 1.10V */
+		writel(0x5800c7, HI_PMC_CTL_REG); /* 1.12V */
 	else
 		writel(0x4c00c7, HI_PMC_CTL_REG); /* 1.15V */
 
@@ -173,11 +173,11 @@ void start_20dv300_svb(void)
 	core_aver_recorder = g_core_aver_recorder;
 
 	if (core_aver_recorder > 260)
-		writel(0x6000c7, HI_PMC_CTL_REG); /* 1.1V */
-	else if (core_aver_recorder >= 230)
 		writel(0x4b00c7, HI_PMC_CTL_REG); /* 1.15V */
+	else if (core_aver_recorder >= 230)
+		writel(0x3700c7, HI_PMC_CTL_REG); /* 1.20V */
 	else
-		writel(0x3700c7, HI_PMC_CTL_REG); /* 1.2V */
+		writel(0x2300c7, HI_PMC_CTL_REG); /* 1.25V */
 
 	delay(50000);
 

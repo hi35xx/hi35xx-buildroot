@@ -1,6 +1,6 @@
 
 /* The base address for emar*/
-#define HW_DEC_REG_BASE_ADDR	(0x206B0000)
+#define HW_DEC_REG_BASE_ADDR	(GZIP_REG_BASE)
 
 /* The global init registers for emar interface */
 #define EAMR_RID_REG_OFST	(0x0108)
@@ -11,11 +11,16 @@
 /* The enable register */
 #define EAMR_WORK_EN_REG_OFST	(0x0100)
 
+#ifdef CONFIG_HI3518EV200
 /* The global decompress parameter reigsters */
 #define CPRS_DARA_BUF0_BADDR	(0x2010)
 #define CPRS_DARA_BUF1_BADDR	(0x2014)
 #define CPRS_DARA_BUF2_BADDR	(0x2018)
 #define CPRS_DARA_BUF3_BADDR	(0x201C)
+#endif
+
+#define DPRS_DATA_SRC_BADDR	(0x2040)
+#define DPRS_DATA_SRC_LEN	(0x2044)
 
 /* Decompress parameter reigsters for page address */
 #define DPRS_DATA_RTN_BADDR	(0x2020)
@@ -26,13 +31,20 @@
 #define DPRS_DATA_INFO_LEN	(0x202C)
 
 #define DPRS_DATA_CRC32		(0x2030)
+#ifdef CONFIG_HI3518EV200
 #define DPRS_DATA_BUF_INFO	(0x2040)
+#endif
 
 #define CRC_CHECK_EN            (0x4000)
 
 /* The status registers*/
 #define BUF_INFO		(0x2080)
 #define DPRS_RTN_INFO		(0x2084)
+#if (defined CONFIG_HI3516CV300 || defined CONFIG_HI3519 || \
+		defined CONFIG_HI3519V101 || defined CONFIG_HI3559 || defined CONFIG_HI3556 || \
+		defined CONFIG_HI3516AV200)
+#define DPRS_RTN_LEN		(0x2088)
+#endif
 #define BUF_INFO_CLR		(0x2090)
 #define RLT_INFO_CLR		(0x2094)
 
@@ -41,7 +53,7 @@
 #define INT_STATUS_REG_ADDR	(0x0124)
 #define INT_CLEAR_REG_ADDR	(0x0130)
 
-#define HW_DEC_INTR		(56)
+#define TASK_MODE_REG		(0x2134)
 
 /* Define the union U_DPRS_DATA_BUF_INFO */
 typedef union {

@@ -25,6 +25,14 @@
 #define STMMAC_INVALID_RXPKG_LEN(len) \
 	(!(((len) >= MIN_PKG_LEN) && ((len) <= MAX_PKG_LEN)))
 
+#define INTERFACE_MODE_RGMII 0x20
+#define INTERFACE_MODE_MII 0x0
+#define INTERFACE_MODE_RMII 0x80
+
+#ifndef CONFIG_HI3536_A7
+extern unsigned int g_interface_mode;
+#endif
+
 #define PORT_MOD_10M_MII	0
 #define PORT_MOD_100M_MII	1
 #define PORT_MOD_1000M_GMII	2

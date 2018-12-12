@@ -1,9 +1,20 @@
-/******************************************************************************
-*    Copyright (c) 2009-2010
-*    All rights reserved.
-* ***
-*
-******************************************************************************/
+/*
+ * Copyright (c) 2016-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #ifndef SPI_IDSH
 #define SPI_IDSH
@@ -94,7 +105,8 @@
 #define SPI_CMD_WRITE_DUAL		0xA2   /* fast program dual input */
 #define SPI_CMD_WRITE_QUAD		0x32   /* fast program quad input */
 #define SPI_CMD_WRITE_DUAL_ADDR	0xD2   /* Dual I/O High Performance Write */
-#define SPI_CMD_WRITE_QUAD_ADDR	0x12   /* Quad I/O High Performance Write */
+#define SPI_CMD_WRITE_QUAD_ADDR	0x38   /* Quad I/O High Performance Write */
+/* #define SPI_CMD_WRITE_QUAD_ADDR	0x12   Quad I/O High Performance Write */
 /*****************************************************************************/
 #define SPI_CMD_READ			0x03   /* Read Data bytes */
 #define SPI_CMD_FAST_READ	0x0B   /* Read Data Bytes at Higher Speed */

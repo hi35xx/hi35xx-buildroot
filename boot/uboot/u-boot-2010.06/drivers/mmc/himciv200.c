@@ -12,16 +12,34 @@
 /*************************************************************************/
 
 #if defined(CONFIG_ARCH_HI3536)
-#  include "himciv200_hi3536.c"
+#include "himciv200_hi3536.c"
 #endif
 
 #if defined(CONFIG_HI3518EV200)
-#  include "himciv200_hi3518ev200.c"
+#include "himciv200_hi3518ev200.c"
 #endif
 
+#ifdef CONFIG_HI3516CV300
+	#include "himciv200_hi3516cv300.c"
+#endif
+
+#if defined(CONFIG_ARCH_HI3519)
+#include "himciv200_hi3519.c"
+#endif
+
+#if defined(CONFIG_ARCH_HI3519V101)
+#include "himciv200_hi3519v101.c"
+#endif
+
+#if defined(CONFIG_ARCH_HI3516AV200)
+#include "himciv200_hi3516av200.c"
+#endif
+#if (defined CONFIG_ARCH_HI3559 || defined CONFIG_ARCH_HI3556)
+#include "himciv200_hi3559.c"
+#endif
 /*************************************************************************/
 #if defined(CONFIG_HIMCI_V200)
-#  define DRIVER_NAME "HIMCI_V200"
+#define DRIVER_NAME "HIMCI_V200"
 #endif
 
 #if HI_MCI_DEBUG
@@ -63,10 +81,10 @@ static void hi_mci_sys_reset(struct himci_host *host)
 	tmp_reg |= BMOD_SWR;
 	himci_writel(tmp_reg, host->base + MCI_BMOD);
 
-	time_out = 10;
+	time_out = 1000;
 	do {
 		tmp_reg = himci_readl(host->base + MCI_BMOD);
-		udelay(1000);
+		udelay(10);
 	} while ((tmp_reg & BMOD_SWR) && time_out--);
 
 	tmp_reg = himci_readl(host->base + MCI_BMOD);
@@ -157,6 +175,7 @@ static void hi_mci_set_cclk(struct himci_host *host, unsigned int cclk)
 			reg_value = 0xFF;
 	}
 	himci_writel(reg_value, host->base + MCI_CLKDIV);
+	host->mmc.tran_speed = reg_value ? MMC_CLK / (reg_value * 2) : MMC_CLK;
 
 	cmd_reg.cmd_arg = himci_readl(host->base + MCI_CMD);
 	cmd_reg.cmd_arg &= ~MCI_CMD_MASK;
@@ -207,11 +226,15 @@ static void hi_mci_init_card(struct himci_host *host)
 
 	/* set drv/smpl phase shift */
 	tmp_reg = himci_readl(host->base + MCI_UHS_REG_EXT);
+	tmp_reg &= ~(DRV_PHASE_MASK | SMPL_PHASE_MASK);
 	tmp_reg |= DRV_PHASE_SHIFT | SMPL_PHASE_SHIFT;
 	himci_writel(tmp_reg, host->base + MCI_UHS_REG_EXT);
 
 	/* clear MMC host intr */
 	himci_writel(ALL_INT_CLR, host->base + MCI_RINTSTS);
+
+	/*read write threshold*/
+	himci_writel(RW_THRESHOLD_SIZE, host->base + MMC_CARDTHRCTL);
 
 	/* MASK MMC host intr */
 	tmp_reg = himci_readl(host->base + MCI_INTMASK);
@@ -225,8 +248,6 @@ static void hi_mci_init_card(struct himci_host *host)
 	himci_writel(tmp_reg, host->base + MCI_CTRL);
 
 	/* enable dma intr */
-	tmp_reg = himci_readl(host->base + MCI_IDINTEN);
-	tmp_reg &= ~MCI_IDINTEN_MASK;
 	tmp_reg = TI | RI | NI;
 	himci_writel(tmp_reg, host->base + MCI_IDINTEN);
 
@@ -480,6 +501,9 @@ static int hi_mci_wait_cmd_complete(struct himci_host *host)
 	do {
 		reg_data = himci_readl(host->base + MCI_RINTSTS);
 		if (reg_data & CD_INT_STATUS) {
+			himci_writel(CD_INT_STATUS | RTO_INT_STATUS
+					| RCRC_INT_STATUS | RE_INT_STATUS,
+					host->base + MCI_RINTSTS);
 			ret = hi_mci_cmd_done(host, reg_data);
 			return ret;
 		}
@@ -664,7 +688,6 @@ static int hi_mci_init(struct mmc *mmc)
 
 	HIMCI_DEBUG_FUN("Function Call");
 
-	hi_mci_sys_init(host->dev_id);
 	hi_mci_init_card(host);
 
 	return 0;
@@ -672,8 +695,22 @@ static int hi_mci_init(struct mmc *mmc)
 
 static void himci_shutdown(void)
 {
-	unsigned long base_addr = SDIO1_BASE_REG;
+	unsigned long base_addr;
 	unsigned int value;
+
+#ifdef CONFIG_ARCH_HI3536
+	base_addr = SDIO1_BASE_REG;
+#endif
+
+#ifdef CONFIG_HI3518EV200
+	base_addr = SDIO0_BASE_REG;
+#endif
+
+#if (defined CONFIG_HI3516CV300 || defined CONFIG_ARCH_HI3519 || \
+		defined CONFIG_ARCH_HI3519V101 || defined CONFIG_ARCH_HI3559 || defined CONFIG_ARCH_HI3556 || \
+		defined CONFIG_ARCH_HI3516AV200)
+	base_addr = EMMC_BASE_REG;
+#endif
 
 	value = readl(base_addr + MCI_CTRL);
 	value |= CTRL_RESET | FIFO_RESET | DMA_RESET;
@@ -703,9 +740,22 @@ static int hi_mci_initialize(unsigned int dev_num)
 #ifdef CONFIG_HI3518EV200
 	base_addr = SDIO0_BASE_REG;
 #endif
+
+#if (defined CONFIG_HI3516CV300 || defined CONFIG_ARCH_HI3519 || \
+		defined CONFIG_ARCH_HI3519V101 || defined CONFIG_ARCH_HI3559 || defined CONFIG_ARCH_HI3556 || \
+		defined CONFIG_ARCH_HI3516AV200)
+	if (dev_num == 0)
+		base_addr = EMMC_BASE_REG;
+	else if (dev_num == 1)
+		base_addr = SDIO1_BASE_REG;
+	else
+		base_addr = SDIO0_BASE_REG;
+#endif
+
 	/* check controller version. */
 	regval = himci_readl(base_addr +  MCI_VERID);
-	if ((regval != MCI_VERID_VALUE) && (regval != MCI_VERID_VALUE2)) {
+	if ((regval != MCI_VERID_VALUE) && (regval != MCI_VERID_VALUE2)
+			&& (regval != MCI_VERID_VALUE3)) {
 		printf("MMC/SD/EMMC controller version incorrect.\n");
 		return -ENODEV;
 	}
@@ -735,7 +785,12 @@ static int hi_mci_initialize(unsigned int dev_num)
 	mmc->set_ios = hi_mci_set_ios;
 	mmc->init = hi_mci_init;
 	mmc->host_caps = MMC_MODE_HS | MMC_MODE_HS_52MHz
-		| MMC_MODE_4BIT | MMC_MODE_8BIT;
+#if !defined(CONFIG_HI3516CV300)
+		| MMC_MODE_4BIT
+		| MMC_MODE_8BIT;
+#else
+		| MMC_MODE_4BIT;
+#endif
 
 	mmc->voltages = MMC_VDD_32_33 | MMC_VDD_33_34;
 
@@ -777,15 +832,13 @@ void check_ext_csd(struct mmc *mmc)
 
 	boot_part = 0x7;
 
+#if !defined(CONFIG_HI3516CV300)
 	if (readl(REG_BASE_SCTL + REG_SYSSTAT) & NF_BOOTBW_MASK)
 		boot_bus_width = EXT_CSD_BUS_WIDTH_8; /* 8bits */
 	else
+#endif
 		boot_bus_width = EXT_CSD_BUS_WIDTH_4; /* 4bits */
 
-#ifdef CONFIG_ARCH_HI3536
-	/*
-	 * Hi3536 Architecture support reset pin
-	 */
 	tmp = ext_csd[EXT_CSD_RST_N_FUNCTION];
 	tmp1 = ext_csd[EXT_CSD_REV];
 	if ((tmp1 >= 5)
@@ -798,7 +851,6 @@ void check_ext_csd(struct mmc *mmc)
 			return;
 		}
 	}
-#endif
 
 	tmp = ext_csd[EXT_CSD_WR_REL_PARAM];
 	tmp1 = ext_csd[EXT_CSD_REV];
@@ -862,7 +914,7 @@ void check_ext_csd(struct mmc *mmc)
 		printf("EXT_CSD CONFIG Fail!\n");
 }
 
-int select_boot_part(struct mmc *mmc, int boot_part)
+int select_boot_part(struct mmc *mmc, unsigned int boot_part)
 {
 	char ext_csd[512];
 	unsigned int tmp;

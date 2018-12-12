@@ -27,6 +27,7 @@
 
 /* #define	DEBUG	*/
 
+#include <linux/compiler.h>
 #include <common.h>
 #include <watchdog.h>
 #include <command.h>
@@ -34,7 +35,6 @@
 #ifdef CONFIG_MODEM_SUPPORT
 #include <malloc.h>		/* for free() prototype */
 #endif
-#include <linux/compiler.h>
 
 #ifdef CONFIG_SYS_HUSH_PARSER
 #include <hush.h>
@@ -405,6 +405,10 @@ void main_loop (void)
 	debug ("### main_loop: bootcmd=\"%s\"\n", s ? s : "<UNDEFINED>");
 
 	if (bootdelay >= 0 && s && !abortboot (bootdelay)) {
+#if defined(CONFIG_BOOTROM_SUPPORT) && (defined(CONFIG_ARCH_HI3559) || defined(CONFIG_ARCH_HI3556))
+    extern void download_boot(const int (*handle)(void));
+    download_boot(NULL);
+#endif
 # ifdef CONFIG_AUTOBOOT_KEYED
 		int prev = disable_ctrlc(1);	/* disable Control C checking */
 # endif

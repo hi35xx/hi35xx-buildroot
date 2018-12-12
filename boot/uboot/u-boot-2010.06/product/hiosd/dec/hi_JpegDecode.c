@@ -140,11 +140,8 @@ int iclip[1024];
 int LineBytes;
 int value_type; 
 
-#ifndef HARD_DEC
-extern  unsigned char hilogo[];
-#else
 extern unsigned char * hilogo;
-#endif
+
 extern  unsigned long jpeg_size;
 
 #define JPEGD_ALAIN(u32Val, u32Align)	((u32Val +u32Align -1)&(~(u32Align-1)))
@@ -169,6 +166,18 @@ int Jpeg_HDEDC_Uboot(void)
         
     volatile unsigned int * crgReg = (unsigned int *)JPGD_CRG_REG_PHYADDR;
     * crgReg |= JPGD_CLOCK_ON ;
+	* crgReg |= JPGD_RESET_REG_VALUE;
+
+    while(1)
+    {       
+        result = JPEG_HDEC_ReadReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_START);
+        if (0 == (result & 0x2))
+        {
+            break;
+        }
+    }
+
+	
     * crgReg &= JPGD_UNRESET_REG_VALUE;
     
     /*设置Stride*/
@@ -213,6 +222,8 @@ int Jpeg_HDEDC_Uboot(void)
 
      JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR,JPGD_REG_OUTTYPE,0x4);     
      JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR,JPGD_REG_SCALE, 0x3c);
+
+     JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR,JPGD_REG_DRI, restart);
 
      /*采样因子*/
      JPEG_HDEC_WriteReg((HI_CHAR *)JPGD_REG_BASEADDR, JPGD_REG_SAMPLINGFACTOR,
@@ -278,9 +289,9 @@ int Jpeg_HDEDC_Uboot(void)
 
     if (result & 0x01)
     {   
-        /* 调试时注释这两行 */
-        * crgReg |= JPGD_RESET_REG_VALUE;
-        * crgReg &= JPGD_CLOCK_OFF;
+        
+        //* crgReg |= JPGD_RESET_REG_VALUE;
+        //* crgReg &= JPGD_CLOCK_OFF;
        return FUNC_OK;
     }
      //复位

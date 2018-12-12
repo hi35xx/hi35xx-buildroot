@@ -43,12 +43,12 @@ static inline void delay(unsigned int num)
 }
 
 #ifdef	CONFIG_SVB_ENABLE
-unsigned int g_core_aver_recorder;
-unsigned int g_cpu_aver_recorder;
-#define HI_PMC_CTL_REG    0x120e0000
-void start_core_cpu_hpm(void)
+#define HI_PMC_CTL_REG		0x120e0000
+#define HPM_REG_BASE		0x12060000
+#define HPM_CORE_VOL_REG	0x120e0000
+#define HPM_CPU_VOL_REG		0x120e0004
+void start_core_cpu_hpm(unsigned int *core_aver, unsigned int *cpu_aver)
 {
-	unsigned int core_aver_recorder = 0, cpu_aver_recorder = 0;
 	unsigned int core_tmp0 = 0, core_tmp1 = 0, cpu_tmp0 = 0, cpu_tmp1 = 0;
 	unsigned int u32Value0_CORE = 0, u32Value1_CORE = 0;
 	unsigned int u32Value2_CORE = 0, u32Value3_CORE = 0;
@@ -58,11 +58,12 @@ void start_core_cpu_hpm(void)
 
 	aver_num = 2;
 
-	writel(0x5000c7, HI_PMC_CTL_REG);
-	writel(0x2800c7, HI_PMC_CTL_REG + 0x4);
+	/* reset core hpm, cpu hpm, div frq */
+	writel(0x0a000007, HI_PMC_CTL_REG + 0x28);
+	writel(0x0a000015, HI_PMC_CTL_REG + 0x38);
 
-	writel(0x5000004, HI_PMC_CTL_REG + 0x28);
-	writel(0x5000015, HI_PMC_CTL_REG + 0x58);
+	writel(0x05000007, HI_PMC_CTL_REG + 0x28);
+	writel(0x05000015, HI_PMC_CTL_REG + 0x38);
 
 	delay(50000);
 
@@ -78,57 +79,123 @@ void start_core_cpu_hpm(void)
 		u32Value3_CORE += (core_tmp1 >> 12) & 0x3ff;
 	}
 
-	core_aver_recorder = (u32Value0_CORE + u32Value1_CORE +
+	*core_aver = (u32Value0_CORE + u32Value1_CORE +
 			u32Value2_CORE + u32Value3_CORE) >> 3;
-
-	/*writel(core_aver_recorder, HI_SYS_CTL_REG + 0xA8);*/
 
 	/* CPU Hpm */
 	for (i = 0; i < aver_num; i++) {
 		delay(500);
 
-		cpu_tmp0 = readl(HI_PMC_CTL_REG + 0x5C);
+		cpu_tmp0 = readl(HI_PMC_CTL_REG + 0x3C);
 		u32Value0_CPU += cpu_tmp0 & 0x3ff;
 		u32Value1_CPU += (cpu_tmp0>>12) & 0x3ff;
-		cpu_tmp1 = readl(HI_PMC_CTL_REG + 0x60);
+		cpu_tmp1 = readl(HI_PMC_CTL_REG + 0x40);
 		u32Value2_CPU += cpu_tmp1 & 0x3ff;
 		u32Value3_CPU += (cpu_tmp1>>12) & 0x3ff;
 	}
 
-	cpu_aver_recorder = (u32Value0_CPU + u32Value1_CPU +
+	*cpu_aver = (u32Value0_CPU + u32Value1_CPU +
 			u32Value2_CPU + u32Value3_CPU) >> 3;
+}
 
-	/*writel(cpu_aver_recorder, HI_SYS_CTL_REG + 0xAC);*/
+unsigned int get_hpm_value(void)
+{
+	unsigned int reg_value;
+	unsigned int cpl_flag;
+	unsigned int i;
+	unsigned int data[4];
 
-	g_core_aver_recorder = core_aver_recorder;
-	g_cpu_aver_recorder = cpu_aver_recorder;
+	reg_value = 0;
+	for (i = 0; i < 4; i++) {
+		/*set read addr*/
+		writel(4 + i, HPM_REG_BASE + 0xc);
+
+		/*enable read*/
+		writel(0x1, HPM_REG_BASE + 0x8);
+
+		/*wait read completion*/
+		do {
+			cpl_flag = readl(HPM_REG_BASE + 0x10);
+		} while (!(cpl_flag & 0x2));
+
+		data[i] = readl(HPM_REG_BASE + 0x14);
+		reg_value |= (data[i] & 0xff) << (i * 8);
+	}
+
+	return reg_value;
+}
+
+void set_hpm_cpu_volt_board(unsigned int hpm_cpu_value)
+{
+	if (hpm_cpu_value <= 310)
+		writel(0x800c7, HPM_CPU_VOL_REG);
+	else if (hpm_cpu_value <= 350)
+		writel(0x2400c7, HPM_CPU_VOL_REG);
+	else
+		writel(0x5000c7, HPM_CPU_VOL_REG);
+}
+
+void set_hpm_core_volt_board(unsigned int hpm_core_value)
+{
+	if (hpm_core_value <= 210)
+		writel(0x1000c7, HPM_CORE_VOL_REG);
+	else if (hpm_core_value <= 245)
+		writel(0x1600c7, HPM_CORE_VOL_REG);
+	else
+		writel(0x2d00c7, HPM_CORE_VOL_REG);
+}
+
+void set_hpm_core_volt(unsigned int hpm_core, unsigned int iddq_core)
+{
+	unsigned int val;
+
+	if (hpm_core <= 246 || iddq_core <= 7)
+		val = 0x1000c7;
+	else if (hpm_core <= 281 || iddq_core <= 16)
+		val = 0x2200c7;
+	else if (hpm_core <= 310 || iddq_core <= 29)
+		val = 0x3b00c7;
+	else
+		val = 0x4700c7;
+
+	writel(val, HPM_CORE_VOL_REG);
+}
+
+void set_hpm_cpu_volt(unsigned int hpm_cpu, unsigned int iddq_cpu)
+{
+	unsigned int val;
+
+	if (hpm_cpu <= 185 || iddq_cpu <= 1)
+		val = 0x200c7;
+	else if (hpm_cpu <= 206 || iddq_cpu <= 6)
+		val = 0x2900c7;
+	else if (hpm_cpu <= 228 || iddq_cpu <= 11)
+		val = 0x5000c7;
+	else
+		val = 0x6b00c7;
+
+	writel(val, HPM_CPU_VOL_REG);
 }
 
 void start_svb(void)
 {
-	int voltage_tmp;
-	unsigned int core_aver_recorder = 0, cpu_aver_recorder = 0;
+	unsigned int val, hpm_cpu, hpm_core, iddq_cpu, iddq_core;
 
-	/* auto svb operation */
-	cpu_aver_recorder = g_cpu_aver_recorder;
-	core_aver_recorder = g_core_aver_recorder;
+	val = get_hpm_value();
+	if (val) {
+		hpm_core = val & 0x3ff;
+		iddq_core = (val >> 10) & 0x3f;
+		hpm_cpu = (val >> 16) & 0x3ff;
+		iddq_cpu = (val >> 26) & 0x3f;
 
-	if (core_aver_recorder >=  215)
-		writel(0x7400c7, HI_PMC_CTL_REG); /* 1.05V */
-	else if (core_aver_recorder >= 185)
-		writel(0x6000c7, HI_PMC_CTL_REG); /* 1.10V */
-	else
-		writel(0x4c00c7, HI_PMC_CTL_REG); /* 1.15V */
+		set_hpm_core_volt(hpm_core, iddq_core);
+		set_hpm_cpu_volt(hpm_cpu, iddq_cpu);
+	} else {
+		start_core_cpu_hpm(&hpm_core, &hpm_cpu);
 
-	if (cpu_aver_recorder >= 330)
-		writel(0x6000c7, HI_PMC_CTL_REG + 0x4); /* 1.15V */
-	else if (cpu_aver_recorder >= 285)
-		writel(0x3800c7, HI_PMC_CTL_REG + 0x4); /* 1.25V */
-	else
-		writel(0x2400c7, HI_PMC_CTL_REG + 0x4); /* 1.30V */
-
-	delay(50000);
-
+		set_hpm_core_volt_board(hpm_core);
+		set_hpm_cpu_volt_board(hpm_cpu);
+	}
 }
 #endif
 
@@ -136,7 +203,6 @@ void start_ddr_training(unsigned int base)
 {
 #ifdef CONFIG_SVB_ENABLE
 	/* add SVB function */
-	start_core_cpu_hpm();
 	start_svb();
 #endif
 #ifdef CONFIG_DDR_TRAINING_V2

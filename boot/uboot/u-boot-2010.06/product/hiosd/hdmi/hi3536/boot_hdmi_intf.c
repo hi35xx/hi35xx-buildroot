@@ -52,6 +52,7 @@ static const HDMI_FMT_PARAM_S s_stFmtParamTable[] = {
     {						 0, 162000 ,  1600,  1200, 6000 ,	VO_OUTPUT_1600x1200_60	    },		/* no std, vesa define */
     {						 0, 268500 ,  2560,  1600, 6000 ,	VO_OUTPUT_2560x1600_60	    },		/* no std, vesa define */
     {						 0, 130000 ,  2560,  1440, 3000 ,	VO_OUTPUT_2560x1440_30	    },		/* no std, BVT define ,user defined */
+    {                                            0, 238750 ,  2560,  1440, 6000 ,       VO_OUTPUT_2560x1440_60      },          /* no std, BVT define ,user defined */
     {						 0, 170000 ,  1920,  2160, 3000 ,   VO_OUTPUT_1920x2160_30      },      /* no std, BVT define ,user defined */
 
     
@@ -79,9 +80,9 @@ static const HDMI_FMT_PARAM_S s_stFmtParamTable[] = {
 	
 	
  /* {					    93, 297000 ,  3840,  2160, 2400 ,	HI_HDMI_VIDEO_FMT_3840X2160P_24 		}, */
- /* {					    94, 297000 ,  3840,  2160, 2500 ,	HI_HDMI_VIDEO_FMT_3840X2160P_25 		}, */
+    {					    94, 297000 ,  3840,  2160, 2500 ,	VO_OUTPUT_3840x2160_25 		}, 
 	{						95, 297000 ,  3840,  2160, 3000 ,	VO_OUTPUT_3840x2160_30 		            },
- /* {                        96, 594000 ,  3840,  2160, 5000 ,   HI_HDMI_VIDEO_FMT_3840X2160P_50        }, */
+    {                        96, 594000 ,  3840,  2160, 5000 ,   VO_OUTPUT_3840x2160_50        }, 
     {						97, 594000 ,  3840,  2160, 6000 ,	VO_OUTPUT_3840x2160_60 		            },
  /* {						98, 297000 ,  4096,  2160, 2400 ,	HI_HDMI_VIDEO_FMT_4096X2160P_24 		}, */
  /* {						99, 297000 ,  4096,  2160, 2500 ,	HI_HDMI_VIDEO_FMT_4096X2160P_25 		}, */
@@ -292,6 +293,14 @@ static HDMI_VIDEO_TIMING_E DispFmt2HdmiTiming(HI_U32 u32Fmt)
             enVideoTimingMode = HDMI_VIDEO_TIMING_3840X2160P_60000;
             break;
             
+        case VO_OUTPUT_3840x2160_25:          /* 3840x2160_25 */
+                 enVideoTimingMode = HDMI_VIDEO_TIMING_3840X2160P_25000;
+                 break;
+ 
+        case VO_OUTPUT_3840x2160_50:          /* 3840x2160_50 */
+                 enVideoTimingMode = HDMI_VIDEO_TIMING_3840X2160P_50000;
+                 break;
+
 	    case VO_OUTPUT_800x600_60:            /* VESA 800 x 600 at 60 Hz (non-interlaced) */
 	    case VO_OUTPUT_1024x768_60:           /* VESA 1024 x 768 at 60 Hz (non-interlaced) */
 	    case VO_OUTPUT_1280x1024_60:          /* VESA 1280 x 1024 at 60 Hz (non-interlaced) */
@@ -303,6 +312,7 @@ static HDMI_VIDEO_TIMING_E DispFmt2HdmiTiming(HI_U32 u32Fmt)
 	    case VO_OUTPUT_1600x1200_60:          /* VESA 1600 x 1200 at 60 Hz (non-interlaced) */
 	    case VO_OUTPUT_1920x1200_60:          /* VESA 1920 x 1600 at 60 Hz (non-interlaced) CVT (Reduced Blanking)*/ 
 	    case VO_OUTPUT_2560x1440_30:          /* 2560x1440_30 */
+            case VO_OUTPUT_2560x1440_60:          /* 2560x1440_60 */
 	    case VO_OUTPUT_2560x1600_60:          /* 2560x1600_60 */
 	    case VO_OUTPUT_960H_PAL:              /* ITU-R BT.1302 960 x 576 at 50 Hz (interlaced)*/
 	    case VO_OUTPUT_960H_NTSC:             /* ITU-R BT.1302 960 x 480 at 60 Hz (interlaced)*/
@@ -497,6 +507,10 @@ HI_S32 DRV_HDMI_Open(HDMI_DEVICE_S* pstHdmiDev)
 
     /* open hdmi hal module*/
     s32Ret = HAL_HDMI_Open(HI_NULL, &pstHdmiDev->pstHdmiHal);
+    if (HI_SUCCESS != s32Ret)
+    {
+        return HI_FAILURE;
+    }
     HdmiDeviceInit(pstHdmiDev);
     pstHdmiDev->pstHdmiHal->stHalCtx.hHdmiDev = pstHdmiDev;
     pstHdmiDev->pstHdmiHal->stHalCtx.u32HdmiID = pstHdmiDev->u32HdmiDevId;

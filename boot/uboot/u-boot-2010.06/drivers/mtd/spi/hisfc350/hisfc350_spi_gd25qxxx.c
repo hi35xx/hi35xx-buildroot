@@ -1,7 +1,20 @@
-/******************************************************************************
-*    Copyright (c) 2009-2012 by Hisi.
-*    All rights reserved.
-******************************************************************************/
+/*
+ * Copyright (c) 2016 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #include <common.h>
 #include <asm/io.h>
@@ -80,23 +93,22 @@ static int spi_gd25qxxx_qe_enable(struct hisfc_spi *spi)
 
 	spi->driver->wait_ready(spi);
 
-	if (DEBUG_SPI) {
-		hisfc_write(host, HISFC350_CMD_INS, SPI_CMD_RDSR2);
+	hisfc_write(host, HISFC350_CMD_INS, SPI_CMD_RDSR2);
 
-		hisfc_write(host, HISFC350_CMD_CONFIG,
-				HISFC350_CMD_CONFIG_SEL_CS(spi->chipselect)
-				| HISFC350_CMD_CONFIG_DATA_CNT(1)
-				| HISFC350_CMD_CONFIG_DATA_EN
-				| HISFC350_CMD_CONFIG_RW_READ
-				| HISFC350_CMD_CONFIG_START);
-		HISFC350_CMD_WAIT_CPU_FINISH(host);
-		regval = hisfc_read(host, HISFC350_CMD_DATABUF0);
-		printf("QEbit = 0x2? : 0x%x\n", regval);
-		if ((regval & GD_SPI_CMD_SR_QE))
-			printf("QE bit enable success\n");
-		else
-			printf("QE bit enable failed\n");
-	}
+	hisfc_write(host, HISFC350_CMD_CONFIG,
+			HISFC350_CMD_CONFIG_SEL_CS(spi->chipselect)
+			| HISFC350_CMD_CONFIG_DATA_CNT(1)
+			| HISFC350_CMD_CONFIG_DATA_EN
+			| HISFC350_CMD_CONFIG_RW_READ
+			| HISFC350_CMD_CONFIG_START);
+	HISFC350_CMD_WAIT_CPU_FINISH(host);
+	regval = hisfc_read(host, HISFC350_CMD_DATABUF0);
+	printf("QEbit = 0x2? : 0x%x\n", regval);
+	if ((regval & GD_SPI_CMD_SR_QE))
+		printf("QE bit enable success\n");
+	else
+		printf("QE bit enable failed\n");
+
 	return 0;
 }
 

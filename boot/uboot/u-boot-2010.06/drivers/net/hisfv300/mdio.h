@@ -6,7 +6,7 @@ struct hieth_mdio_local {
 	unsigned long iobase_phys;
 
 	/* mdio_bus freq-div, 1 for 1/100, 0 for 1/50 */
-	int mdio_frqdiv;
+	u32 mdio_frqdiv;
 };
 
 #ifdef HIETH_SFV300

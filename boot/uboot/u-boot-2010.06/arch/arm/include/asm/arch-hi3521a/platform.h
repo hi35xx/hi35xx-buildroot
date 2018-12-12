@@ -77,6 +77,9 @@
 /* bit[8]=1; bit[7]: SPI nand I/O widthe; bit[7]=(0: 1-I/O | 1: 4-I/O */
 #define SPI_NAND_IO_WIDTHE_MASK			(0x1 << MULTIMODE_SHIFT)
 
+#define GET_SPI_NOR_ADDR_MODE(_reg) (((_reg) >> MULTIMODE_SHIFT) \
+				& SPI_NOR_ADDRESS_MODE_MASK)
+
 /********** Communication Register and flag used by bootrom *************/
 #define REG_START_FLAG         (SYS_CTRL_REG_BASE + REG_SC_GEN1)
 #define CONFIG_START_MAGIC     (0x444f574e)
@@ -98,7 +101,9 @@
 #define FMC_CRG29_CLK_EN		(1 << 1)
 #define FMC_CRG29_SOFT_RST_REQ		(1 << 0)
 
+#define FMC_CLK_SEL(_clk)		(((_clk) & 0x3) << 2)
 #define FMC_CLK_SEL_MASK		(0x3 << 2)
+#define GET_FMC_CLK_TYPE(_reg)		(((_reg) >> 2) & 0x3)
 
 #define CLK_24M				0x0
 #define CLK_83M				0x1

@@ -1,46 +1,42 @@
 #ifdef CONFIG_NET_HISFV300_HI3518EV200
 
-#define HIETH_SYSREG_BASE	(CRG_REG_BASE)
-#define HIETH_SYSREG_REG	(REG_ETH_CRG)
+#define HIETH_CRG_REG		(CRG_REG_BASE + REG_ETH_CRG)
 #define ETH_SOFT_RESET		(1 << 0)
 #define ETH_CLK_ENABLE		(1 << 1)
 #define ETH_PHY_RESET		(1 << 3)
 #define ETH_CORE_CLK_SELECT_54M	(1 << 7)
 
-static void hieth_set_regbit(unsigned long addr, int bit, int shift)
-{
-	unsigned long reg;
-	reg = _readl(addr);
-	bit = bit ? 1 : 0;
-	reg &= ~(1<<shift);
-	reg |= bit<<shift;
-	_writel(reg, addr);
-}
-
 static void hieth_reset(int rst)
 {
-	hieth_set_regbit(HIETH_SYSREG_BASE + HIETH_SYSREG_REG, rst, 0);
+	u32 val;
+
+	val = _readl(HIETH_CRG_REG);
+	if (rst)
+		val |= ETH_SOFT_RESET;
+	else
+		val &= ~ETH_SOFT_RESET;
+	_writel(val, HIETH_CRG_REG);
 
 	udelay(100);
 }
 
 static inline void hieth_clk_ena(void)
 {
-	ulong val;
+	u32 val;
 
-	val = _readl(HIETH_SYSREG_BASE + HIETH_SYSREG_REG);
+	val = _readl(HIETH_CRG_REG);
 	val |= ETH_CORE_CLK_SELECT_54M;
 	val |= ETH_CLK_ENABLE;
-	_writel(val, HIETH_SYSREG_BASE + HIETH_SYSREG_REG);
+	_writel(val, HIETH_CRG_REG);
 }
 
 static inline void hieth_clk_dis(void)
 {
-	ulong val;
+	u32 val;
 
-	val = _readl(HIETH_SYSREG_BASE + HIETH_SYSREG_REG);
+	val = _readl(HIETH_CRG_REG);
 	val &= ~ETH_CLK_ENABLE;
-	_writel(val, HIETH_SYSREG_BASE + HIETH_SYSREG_REG);
+	_writel(val, HIETH_CRG_REG);
 }
 
 static void hieth_phy_reset(void)
@@ -49,16 +45,16 @@ static void hieth_phy_reset(void)
 
 	/************************************************/
 	/* reset external phy with default reset pin */
-	v = readl(HIETH_SYSREG_BASE + HIETH_SYSREG_REG);
+	v = readl(HIETH_CRG_REG);
 	v |= ETH_PHY_RESET;
-	writel(v, HIETH_SYSREG_BASE + HIETH_SYSREG_REG);
+	writel(v, HIETH_CRG_REG);
 
 	udelay(50000);
 
 	/* then, cancel reset, and should delay some time */
-	v = readl(HIETH_SYSREG_BASE + HIETH_SYSREG_REG);
+	v = readl(HIETH_CRG_REG);
 	v &= ~ETH_PHY_RESET;
-	writel(v, HIETH_SYSREG_BASE + HIETH_SYSREG_REG);
+	writel(v, HIETH_CRG_REG);
 
 	udelay(50000);
 

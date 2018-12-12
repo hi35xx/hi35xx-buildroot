@@ -80,11 +80,11 @@ extern void nand_wait_ready(struct mtd_info *mtd);
 #define NAND_CMD_READOOB	0x50
 #define NAND_CMD_ERASE1		0x60
 #define NAND_CMD_STATUS		0x70
-#define NAND_CMD_STATUS_MULTI	0x71
 #define NAND_CMD_SEQIN		0x80
 #define NAND_CMD_RNDIN		0x85
 #define NAND_CMD_READID		0x90
 #define NAND_CMD_ERASE2		0xd0
+#define NAND_CMD_GET_FEATURES	0xee
 #define NAND_CMD_RESET		0xff
 
 /* Extended commands for large page devices */
@@ -435,11 +435,18 @@ struct nand_chip {
 #define NAND_MFR_FUJITSU	0x04
 #define NAND_MFR_NATIONAL	0x8f
 #define NAND_MFR_RENESAS	0x07
-#define NAND_MFR_STMICRO	0x20
+#define NAND_MFR_ST_MICRO	0x20
 #define NAND_MFR_HYNIX		0xad
 #define NAND_MFR_MICRON		0x2c
 #define NAND_MFR_AMD		0x01
-#define NAND_MFR_GD			0xc8
+#define NAND_MFR_MACRONIX	0xc2
+#define NAND_MFR_GD_ESMT	0xc8
+#define NAND_MFR_EON		0x92
+#define NAND_MFR_WINBOND	0xef
+#define NAND_MFR_ATO		0x9b
+#define NAND_MFR_MXIC		0xc2
+#define NAND_MFR_ALL_FLASH	0xc1
+#define NAND_MFR_PARAGON	0xa1
 
 /**
  * struct nand_flash_dev - NAND Flash Device ID Structure
@@ -556,7 +563,8 @@ struct platform_nand_chip *get_platform_nandchip(struct mtd_info *mtd)
 static inline char *get_ecctype_str(int ecctype)
 {
 #if defined(CONFIG_NAND_FLASH_HINFC610) \
-	|| defined(CONFIG_NAND_FLASH_HISNFC100)
+	|| defined(CONFIG_NAND_FLASH_HISNFC100) \
+	|| defined(CONFIG_HIFMC_SPI_NAND)
 	static char *ecctype_string[] = {
 		"None", "1bit/512Byte", "4bits/512Byte", "8bits/512Byte",
 		"24bits/1K", "unknown", "40bits/1K", "unknown"};

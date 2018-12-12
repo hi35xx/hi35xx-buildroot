@@ -1,11 +1,22 @@
-/******************************************************************************
- *	Flash Memory Controller Device Driver
- *	Copyright (c) 2014 - 2015 by Hisilicon
- *	All rights reserved.
- * ***
- *	Create by hisilicon
+/*
+ * The Flash Memory Controller v100 Device Driver for hisilicon
  *
- *****************************************************************************/
+ * Copyright (c) 2015 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #ifndef __HIFMC_COMMON_H__
 #define __HIFMC_COMMON_H__
@@ -44,21 +55,34 @@
 #define ECC_TYPE_16BIT				0x2
 #define ECC_TYPE_24BIT				0x3
 #define ECC_TYPE_28BIT				0x4
+#define ECC_TYPE_40BIT				0x5
+#define ECC_TYPE_64BIT				0x6
 
 #define PAGE_SIZE_2KB				0x0
 #define PAGE_SIZE_4KB				0x1
+#define PAGE_SIZE_8KB				0x2
+#define PAGE_SIZE_16KB				0x3
 
 #ifdef CONFIG_HIFMC
 /*****************************************************************************/
 /* HIFMC REG */
 /*****************************************************************************/
 #define FMC_CFG					0x00
+#define FMC_CFG_SPI_NAND_SEL(_type)		(((_size) & 0x3) << 11)
 #define FMC_CFG_SPI_NOR_ADDR_MODE(_mode)	((_mode) << 10)
 #define FMC_CFG_BLOCK_SIZE(_size)		(((_size) & 0x3) << 8)
 #define FMC_CFG_ECC_TYPE(_type)			(((_type) & 0x7) << 5)
 #define FMC_CFG_PAGE_SIZE(_size)		(((_size) & 0x3) << 3)
 #define FMC_CFG_FLASH_SEL(_type)		(((_type) & 0x3) << 1)
 #define FMC_CFG_OP_MODE(_mode)			((_mode) & 0x1)
+
+#define SPI_NAND_MFR_OTHER			0x0
+#define SPI_NAND_MFR_WINBOND			0x1
+#define SPI_NAND_MFR_ESMT			0x2
+#define SPI_NAND_MFR_MICRON			0x3
+
+#define SPI_NAND_SEL_SHIFT			11
+#define SPI_NAND_SEL_MASK			(0x3 << SPI_NAND_SEL_SHIFT)
 
 #define SPI_NOR_ADDR_MODE_3_BYTES		0x0
 #define SPI_NOR_ADDR_MODE_4_BYTES		0x1
@@ -67,9 +91,11 @@
 #define SPI_NOR_ADDR_MODE_MASK			(0x1 << SPI_NOR_ADDR_MODE_SHIFT)
 
 #define BLOCK_SIZE_64_PAGE			0x0
+#define BLOCK_SIZE_128_PAGE			0x1
+#define BLOCK_SIZE_256_PAGE			0x2
+#define BLOCK_SIZE_512_PAGE			0x3
 
-#define BLOCK_SIZE_SHIFT			8
-#define BLOCK_SIZE_MASK				(0x3 << BLOCK_SIZE_SHIFT)
+#define BLOCK_SIZE_MASK				(0x3 << 8)
 
 #define ECC_TYPE_SHIFT				5
 #define ECC_TYPE_MASK				(0x7 << ECC_TYPE_SHIFT)
@@ -79,7 +105,8 @@
 
 #define FLASH_TYPE_SPI_NOR			0x0
 #define FLASH_TYPE_SPI_NAND			0x1
-#define FLASH_TYPE_DEFAULT			0x2
+#define FLASH_TYPE_NAND				0x2
+#define FLASH_TYPE_DEFAULT			0x3
 
 #define FLASH_SEL_SHIFT				1
 #define FLASH_SEL_MASK				(0x3 << FLASH_SEL_SHIFT)
@@ -92,6 +119,7 @@
 /*****************************************************************************/
 #define FMC_GLOBAL_CFG				0x04
 #define FMC_GLOBAL_CFG_WP_ENABLE		(1 << 6)
+#define FMC_GLOBAL_CFG_RANDOMIZER_EN		(1 << 2)
 
 /*****************************************************************************/
 #define FMC_SPI_TIMING_CFG			0x08
@@ -104,8 +132,27 @@
 #define CS_DESELECT_TIME			0xf
 
 /*****************************************************************************/
+#define FMC_PND_PWIDTH_CFG			0x0c
+#define PWIDTH_CFG_RW_HCNT(_n)			(((_n) & 0xf) << 8)
+#define PWIDTH_CFG_R_LCNT(_n)			(((_n) & 0xf) << 4)
+#define PWIDTH_CFG_W_LCNT(_n)			((_n) & 0xf)
+
+#ifdef CONFIG_NAND_EDO_MODE
+#define RW_H_WIDTH				(0x3)
+#define R_L_WIDTH				(0x2)
+#define W_L_WIDTH				(0x2)
+#define NAND_EDO_MODE_SHIFT		9
+#define NAND_EDO_MODE_MASK		(1<<NAND_EDO_MODE_SHIFT)
+#define SET_NAND_EDO_MODE_EN(reg)	((reg) | NAND_EDO_MODE_MASK)
+#else
+#define RW_H_WIDTH				(0xa)
+#define R_L_WIDTH				(0xa)
+#define W_L_WIDTH				(0xa)
+#endif
+/*****************************************************************************/
 #define FMC_INT					0x18
 #define FMC_INT_AHB_OP				(1 << 7)
+#define FMC_INT_WR_LOCK				(1 << 6)
 #define FMC_INT_DMA_ERR				(1 << 5)
 #define FMC_INT_ERR_ALARM			(1 << 4)
 #define FMC_INT_ERR_INVALID			(1 << 3)
@@ -116,6 +163,7 @@
 /*****************************************************************************/
 #define FMC_INT_EN				0x1c
 #define FMC_INT_EN_AHB_OP			(1 << 7)
+#define FMC_INT_EN_WR_LOCK			(1 << 6)
 #define FMC_INT_EN_DMA_ERR			(1 << 5)
 #define FMC_INT_EN_ERR_ALARM			(1 << 4)
 #define FMC_INT_EN_ERR_INVALID			(1 << 3)
@@ -126,6 +174,7 @@
 /*****************************************************************************/
 #define FMC_INT_CLR				0x20
 #define FMC_INT_CLR_AHB_OP			(1 << 7)
+#define FMC_INT_CLR_WR_LOCK			(1 << 6)
 #define FMC_INT_CLR_DMA_ERR			(1 << 5)
 #define FMC_INT_CLR_ERR_ALARM			(1 << 4)
 #define FMC_INT_CLR_ERR_INVALID			(1 << 3)
@@ -133,7 +182,7 @@
 #define FMC_INT_CLR_OP_FAIL			(1 << 1)
 #define FMC_INT_CLR_OP_DONE			(1 << 0)
 
-#define FMC_INT_CLR_ALL				0xbf
+#define FMC_INT_CLR_ALL				0xff
 
 /*****************************************************************************/
 #define FMC_CMD					0x24
@@ -150,7 +199,7 @@
 #define FMC_ADDRL_BLOCK_L_MASK(_page)		((_page) & 0xffc0)
 
 #define READ_ID_ADDR				0x00
-#define PROTECTION_ADDR				0xa0
+#define PROTECT_ADDR				0xa0
 #define FEATURE_ADDR				0xb0
 #define STATUS_ADDR				0xc0
 
@@ -167,6 +216,7 @@
 #define IF_TYPE_DIO				0x2
 #define IF_TYPE_QUAD				0x3
 #define IF_TYPE_QIO				0x4
+#define IF_TYPE_DTR				0x4
 
 #define IF_TYPE_SHIFT				7
 #define IF_TYPE_MASK				(0x7 << IF_TYPE_SHIFT)
@@ -187,26 +237,30 @@
 #define FEATURES_DATA_LEN			1
 #define READ_OOB_BB_LEN				1
 #define MAX_SPI_NOR_ID_LEN			8
+#define MAX_NAND_ID_LEN				8
 #define MAX_SPI_NAND_ID_LEN			3
 
-#define PROTECTION_BRWD_MASK			(1 << 7)
-#define PROTECTION_BP3_MASK			(1 << 6)
-#define PROTECTION_BP2_MASK			(1 << 5)
-#define PROTECTION_BP1_MASK			(1 << 4)
-#define PROTECTION_BP0_MASK			(1 << 3)
+#define PROTECT_BRWD_MASK			(1 << 7)
+#define PROTECT_BP3_MASK			(1 << 6)
+#define PROTECT_BP2_MASK			(1 << 5)
+#define PROTECT_BP1_MASK			(1 << 4)
+#define PROTECT_BP0_MASK			(1 << 3)
 
-#define ANY_BP_ENABLE(_val)		((PROTECTION_BP3_MASK & _val) \
-					|| (PROTECTION_BP2_MASK & _val) \
-					|| (PROTECTION_BP1_MASK & _val) \
-					|| (PROTECTION_BP0_MASK & _val))
+#define ANY_BP_ENABLE(_val)			((PROTECT_BP3_MASK & _val) \
+						|| (PROTECT_BP2_MASK & _val) \
+						|| (PROTECT_BP1_MASK & _val) \
+						|| (PROTECT_BP0_MASK & _val))
 
-#define ALL_BP_MASK				(PROTECTION_BP3_MASK \
-						| PROTECTION_BP2_MASK \
-						| PROTECTION_BP1_MASK \
-						| PROTECTION_BP0_MASK)
+#define ALL_BP_MASK				(PROTECT_BP3_MASK \
+						| PROTECT_BP2_MASK \
+						| PROTECT_BP1_MASK \
+						| PROTECT_BP0_MASK)
 
 #define FEATURE_ECC_ENABLE			(1 << 4)
 #define FEATURE_QE_ENABLE			(1 << 0)
+
+/* read nand id or nand status, return from nand data length */
+#define MAX_NANDINFO_LEN			0x10
 
 /*****************************************************************************/
 #define FMC_OP					0x3c
@@ -234,6 +288,8 @@
 #define ALL_BURST_ENABLE			(FMC_DMA_AHB_CTRL_BURST16_EN \
 						| FMC_DMA_AHB_CTRL_BURST8_EN \
 						| FMC_DMA_AHB_CTRL_BURST4_EN)
+
+#define FMC_DMA_ADDR_OFFSET			4096
 
 /*****************************************************************************/
 #define FMC_DMA_SADDR_D0			0x4c
@@ -265,7 +321,7 @@
 #define OP_CTRL_RD_OP_SEL(_op)			(((_op) & 0x3) << 4)
 #define OP_CTRL_DMA_OP(_type)			((_type) << 2)
 #define OP_CTRL_RW_OP(_op)			((_op) << 1)
-#define OP_CTRL_DMA_OP_READY		1
+#define OP_CTRL_DMA_OP_READY			1
 
 #define RD_OP_READ_ALL_PAGE			0x0
 #define RD_OP_READ_OOB				0x1
@@ -321,10 +377,13 @@
 
 /*****************************************************************************/
 #define hifmc_read(_host, _reg) \
-	readl((char *)_host->regbase + (_reg))
+	readl((u_int)((char *)_host->regbase + (_reg)))
 
 #define hifmc_write(_host, _reg, _value) \
-	writel((_value), (char *)_host->regbase + (_reg))
+	writel((u_int)(_value), (u_int)((char *)_host->regbase + (_reg)))
+
+#define GET_PAGE_INDEX(host) \
+		((host->addr_value[0] >> 16) | (host->addr_value[1] << 16))
 
 /*****************************************************************************/
 #define DB_MSG(_fmt, arg...) \
@@ -352,6 +411,8 @@
 #define WE_DBG		0	/* Write Enable debug print */
 #define BP_DBG		0	/* Block Protection debug print */
 #define EC_DBG		0	/* enable/disable ecc0 and randomizer */
+#define DTR_DB		0	/* 4DTR debug print */
+#define RST_DB		0	/* enable/disable reset pin */
 
 #define FMC_PR(_type, _fmt, arg...) \
 	do { \
@@ -360,12 +421,13 @@
 	} while (0)
 
 /*****************************************************************************/
-#define FMC_WAIT_TIMEOUT 10000000
+#define FMC_WAIT_TIMEOUT	(400000)  /* 4s = 400000*10us */
 
 #define FMC_CMD_WAIT_CPU_FINISH(_host) \
 	do { \
 		unsigned regval, timeout = FMC_WAIT_TIMEOUT; \
 		do { \
+			udelay(10);\
 			regval = hifmc_read((_host), FMC_OP); \
 			--timeout; \
 		} while ((regval & FMC_OP_REG_OP_START) && timeout); \
@@ -378,6 +440,7 @@
 	do { \
 		unsigned regval, timeout = FMC_WAIT_TIMEOUT; \
 		do { \
+			udelay(10);\
 			regval = hifmc_read((_host), FMC_INT); \
 			--timeout; \
 		} while ((!(regval & FMC_INT_OP_DONE) && timeout)); \
@@ -392,6 +455,7 @@
 	do { \
 		unsigned regval, timeout = FMC_WAIT_TIMEOUT; \
 		do { \
+			udelay(10);\
 			regval = hifmc_read((_host), FMC_OP_CTRL); \
 			--timeout; \
 		} while ((regval & OP_CTRL_DMA_OP_READY) && timeout); \
@@ -414,12 +478,15 @@ struct hifmc_cmd_op {
 };
 
 /*****************************************************************************/
+extern unsigned int hifmc_ip_ver;
 extern unsigned char hifmc_cs_user[];
 
 /*****************************************************************************/
 extern char *ulltostr(unsigned long long size);
 
 extern void debug_register_dump(void);
+
+extern int hifmc_ip_ver_check(void);
 
 extern void hifmc_dev_type_switch(unsigned char type);
 

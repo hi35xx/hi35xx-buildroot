@@ -53,6 +53,8 @@ COBJS-y += cmd_bootm.o
 COBJS-y += cmd_help.o
 COBJS-y += cmd_nvedit.o
 COBJS-y += cmd_version.o
+COBJS-$(CONFIG_CMD_UGZIP) += cmd_ugzip.o
+COBJS-$(CONFIG_CMD_CREAD) += cmd_cycle.o
 #ddr training command
 COBJS-$(CONFIG_DDR_TRAINING) += cmd_ddrtraining.o
 COBJS-$(CONFIG_DDR_TRAINING_V200) += cmd_ddrtrainingv200.o
@@ -194,6 +196,21 @@ ifeq ($(CONFIG_AUDIO_ENABLE), y)
 ifeq ($(CONFIG_PRODUCTNAME), "hi3516a")
 COBJS-y += cmd_ao.o
 endif
+ifeq ($(CONFIG_PRODUCTNAME), "hi3519")
+COBJS-y += cmd_ao.o
+endif
+ifeq ($(CONFIG_PRODUCTNAME), "hi3519v101")
+COBJS-y += cmd_ao.o
+endif
+ifeq ($(CONFIG_PRODUCTNAME), "hi3516av200")
+COBJS-y += cmd_ao.o
+endif
+ifeq ($(CONFIG_PRODUCTNAME), "hi3559")
+COBJS-y += cmd_ao.o
+endif
+ifeq ($(CONFIG_PRODUCTNAME), "hi3556")
+COBJS-y += cmd_ao.o
+endif
 endif
 ifndef CONFIG_HI3536_A7
 sinclude Makefile-osd
@@ -222,7 +239,51 @@ else
 	cp cmd_bootss2_v300 bootss2.a -rf
 endif
 
-endif
+ifdef CONFIG_HI3516CV300
+	cp cmd_bootss2_v500_hi3516cv300 bootss2.a -rf
+endif #/* end CONFIG_HI3516CV300 */
+
+ifdef CONFIG_HI3519
+ifdef CONFIG_HIFMC_NAND
+	cp cmd_bootss2_v500_hi3519_nand bootss2.a -rf
+else
+	cp cmd_bootss2_v500_hi3519 bootss2.a -rf
+endif #/*end CONFIG_HIFMC_NAND*/
+endif #/*end CONFIG_HI3519*/
+
+ifdef CONFIG_HI3519V101
+ifdef CONFIG_HIFMC_NAND
+	cp cmd_bootss2_v500_hi3519_nand bootss2.a -rf
+else
+	cp cmd_bootss2_v500_hi3519 bootss2.a -rf
+endif #/*end CONFIG_HIFMC_NAND*/
+endif #/*end CONFIG_HI3519V101*/
+
+ifdef CONFIG_HI3516AV200
+ifdef CONFIG_HIFMC_NAND
+	cp cmd_bootss2_v500_hi3516av200_nand bootss2.a -rf
+else
+	cp cmd_bootss2_v500_hi3516av200 bootss2.a -rf
+endif #/*end CONFIG_HIFMC_NAND*/
+endif #/*end CONFIG_HI3516AV200*/
+
+ifdef CONFIG_HI3559
+ifdef CONFIG_HIFMC_NAND
+	cp cmd_bootss2_v500_hi3559_nand bootss2.a -rf
+else
+	cp cmd_bootss2_v500_hi3559 bootss2.a -rf
+endif #/*end CONFIG_HIFMC_NAND*/
+endif #/*end CONFIG_HI3559*/
+
+ifdef CONFIG_HI3556
+ifdef CONFIG_HIFMC_NAND
+	cp cmd_bootss2_v500_hi3559_nand bootss2.a -rf
+else
+	cp cmd_bootss2_v500_hi3559 bootss2.a -rf
+endif #/*end CONFIG_HIFMC_NAND*/
+endif #/*end CONFIG_HI3556*/
+
+endif #/*end CONFIG_SNAPSHOT_BOOT*/
 $(obj)env_embedded.o: $(src)env_embedded.c $(obj)../tools/envcrc
 	$(CC) $(AFLAGS) -Wa,--no-warn \
 		-DENV_CRC=$(shell $(obj)../tools/envcrc) \

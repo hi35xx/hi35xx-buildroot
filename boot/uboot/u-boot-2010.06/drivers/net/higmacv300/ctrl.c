@@ -2,37 +2,53 @@
 #include "higmac.h"
 #include "ctrl.h"
 
-#if (CONFIG_GMAC_NUMS == 2)
-void higmac_set_macif(struct higmac_netdev_local *ld, int mode, int speed)
-{
-	unsigned int p = CRG_REG_BASE;
-	unsigned long v;
+#define CRG_GMAC			REG_ETH_CRG
 
-	/* enable change: port_mode */
-	higmac_writel_bits(ld, 1, MODE_CHANGE_EN, BIT_MODE_CHANGE_EN);
-	if (speed == 2)/* FIXME */
-		speed = 5;/* 1000M */
-	higmac_writel_bits(ld, speed, PORT_MODE, BITS_PORT_MODE);
-	/* disable change: port_mode */
-	higmac_writel_bits(ld, 0, MODE_CHANGE_EN, BIT_MODE_CHANGE_EN);
-
-	/* soft reset mac_if */
-	v = readl(p + RESET_CTRL);
-	v |= 1 << (ld->index + 10);/* bit10 mac_if0 */
-	writel(v, p + RESET_CTRL);
-
-	/* config mac_if */
-	if (ld->index)/* eth1 */
-		writel(mode, HIGMAC_MACIF1_CTRL);
-	else
-		writel(mode, HIGMAC_MACIF0_CTRL);
-
-	v = readl(p + RESET_CTRL);
-	v &= ~(1 << (ld->index + 10));/* undo reset */
-	writel(v, p + RESET_CTRL);
-}
+#if GMAC_AT_LEAST_2PORT
+#define HIGMAC_MACIF0_CTRL		(HIGMAC0_IOBASE + 0x300c)
+#define HIGMAC_MACIF1_CTRL		(HIGMAC0_IOBASE + 0x3010)
 #else
-void higmac_set_macif(struct higmac_netdev_local *ld, int mode, int speed)
+#ifdef CONFIG_HI3521D
+#define HIGMAC_MACIF0_CTRL		(HIGMAC0_IOBASE + 0x300c)
+#else
+#define HIGMAC_MACIF0_CTRL		(CRG_REG_BASE + REG_ETH_MAC_IF)
+#endif
+#endif
+
+#define HIGMAC_DUAL_MAC_CRF_ACK_TH	(HIGMAC0_IOBASE + 0x3004)
+
+/* Ethernet MAC CRG register bit map */
+#define BIT_GMAC0_RST			BIT(0)
+#define BIT_GMAC0_CLK_EN		BIT(1)
+#define BIT_MACIF0_RST			BIT(2)
+#define BIT_GMACIF0_CLK_EN		BIT(3)
+#define BIT_RMII0_CLKSEL_PAD		BIT(4)
+#define BIT_EXT_PHY0_CLK_SELECT		BIT(6)
+
+#if (defined CONFIG_ARCH_HI3519 || defined CONFIG_ARCH_HI3519V101 || defined CONFIG_ARCH_HI3559 || defined CONFIG_ARCH_HI3556 || \
+		defined CONFIG_ARCH_HI3516AV200)
+#define BIT_EXT_PHY0_RST		BIT(7)
+#define PHY0_CLK_25M			0
+#define PHY0_CLK_50M			BIT_EXT_PHY0_CLK_SELECT
+#else
+#define BIT_EXT_PHY0_RST		BIT(5)
+#define PHY0_CLK_25M			BIT_EXT_PHY0_CLK_SELECT
+#define PHY0_CLK_50M			0
+#endif
+
+#if GMAC_AT_LEAST_2PORT
+#define BIT_GSF_PUB_CLK_EN		BIT(7)
+#define BIT_GMAC1_RST			BIT(8)
+#define BIT_GMAC1_CLK_EN		BIT(9)
+#define BIT_MACIF1_RST			BIT(10)
+#define BIT_GMACIF1_CLK_EN		BIT(11)
+#define BIT_RMII1_CLKSEL_PAD		BIT(12)
+#define BIT_EXT_PHY1_RST		BIT(13)
+#define BIT_EXT_PHY1_CLK_SELECT		BIT(14)
+#define PHY1_CLK_25M			BIT_EXT_PHY1_CLK_SELECT
+#endif
+
+void higmac_set_macif(struct higmac_netdev_local *ld, int mode, unsigned int speed)
 {
 	unsigned int p = CRG_REG_BASE;
 	unsigned long v;
@@ -47,17 +63,34 @@ void higmac_set_macif(struct higmac_netdev_local *ld, int mode, int speed)
 
 	/* soft reset mac_if */
 	v = readl(p + CRG_GMAC);
-	v |= (1 << BIT_GSF_MAC_IF_SOFT_RESET);
+	if (ld->index) {
+#if GMAC_AT_LEAST_2PORT
+		v |= BIT_MACIF1_RST;
+#endif
+	} else {
+		v |= BIT_MACIF0_RST;
+	}
 	writel(v, p + CRG_GMAC);
 
 	/* config mac_if */
-	writel(mode, CRG_REG_BASE + SYSCTL_MAC_IF);
+	if (ld->index) {
+#if GMAC_AT_LEAST_2PORT
+		writel(mode, HIGMAC_MACIF1_CTRL);
+#endif
+	} else {
+		writel(mode, HIGMAC_MACIF0_CTRL);
+	}
 
 	v = readl(p + CRG_GMAC);
-	v &= ~(1 << BIT_GSF_MAC_IF_SOFT_RESET);/* undo reset */
+	if (ld->index) {
+#if GMAC_AT_LEAST_2PORT
+		v &= ~BIT_MACIF1_RST;
+#endif
+	} else {
+		v &= ~BIT_MACIF0_RST;
+	}
 	writel(v, p + CRG_GMAC);
 }
-#endif
 
 int higmac_hw_set_macaddress(struct higmac_netdev_local *ld, unsigned char *mac)
 {
@@ -113,6 +146,7 @@ int higmac_glb_preinit_dummy(struct higmac_netdev_local *ld)
 {
 	/* drop packet enable */
 	higmac_writel(ld, 0x3F, REC_FILT_CONTROL);
+	higmac_writel_bits(ld, 0, REC_FILT_CONTROL, BIT_BC_DROP_EN);
 
 	/*clear all interrupt status*/
 	higmac_clear_irqstatus(ld, RAW_INT_ALL_MASK);
@@ -150,55 +184,25 @@ void higmac_external_phy_reset(void)
 #else
 	/* use CRG register to reset external phy */
 	v = readl(CRG_REG_BASE + CRG_GMAC);
-	v |= (0x1 << BIT_EXT_PHY_RESET); /* reset */
+	v |= BIT_EXT_PHY0_RST; /* reset */
+#if GMAC_AT_LEAST_2PORT
+	v |= BIT_EXT_PHY1_RST;
+#endif
 	writel(v, CRG_REG_BASE + CRG_GMAC);
 
 	udelay(50 * 1000); /* wait for phy reset time */
 
 	v = readl(CRG_REG_BASE + CRG_GMAC);
-	v &= ~(0x1 << BIT_EXT_PHY_RESET); /*undo reset */
+	v &= ~BIT_EXT_PHY0_RST; /*undo reset */
+#if GMAC_AT_LEAST_2PORT
+	v &= ~BIT_EXT_PHY1_RST;
+#endif
 	writel(v, CRG_REG_BASE + CRG_GMAC);
 
 	udelay(60 * 1000); /* wait for future MDIO operation */
 #endif
 }
 
-#if (CONFIG_GMAC_NUMS == 2)
-/* TODO: power on gmac here */
-void higmac_sys_init(void)
-{
-	unsigned long p = 0;
-	volatile unsigned int v = 0;
-
-	/*soft reset*/
-	p = (unsigned long)(CRG_REG_BASE);
-
-	v = readl(p + RESET_CTRL);
-	v |= 0x0f3f; /* reset g1, g0, mac_if1, mac_if0 */
-	writel(v, p + RESET_CTRL);
-
-	udelay(100);
-
-	v = readl(p + RESET_CTRL);
-	v = 0x3f; /* undo reset */
-	writel(v, p + RESET_CTRL);
-	/* reset internal FEPHY */
-	v = 0x1; /* use 25MHz clk, enable clk, undo reset */
-	writel(v, p + INTERNAL_FEPHY_CTRL);
-
-	udelay(100);
-
-	v = readl(p + INTERNAL_FEPHY_CTRL);
-	v |= (0x1 << 4); /* reset */
-	writel(v, p + INTERNAL_FEPHY_CTRL);
-
-	udelay(100);
-
-	v = readl(p + INTERNAL_FEPHY_CTRL);
-	v &= ~(0x1 << 4); /* undo reset */
-	writel(v, p + INTERNAL_FEPHY_CTRL);
-}
-#else
 void higmac_sys_init(void)
 {
 	unsigned long p = 0;
@@ -206,40 +210,56 @@ void higmac_sys_init(void)
 
 	p = (unsigned long)(CRG_REG_BASE);
 
-	/* phy clk select */
 	v = readl(p + CRG_GMAC);
-	v |= (0x1 << BIT_EXT_PHY_CLK_SELECT);
-	writel(v, p + CRG_GMAC);
 
+	/* phy clk select 25MHz */
+	v &= ~BIT_EXT_PHY0_CLK_SELECT;
+	v |= PHY0_CLK_25M;
+#if GMAC_AT_LEAST_2PORT
+	v &= ~BIT_EXT_PHY1_CLK_SELECT;
+	v |= PHY1_CLK_25M;
+#endif
 	/* enable clk */
-	v = readl(p + CRG_GMAC);
-	v |= (0x1 << BIT_GSF_CLK_EN | 0x1 << BIT_GSF_MAC_IF_EN);
-	writel(v, p + CRG_GMAC);
-
-#ifdef CONFIG_HIGMAC_RMII_CLK_USE_EXTERNAL_PAD
-	if (higmac_board_info[0].phy_intf == interface_mode_rmii) {
-		v = readl(p + CRG_GMAC);
-		v |= (0x1 << BIT_RMII_CLK_SELECT); /* rmii select pad clk */
-		writel(v, p + CRG_GMAC);
-	}
+	v |= (BIT_GMAC0_CLK_EN | BIT_GMACIF0_CLK_EN);
+#if GMAC_AT_LEAST_2PORT
+	v |= BIT_GSF_PUB_CLK_EN;
+	v |= (BIT_GMAC1_CLK_EN | BIT_GMACIF1_CLK_EN);
 #endif
 
+#ifdef CONFIG_HIGMAC_RMII0_CLK_USE_EXTERNAL_PAD
+	if (higmac_board_info[0].phy_intf == interface_mode_rmii)
+		v |= BIT_RMII0_CLKSEL_PAD; /* rmii select pad clk */
+#endif
+#if GMAC_AT_LEAST_2PORT
+#ifdef CONFIG_HIGMAC_RMII1_CLK_USE_EXTERNAL_PAD
+	if (higmac_board_info[1].phy_intf == interface_mode_rmii)
+		v |= BIT_RMII1_CLKSEL_PAD; /* rmii select pad clk */
+#endif
+#endif
+
+	writel(v, p + CRG_GMAC);
+
 	/*soft reset*/
 	v = readl(p + CRG_GMAC);
-	v |= (0x1 << BIT_GSF_SOFT_RESET); /* reset */
+	v |= BIT_GMAC0_RST;
+#if GMAC_AT_LEAST_2PORT
+	v |= BIT_GMAC1_RST;
+#endif
 	writel(v, p + CRG_GMAC);
 
 	udelay(100);
 
 	v = readl(p + CRG_GMAC);
-	v &= ~(0x1 << BIT_GSF_SOFT_RESET); /*undo reset */
+	v &= ~BIT_GMAC0_RST;
+#if GMAC_AT_LEAST_2PORT
+	v &= ~BIT_GMAC1_RST;
+#endif
 	writel(v, p + CRG_GMAC);
 
 	writel(0xe, HIGMAC_DUAL_MAC_CRF_ACK_TH);
 
 	higmac_external_phy_reset();
 }
-#endif
 
 void higmac_sys_exit(void)
 {
@@ -368,9 +388,9 @@ int higmac_set_tx_rq_hwq_addr(struct higmac_netdev_local *ld,
 	return 0;
 }
 
-int higmac_desc_enable(struct higmac_netdev_local *ld, int desc_ena)
+u32 higmac_desc_enable(struct higmac_netdev_local *ld, u32 desc_ena)
 {
-	int old;
+	u32 old;
 
 	old = higmac_readl(ld, DESC_WR_RD_ENA);
 	higmac_writel(ld, old | desc_ena, DESC_WR_RD_ENA);
@@ -378,9 +398,9 @@ int higmac_desc_enable(struct higmac_netdev_local *ld, int desc_ena)
 	return old;
 }
 
-int higmac_desc_disable(struct higmac_netdev_local *ld, int desc_dis)
+u32 higmac_desc_disable(struct higmac_netdev_local *ld, u32 desc_dis)
 {
-	int old;
+	u32 old;
 
 	old = higmac_readl(ld, DESC_WR_RD_ENA);
 	higmac_writel(ld, old & (~desc_dis), DESC_WR_RD_ENA);

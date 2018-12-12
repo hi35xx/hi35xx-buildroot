@@ -34,6 +34,10 @@
 #include "sys-hi3518ev200.c"
 #endif
 
+#ifdef CONFIG_NET_HISFV300_HI3516CV300
+#include "sys-hi3516cv300.c"
+#endif
+
 #ifndef INNER_PHY
 void revise_led_shine(void)
 {

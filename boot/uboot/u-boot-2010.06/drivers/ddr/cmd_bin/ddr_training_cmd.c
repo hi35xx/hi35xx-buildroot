@@ -10,9 +10,15 @@
 #include <ddr_interface.h>
 #include "ddr_training_impl.h"
 
+#if defined(DDR_TRAINING_UART_CONFIG) || defined(DDR_TRAINING_LOG_CONFIG)
 extern void uart_early_puts(const char *s);
 extern void uart_early_put_hex(int hex);
 extern void uart_early_putc(int chr);
+#else
+#define uart_early_puts(_s)
+#define uart_early_put_hex(_h)
+#define uart_early_putc(_c)
+#endif
 
 /* ddr training cmd result */
 static struct ddr_training_result_st ddrt_result_sram;
@@ -132,6 +138,9 @@ void ddr_training_error(unsigned int mask, unsigned int phy, int byte, int dq)
 	case DDR_ERR_DATAEYE:
 		uart_early_puts("Dataeye");
 		break;
+	case DDR_ERR_LPCA:
+		uart_early_puts("LPCA");
+		break;
 	default:
 		break;
 	}
@@ -217,6 +226,38 @@ void ddr_result_data_save(void *ddrtr_result,
 		data->wr_win_sum  = training->ddr_win_sum;
 	}
 
+}
+
+/**
+ * ddr_lpca_data_save
+ * @ddrtr_result
+ * @data
+ *
+ * Save lpca training data.
+ */
+void ddr_lpca_data_save(void *ddrtr_result, struct ca_data_st *data)
+{
+
+	unsigned int index;
+	struct ddr_training_result_st *result_st
+		= (struct ddr_training_result_st *)ddrtr_result;
+	struct ddr_training_data_st *tr_data;
+
+	for (index = 0; index < DDR_SUPPORT_PHY_MAX; index++) {
+		if (result_st->ddrtr_data[index].base_dmc == data->base_dmc)
+			break;
+	}
+
+	if (index == DDR_SUPPORT_PHY_MAX) {
+		DDR_ERROR("invalid base_dmc[%x]", data->base_dmc);
+		return;
+	}
+
+	tr_data = &result_st->ddrtr_data[index];
+
+	for (index = 0; index < DDR_PHY_CA_MAX; index++)
+		tr_data->ca_addr[index] = (data->left[index]
+			<< DDR_DATAEYE_RESULT_BIT) | data->right[index];
 }
 
 /**
@@ -362,7 +403,7 @@ static int ddr_wl_func(void)
 	return result;
 }
 #else
-static int ddr_wl_func()
+static int ddr_wl_func(void)
 {
 	DDR_WARNING("Not support DDR WL training.");
 	return 0;
@@ -556,6 +597,51 @@ static int ddr_ac_training_func(void)
 }
 #endif /* DDR_AC_TRAINING_CONFIG */
 
+#ifdef DDR_LPCA_TRAINING_CONFIG
+/**
+ * ddr_lpca_training_func
+ * @ddrtr_result
+ *
+ *
+ */
+static int ddr_lpca_training_func(void *ddrtr_result)
+{
+	int result = 0;
+	int i;
+	unsigned int base_dmc, base_phy;
+	struct tr_relate_reg relate_reg;
+
+	/* LPCA training disable */
+	if (ddr_training_check_bypass(DDR_BYPASS_LPCA_MASK))
+		return 0;
+
+	ddr_training_save_reg(&relate_reg, DDR_BYPASS_LPCA_MASK);
+	for (i = 0; i < DDR_PHY_NUM; i++) {
+		if (ddr_training_phy_disable(i))
+			continue;
+
+		ddr_training_get_base(i, &base_dmc, &base_phy);
+
+		/* only lowpower ddr3 support */
+		if (PHY_DRAMCFG_TYPE_LPDDR3 !=
+			(REG_READ(base_phy + DDR_PHY_DRAMCFG)
+			& PHY_DRAMCFG_TYPE_LPDDR3))
+			continue;
+
+		result += ddr_lpca_training(base_dmc, base_phy, ddrtr_result);
+	}
+	ddr_training_restore_reg(&relate_reg);
+
+	return result;
+}
+#else
+static int ddr_lpca_training_func(void *ddrtr_result)
+{
+	DDR_WARNING("Not support LPDDR CA training.");
+	return 0;
+}
+#endif /* DDR_LPCA_TRAINING_CONFIG */
+
 /**
  * ddr_training_cmd_result
  * @void
@@ -564,10 +650,24 @@ static int ddr_ac_training_func(void)
  */
 static void ddr_training_cmd_result(void)
 {
-	int phy, i;
-	unsigned int base_dmc, base_phy, byte_num;
+	int phy;
+	unsigned int base_dmc, base_phy, byte_num, i;
+	unsigned int cfg;
+
+	cfg = REG_READ(DDR_REG_BASE_SYSCTRL + SYSCTRL_DDR_TRAINING_CFG);
 
 	for (phy = 0; phy < DDR_PHY_NUM; phy++) {
+
+		/* PHY0 bypass */
+		if ((cfg & DDR_BYPASS_PHY0_MASK) && 0 == phy)
+			continue;
+
+#if DDR_PHY_NUM == 2
+		/* PHY1 bypass */
+		if ((cfg & DDR_BYPASS_PHY1_MASK) && 1 == phy)
+			continue;
+#endif
+
 		ddr_training_get_base(phy, &base_dmc, &base_phy);
 		byte_num = ddr_phy_get_byte_num(base_dmc);
 
@@ -658,6 +758,12 @@ static void ddr_training_cmd_result(void)
 
 		/* DRAM Vref */
 		DDR_PHY_VREF_DRAM_DISPLAY_CMD(base_phy, byte_num);
+
+		/* Addr Phase */
+		DDR_PHY_ADDRPH_DISPLAY_CMD(base_phy);
+
+		/* Addr BDL */
+		DDR_PHY_ADDRBDL_DISPLAY_CMD(base_phy, byte_num);
 	}
 }
 
@@ -678,6 +784,8 @@ struct ddr_training_result_st *ddr_training_cmd_entry(
 	ddr_print_level         = cmd_st->level;
 
 	cfg = REG_READ(DDR_REG_BASE_SYSCTRL + SYSCTRL_DDR_TRAINING_CFG);
+
+	DDR_INFO("DDR Training Version: "DDR_TRAINING_VER);
 
 	DDR_DEBUG("DDR training command entry. Sysctl[%x = %x]",
 		(DDR_REG_BASE_SYSCTRL + SYSCTRL_DDR_TRAINING_CFG), cfg);
@@ -708,6 +816,9 @@ struct ddr_training_result_st *ddr_training_cmd_entry(
 		break;
 	case DDR_TRAINING_CMD_AC:
 		result = ddr_ac_training_func();
+		break;
+	case DDR_TRAINING_CMD_LPCA:
+		result = ddr_lpca_training_func((void *)&ddrt_result_sram);
 		break;
 	case DDR_TRAINING_CMD_SW_NO_WL:
 		/* wl bypass */

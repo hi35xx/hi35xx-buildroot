@@ -221,6 +221,7 @@ LIBS += drivers/mtd/nand/hinfc504/libhinfcv504.a
 LIBS += drivers/mtd/nand/hinfc610/libhinfcv610.a
 LIBS += drivers/mtd/nand/hisnfc100/libhisnfcv100.a
 LIBS += drivers/mtd/nand/hifmc100/libhifmcv100.a
+LIBS += drivers/mtd/nand/hifmc100_nand/libhifmc100_nand.a
 LIBS += drivers/mtd/onenand/libonenand.a
 LIBS += drivers/mtd/ubi/libubi.a
 LIBS += drivers/mtd/spi/libspi_flash.a
@@ -257,6 +258,7 @@ LIBS += drivers/rtc/librtc.a
 LIBS += drivers/serial/libserial.a
 LIBS += drivers/twserial/libtws.a
 LIBS += drivers/usb/gadget/libusb_gadget.a
+LIBS += drivers/usb/gadget/hiudc/libhiudc.a
 LIBS += drivers/usb/host/libusb_host.a
 LIBS += drivers/usb/host/hiusb/libhiusb.a
 LIBS += drivers/usb/musb/libusb_musb.a
@@ -274,6 +276,30 @@ ifeq ($(CONFIG_AUDIO_ENABLE), y)
 ifeq ($(CONFIG_PRODUCTNAME), "hi3516a")
 LIBS += product/hiaudio/acodec/v500/libacodec.a
 LIBS += product/hiaudio/ao/hi3516a/libao.a
+endif
+ifeq ($(CONFIG_PRODUCTNAME), "hi3519")
+LIBS += product/hiaudio/acodec/v610/libacodec.a
+LIBS += product/hiaudio/ao/hi3519/libao.a
+endif
+ifeq ($(CONFIG_PRODUCTNAME), "hi3519v101")
+LIBS += product/cipher/libhicipher.a
+LIBS += product/hiaudio/acodec/v610/libacodec.a
+LIBS += product/hiaudio/ao/hi3519v101/libao.a
+endif
+ifeq ($(CONFIG_PRODUCTNAME), "hi3516av200")
+LIBS += product/cipher/libhicipher.a
+LIBS += product/hiaudio/acodec/v610/libacodec.a
+LIBS += product/hiaudio/ao/hi3516av200/libao.a
+endif
+ifeq ($(CONFIG_PRODUCTNAME), "hi3559")
+LIBS += product/cipher/libhicipher.a
+LIBS += product/hiaudio/acodec/v610/libacodec.a
+LIBS += product/hiaudio/ao/hi3559/libao.a
+endif
+ifeq ($(CONFIG_PRODUCTNAME), "hi3556")
+LIBS += product/cipher/libhicipher.a
+LIBS += product/hiaudio/acodec/v610/libacodec.a
+LIBS += product/hiaudio/ao/hi3559/libao.a
 endif
 endif
 
@@ -3278,8 +3304,11 @@ hi3518ev201_config: unconfig
 hi3516cv200_config: unconfig
 	@$(MKCONFIG) $(@:_config=) arm hi3518ev200 hi3518ev200 NULL hi3518ev200
 
+hi3516cv300_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3516cv300 hi3516cv300 NULL hi3516cv300
+
 hi3516c_config: unconfig
-	@$(MKCONFIG) hi3516c arm hi3518 hi3518 NULL hi3518
+	@$(MKCONFIG) $(@:_config=) arm hi3518 hi3518 NULL hi3518
 
 hi3520d_config: unconfig
 	@$(MKCONFIG) $(@:_config=) arm hi3520d hi3520d NULL hi3520d
@@ -3288,9 +3317,9 @@ hi3535_config: unconfig
 	@$(MKCONFIG) $(@:_config=) arm hi3535 hi3535 NULL hi3535
 
 hi3516a_config: unconfig
-	@$(MKCONFIG) hi3516a arm hi3516a hi3516a NULL hi3516a
+	@$(MKCONFIG) $(@:_config=) arm hi3516a hi3516a NULL hi3516a
 hi3516a_spinand_config: unconfig
-	@$(MKCONFIG) hi3516a_spinand arm hi3516a hi3516a NULL hi3516a
+	@$(MKCONFIG) $(@:_config=) arm hi3516a hi3516a NULL hi3516a
 
 hi3536_config: unconfig
 	@$(MKCONFIG) $(@:_config=) arm hi3536 hi3536 NULL hi3536
@@ -3301,6 +3330,9 @@ hi3536_spinand_config: unconfig
 hi3536_slave_config: unconfig
 	@$(MKCONFIG) $(@:_config=) arm hi3536 hi3536 NULL hi3536
 
+hi3536c_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3536c hi3536c NULL hi3536c
+
 hi3521a_config: unconfig
 	@$(MKCONFIG) $(@:_config=) arm hi3521a hi3521a NULL hi3521a
 
@@ -3308,9 +3340,34 @@ hi3520dv300_config: unconfig
 	@$(MKCONFIG) $(@:_config=) arm hi3521a hi3521a NULL hi3521a
 
 hi3531a_config: unconfig
-	@$(MKCONFIG) hi3531a arm hi3531a hi3531a NULL hi3531a
+	@$(MKCONFIG) $(@:_config=) arm hi3531a hi3531a NULL hi3531a
 hi3531a_spinand_config: unconfig
-	@$(MKCONFIG) hi3531a_spinand arm hi3531a hi3531a NULL hi3531a
+	@$(MKCONFIG) $(@:_config=) arm hi3531a hi3531a NULL hi3531a
+
+hi3519_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3519 hi3519 NULL hi3519
+hi3519_nand_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3519 hi3519 NULL hi3519
+
+hi3519v101_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3519v101 hi3519v101 NULL hi3519v101
+hi3519v101_nand_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3519v101 hi3519v101 NULL hi3519v101
+
+hi3516av200_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3516av200 hi3516av200 NULL hi3516av200
+hi3516av200_nand_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3516av200 hi3516av200 NULL hi3516av200
+
+hi3559_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3559 hi3559 NULL hi3559
+hi3559_nand_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3559 hi3559 NULL hi3559
+
+hi3556_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3556 hi3556 NULL hi3556
+hi3556_nand_config: unconfig
+	@$(MKCONFIG) $(@:_config=) arm hi3556 hi3556 NULL hi3556
 
 godarm_config:	unconfig
 	@$(MKCONFIG) $(@:_config=) arm godarm godarm NULL godarm

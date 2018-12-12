@@ -144,6 +144,36 @@ endif
 
 #########################################################################
 
+ifneq (,$(findstring -march=armv7,${PLATFORM_CPPFLAGS}))
+__ARM_ARCH__ := 7
+PLATFORM_CPPFLAGS += -D__ARM_ARCH__=$(__ARM_ARCH__)
+else
+ifneq (,$(findstring -march=armv6,${PLATFORM_CPPFLAGS}))
+__ARM_ARCH__ := 6
+PLATFORM_CPPFLAGS += -D__ARM_ARCH__=$(__ARM_ARCH__)
+else
+ifneq (,$(findstring -march=armv5,${PLATFORM_CPPFLAGS}))
+__ARM_ARCH__ := 5
+PLATFORM_CPPFLAGS += -D__ARM_ARCH__=$(__ARM_ARCH__)
+else
+ifneq (,$(findstring -march=armv4,${PLATFORM_CPPFLAGS}))
+__ARM_ARCH__ := 4
+PLATFORM_CPPFLAGS += -D__ARM_ARCH__=$(__ARM_ARCH__)
+else
+ifneq (,$(findstring -march=armv3,${PLATFORM_CPPFLAGS}))
+__ARM_ARCH__ := 3
+PLATFORM_CPPFLAGS += -D__ARM_ARCH__=$(__ARM_ARCH__)
+else
+__ARM_ARCH__ := 0
+PLATFORM_CPPFLAGS += -D__ARM_ARCH__=$(__ARM_ARCH__)
+endif
+endif
+endif
+endif
+endif
+
+#########################################################################
+
 ifneq (,$(findstring s,$(MAKEFLAGS)))
 ARFLAGS = cr
 else

@@ -678,6 +678,30 @@ HI_VOID HAL_SYS_SetOutstanding(HI_VOID)
     return ;
 }
 
+/* AXI Master select */
+HI_VOID HAL_SYS_SetAxiMaster(HI_VOID)
+{
+    volatile U_VOAXISEL VOAXISEL;
+
+    VOAXISEL.u32 = HAL_ReadReg((HI_U32*)&(pVoReg->VOAXISEL.u32));
+    VOAXISEL.bits.v0_axi_sel = 0;
+    VOAXISEL.bits.v1_axi_sel = 0;
+    VOAXISEL.bits.v3_axi_sel = 0;
+    VOAXISEL.bits.v4_axi_sel = 0;
+    VOAXISEL.bits.g0_axi_sel = 1;
+    VOAXISEL.bits.g1_axi_sel = 1;
+    VOAXISEL.bits.g2_axi_sel = 1;
+    VOAXISEL.bits.g3_axi_sel = 1;
+    VOAXISEL.bits.g4_axi_sel = 1;
+    VOAXISEL.bits.wbc_dhd_axi_sel = 0;
+    VOAXISEL.bits.wbc_g0_axi_sel = 1;
+    VOAXISEL.bits.wbc_g4_axi_sel = 1;
+    VOAXISEL.bits.para_axi_sel = 0;
+    HAL_WriteReg((HI_U32*)&(pVoReg->VOAXISEL.u32), VOAXISEL.u32);
+    
+    return;
+}
+
 HI_VOID HAL_SYS_SetRdBusId(HI_U32 bMode)
 {
     

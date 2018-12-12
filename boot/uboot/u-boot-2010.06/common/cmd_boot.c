@@ -76,3 +76,12 @@ U_BOOT_CMD(
 	"Perform RESET of the CPU",
 	""
 );
+
+#if defined(CONFIG_ARCH_HI3559) || defined(CONFIG_ARCH_HI3556)
+extern int start_other_cpus(cmd_tbl_t *cmdtp, int flag, int argc, char *argv[]);
+U_BOOT_CMD(
+	go_a17, CONFIG_SYS_MAXARGS, 0,	start_other_cpus,
+	"Perform power on and unreset  CPU_A17",
+	"go_a17 <address>\n"
+);
+#endif

@@ -59,16 +59,6 @@
 
 #define CONFIG_HI3518		1
 
-#define CONFIG_CMD_BDI		/* bdinfo			*/
-#define CONFIG_CMD_BOOTD	/* bootd			*/
-#define CONFIG_CMD_ECHO		/* echo arguments		*/
-#define CONFIG_CMD_EDITENV	/* editenv			*/
-#define CONFIG_CMD_MISC		/* Misc functions like sleep etc */
-#define CONFIG_CMD_RUN		/* run command in env variable	*/
-#define CONFIG_CMD_SOURCE	/* "source" command support	*/
-
-#define CONFIG_PREBOOT		/* enable preboot variable	*/
-
 /*-----------------------------------------------------------------------
  * SPI Flash Configuration
  -----------------------------------------------------------------------*/
@@ -124,12 +114,12 @@
 /* env in flash instead of CFG_ENV_IS_NOWHERE */
 #define CONFIG_ENV_IS_IN_SPI_FLASH	1
 
-#define CONFIG_ENV_OFFSET		0x40000 /* environment starts here */
+#define CONFIG_ENV_OFFSET		0x80000 /* environment starts here */
 #define CONFIG_ENV_SPI_ADDR		(CONFIG_ENV_OFFSET)
 #define CONFIG_CMD_SAVEENV
 
 #define CONFIG_STACKSIZE		(128 * 1024)
-#define CONFIG_ENV_SIZE			0x20000 /* include ENV_HEADER_SIZE */
+#define CONFIG_ENV_SIZE			0x40000 /* include ENV_HEADER_SIZE */
 #define CONFIG_ENV_SECT_SIZE		CONFIG_ENV_SIZE
 #define CONFIG_NR_DRAM_BANKS		1	/* we have 1 bank of DRAM */
 #define CFG_BOOT_PARAMS			(MEM_BASE_DDR + 0x0100)
@@ -137,34 +127,16 @@
 /*-----------------------------------------------------------------------
  *  Environment   Configuration
  ------------------------------------------------------------------------*/
-/* default location for tftp and bootm */
-#define CONFIG_LOADADDR		0x81000000
+#define CONFIG_BOOTCOMMAND "bootm 0x82000000"
 
 #define CONFIG_BOOTDELAY 1
-#define CONFIG_BOOTARGS	"mem=32M console=ttyAMA0,115200"
+#define CONFIG_BOOTARGS	"mem=64M console=ttyAMA0,115200"
 #define CONFIG_NETMASK	255.255.255.0		/* talk on MY local net */
 #define CONFIG_IPADDR	192.168.1.10		/* default static IP */
 #define CONFIG_SERVERIP	192.168.1.2		/* default tftp server ip */
 #define CONFIG_ETHADDR	00:00:23:34:45:66
 #define CONFIG_BOOTFILE	"uImage"		/* file to load */
 #define CONFIG_BAUDRATE	115200
-
-#define CONFIG_EXTRA_ENV_SETTINGS \
-	"meminfo=mem=32M\0" \
-	"console=ttyAMA0,115200n8\0" \
-	"mtdparts=hi_sfc:256k(uboot)ro,128k(uboot-env),128k(mfd)," \
-		"1536k(kernel),4m(rootfs),-(user)\0" \
-	"commonargs=setenv bootargs ${meminfo} " \
-		"console=${console} mtdparts=${mtdparts}\0" \
-	"flashboot=echo Booting from SPI Flash...; " \
-		"run commonargs; sf probe 0 && " \
-		"sf read ${loadaddr} 0x80000 0x180000 && " \
-		"bootm\0" \
-	"serialboot=echo Booting from y-modem...; " \
-		"run commonargs; loady && bootm\0" \
-	"autoboot=if run flashboot; then; else run serialboot; fi\0"
-
-#define CONFIG_BOOTCOMMAND	"run autoboot"
 
 /*-----------------------------------------------------------------------
  * for bootm linux
@@ -226,8 +198,8 @@
  * console display  Configuration
  ------------------------------------------------------------------------*/
 #define CONFIG_VERSION_VARIABLE	1		/* used in common/main.c */
-#define CONFIG_SYS_PROMPT	"ipcam # "	/* Monitor Command Prompt */
-#define CONFIG_SYS_CBSIZE	2048		/* Console I/O Buffer Size */
+#define CONFIG_SYS_PROMPT	"hisilicon # "	/* Monitor Command Prompt */
+#define CONFIG_SYS_CBSIZE	1024		/* Console I/O Buffer Size */
 #define CONFIG_SYS_PBSIZE	(CONFIG_SYS_CBSIZE+sizeof(CONFIG_SYS_PROMPT)+16)
 
 #define CFG_BARGSIZE		CFG_CBSIZE	/* Boot Argument Buffer Size */
@@ -237,13 +209,8 @@
 #define CONFIG_AUTO_COMPLETE		1
 #define CFG_CMDLINE_HISTORYS		8
 #define CONFIG_CMDLINE_EDITING
-
-#define CONFIG_SYS_LONGHELP		/* undef to save memory */
-#define CONFIG_SYS_HUSH_PARSER		/* use "hush" command parser */
-#define CONFIG_SYS_PROMPT_HUSH_PS2	"> "
-
 #define CFG_DDR_PHYS_OFFSET		MEM_BASE_DDR
-#define CFG_DDR_SIZE			(64 * 1024 * 1024)	/* 64M Bytes */
+#define CFG_DDR_SIZE			(128 * 1024 * 1024UL)	/* 128M Bytes */
 
 #define CONFIG_SYS_MEMTEST_START	(CFG_DDR_PHYS_OFFSET +\
 						sizeof(unsigned long))
@@ -268,7 +235,7 @@
 #define CONFIG_PL01x_PORTS		{(void *)UART0_REG_BASE}
 #define CONFIG_CONS_INDEX		0
 
-#define CONFIG_PRODUCTNAME              "hi3518e"
+#define CONFIG_PRODUCTNAME              "hi3518c"
 
 /*-----------------------------------------------------------------------
  * sdcard/usb storage system update
@@ -288,12 +255,14 @@
 /*-----------------------------------------------------------------------
  * sdcard
  * ----------------------------------------------------------------------*/
-#define CONFIG_HIMCI_HI3518
-#define REG_BASE_MCI				0x10020000
-#define CONFIG_HIMCI_V100
-#define CONFIG_GENERIC_MMC
-#define CONFIG_MMC				1
-#define CONFIG_CMD_MMC
+#ifdef CONFIG_AUTO_SD_UPDATE
+	#define CONFIG_HIMCI_HI3518
+	#define REG_BASE_MCI			0x10020000
+	#define CONFIG_HIMCI_V100
+	#define CONFIG_GENERIC_MMC
+	#define CONFIG_MMC			1
+	#define CONFIG_CMD_MMC
+#endif
 
 
 /*-----------------------------------------------------------------------

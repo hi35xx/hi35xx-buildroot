@@ -125,13 +125,16 @@
 #endif
 
 /* for each bits, set '1' enable the intterrupt, and '0' takes no effects */
-int hieth_irq_enable(struct hieth_netdev_local *ld, int irqs);	/* return last irq_enable status */
-int hieth_irq_disable(struct hieth_netdev_local *ld, int irqs);	/* return last irq_enable status */
-int hieth_read_irqstatus(struct hieth_netdev_local *ld);	/* return irqstatus */
-int hieth_read_raw_irqstatus(struct hieth_netdev_local *ld);
-int hieth_clear_irqstatus(struct hieth_netdev_local *ld, int irqs);	/* return irqstatus after clean */
+/* return last irq_enable status */
+u32 hieth_irq_enable(struct hieth_netdev_local *ld, u32 irqs);
+u32 hieth_irq_disable(struct hieth_netdev_local *ld, u32 irqs);
+/* return irqstatus */
+u32 hieth_read_irqstatus(struct hieth_netdev_local *ld);
+u32 hieth_read_raw_irqstatus(struct hieth_netdev_local *ld);
+/* return irqstatus after clean */
+u32 hieth_clear_irqstatus(struct hieth_netdev_local *ld, u32 irqs);
 
-int hieth_set_endian_mode(struct hieth_netdev_local *ld, int mode);
+u32 hieth_set_endian_mode(struct hieth_netdev_local *ld, u32 mode);
 
 /* Tx/Rx queue operation */
 int hieth_set_hwq_depth(struct hieth_netdev_local *ld);

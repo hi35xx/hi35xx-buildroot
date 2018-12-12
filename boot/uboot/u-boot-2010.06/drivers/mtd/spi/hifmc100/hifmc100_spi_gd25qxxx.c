@@ -1,11 +1,22 @@
-/******************************************************************************
- *	Flash Memory Controller v100 Device Driver
- *	Copyright (c) 2014 - 2015 by Hisilicon
- *	All rights reserved.
- * ***
- *	Create by hisilicon
+/*
+ * The Flash Memory Controller v100 Device Driver for hisilicon
  *
- *****************************************************************************/
+ * Copyright (c) 2016-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 /*****************************************************************************/
 #define GD_SPI_CMD_RDSR1		0x35	/* Read Status Register-1 */
@@ -31,7 +42,7 @@ static int spi_gd25qxxx_qe_enable(struct hifmc_spi *spi)
 	if (SPI_NOR_GET_QE_BY_CR(config) == op) {
 		FMC_PR(QE_DBG, "\t* Quad was %sd, status:%#x\n", str[op],
 				config);
-		return op;
+		goto QE_END;
 	}
 
 	/* First, we enable/disable QE for 16Pin GD flash, use WRSR[01h] cmd */
@@ -137,6 +148,9 @@ static int spi_gd25qxxx_qe_enable(struct hifmc_spi *spi)
 		DB_MSG("Error: %s Quad failed, reg: %#x\n", str[op], config);
 
 QE_END:
+	/* Enable the reset pin when working on dual mode for 8PIN */
+	if (!op)
+		spi_nor_reset_pin_enable(spi, ENABLE);
 
 	FMC_PR(QE_DBG, "\t*-End GD SPI nor %s Quad end.\n", str[op]);
 

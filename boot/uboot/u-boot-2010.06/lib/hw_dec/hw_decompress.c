@@ -4,22 +4,24 @@
 
 #include "hw_decompress.h"
 
+#if (defined CONFIG_HI3559 || defined CONFIG_HI3556)
+#include "hw_decompress_hi3559.c"
+#endif
+
+#if (defined CONFIG_HI3516CV300)
+#include "hw_decompress_hi3516cv300.c"
+#endif
+
 unsigned int hw_dec_type;
 unsigned int hw_dec_sop;
 unsigned int hw_dec_eop;
 unsigned int hw_dec_cur_blk;
+#if (defined CONFIG_HI3516CV300 || defined CONFIG_HI3519 || \
+		defined CONFIG_HI3519V101 || defined CONFIG_HI3559 || defined CONFIG_HI3556 || \
+		defined CONFIG_HI3516AV200)
+unsigned int hw_blk_total_num;
+#endif
 
-void hw_dec_sop_eop_reset(int blk_total_num)
-{
-	hw_dec_cur_blk++;
-	if (blk_total_num - hw_dec_cur_blk > 1) {
-		hw_dec_sop = 0;
-		hw_dec_eop = 0;
-	} else {
-		hw_dec_sop = 0;
-		hw_dec_eop = 1;
-	}
-}
 
 void hw_dec_sop_eop_first_set(int block_num)
 {
@@ -32,6 +34,11 @@ void hw_dec_sop_eop_first_set(int block_num)
 	}
 
 	hw_dec_cur_blk = 0;
+#if (defined CONFIG_HI3516CV300 || defined CONFIG_HI3519 || \
+		defined CONFIG_HI3519V101 || defined CONFIG_HI3559 || defined CONFIG_HI3556 || \
+		defined CONFIG_HI3516AV200)
+	hw_blk_total_num = block_num;
+#endif
 }
 
 static inline void hw_dec_work_en_set(int work_en_flg)
@@ -40,11 +47,13 @@ static inline void hw_dec_work_en_set(int work_en_flg)
 	writel(work_en_flg, HW_DEC_REG_BASE_ADDR + EAMR_WORK_EN_REG_OFST);
 }
 
+#ifdef CONFIG_HI3518EV200
 static inline void hw_dec_buf0_addr_set(unsigned int addr)
 {
 	/* Set the buffer base addr */
 	writel(addr, HW_DEC_REG_BASE_ADDR + CPRS_DARA_BUF0_BADDR);
 }
+#endif
 
 static inline void hw_dec_rtn_baddr_set(unsigned int addr)
 {
@@ -76,6 +85,7 @@ static inline void hw_dec_data_crc32_set(unsigned int crc32)
 	writel(crc32, HW_DEC_REG_BASE_ADDR + DPRS_DATA_CRC32);
 }
 
+#ifdef CONFIG_HI3518EV200
 void hw_dec_data_buf_info_set(unsigned int mode,
 		unsigned int b_sop,
 		unsigned int b_eop,
@@ -92,6 +102,7 @@ void hw_dec_data_buf_info_set(unsigned int mode,
 	buf_info.bits.buf_len = buf_len;
 	writel(buf_info.u32, HW_DEC_REG_BASE_ADDR + DPRS_DATA_BUF_INFO);
 }
+#endif
 
 static inline unsigned int hw_dec_buf_status_get(void)
 {
@@ -149,6 +160,7 @@ int hw_dec_intr_proc(int irq, void *para)
 	U_BUF_STATUS buf_status;
 	U_INTR_STATUS intr_status;
 	U_DPRS_RTN_STATUS dprs_status;
+    int ret = 0;
 
 	intr_status.u32 = hw_dec_intr_status_get();
 	if (intr_status.bits.block_intrpt) {
@@ -164,20 +176,29 @@ int hw_dec_intr_proc(int irq, void *para)
 		if (dprs_status.bits.aval_flg) {
 			if (dprs_status.bits.err_info) {
 				printf("err = 0x%x, dec_data_len = 0x%x\n",
-						dprs_status.bits.err_info,
-						dprs_status.bits.rsv);
+					dprs_status.bits.err_info,
+#ifdef CONFIG_HI3518EV200
+					dprs_status.bits.rsv);
+#else
+					readl(HW_DEC_REG_BASE_ADDR
+						+ DPRS_RTN_LEN));
+#endif
+                    ret = -2;
 			}
 
 			hw_dec_dprs_rtn_status_clr();
 		}
 
 		hw_dec_task_intr_status_clr();
-		return 0;
+        goto out;
 	}
 
-	return -1;
+    ret = -1;
+out:
+	return ret;
 }
 
+#ifdef CONFIG_HI3518EV200
 void hw_dec_start(unsigned int src_baddr,
 		unsigned int dst_baddr,
 		unsigned int dst_len,
@@ -197,6 +218,45 @@ void hw_dec_start(unsigned int src_baddr,
 	hw_dec_crc_check_en(crc_en);
 	hw_dec_data_crc32_set(crc32);
 }
+#endif
+
+#if (defined CONFIG_HI3516CV300 || defined CONFIG_HI3519 || \
+		defined CONFIG_HI3519V101 || defined CONFIG_HI3559 || defined CONFIG_HI3556 || \
+		defined CONFIG_HI3516AV200)
+void hw_dec_start(unsigned int src_baddr,
+			unsigned int dst_baddr,
+			unsigned int src_len,
+			unsigned int dst_len,
+			unsigned int crc_en,
+			unsigned int crc32,
+			unsigned int dec_type)
+{
+	unsigned int val;
+
+	if (hw_dec_sop) {
+		if (!dec_type) {
+			/* set the parameters of output buffer */
+			hw_dec_rtn_baddr_set(dst_baddr);
+			hw_dec_data_rtn_len_set(dst_len);
+		} else {
+
+			/* set the parameter of output buffer */
+			hw_dec_dprs_data_baddr_set(dst_baddr);
+			hw_dec_dprs_data_len_set(PAGE_NR(dst_len) * 4);
+
+		}
+	}
+
+	/* set the parameter of input buffer */
+	writel(src_baddr, HW_DEC_REG_BASE_ADDR + DPRS_DATA_SRC_BADDR);
+
+	val = src_len | (hw_dec_sop << 28)
+		| (hw_dec_eop << 29) | (!dec_type << 31);
+	writel(val, HW_DEC_REG_BASE_ADDR + DPRS_DATA_SRC_LEN);
+
+	hw_dec_crc_check_en(crc_en);
+}
+#endif
 
 int hw_dec_wait_finish(void)
 {
@@ -210,7 +270,6 @@ int hw_dec_wait_finish(void)
 			printf("hardware decompress overtime!"
 					" func:%s, line:%d\n",
 					__func__, __LINE__);
-			times = 0;
 			break;
 		}
 
@@ -220,6 +279,7 @@ int hw_dec_wait_finish(void)
 	return ret;
 }
 
+#ifdef CONFIG_HI3518EV200
 int hw_dec_decompress(unsigned char *dst, int *dstlen,
 		unsigned char *src, int srclen,
 		void *unused)
@@ -244,9 +304,40 @@ int hw_dec_decompress(unsigned char *dst, int *dstlen,
 
 	return 0;
 }
+#endif
+
+#if (defined CONFIG_HI3516CV300 || defined CONFIG_HI3519 || \
+		defined CONFIG_HI3519V101 || defined CONFIG_HI3559 || defined CONFIG_HI3556 || \
+		defined CONFIG_HI3516AV200)
+int hw_dec_decompress(unsigned char *dst, int *dstlen,
+			unsigned char *src, int srclen,
+			void *unused)
+{
+	int ret;
+#if (defined CONFIG_HI3559 || defined CONFIG_HI3556 || defined CONFIG_HI3516CV300)
+    printf("dst=0x%08x dstlen=0x%08x,src=0x%0x srclen=0x%08x\n",(int)dst,*dstlen,(int)src,srclen);
+#endif
+	hw_dec_sop_eop_first_set(1);
+	hw_dec_start((unsigned int)src, (unsigned int)dst,
+			srclen,	*dstlen, 0, 0, hw_dec_type);
+
+	ret = hw_dec_wait_finish();
+
+    *dstlen = readl(HW_DEC_REG_BASE_ADDR + DPRS_RTN_LEN);
+
+	if (ret)
+		return -1;
+
+	return 0;
+}
+#endif
 
 void hw_dec_init(void)
 {
+#if (defined CONFIG_HI3559 || defined CONFIG_HI3556 || defined CONFIG_HI3516CV300)
+    /* enable decompress clock */
+    enable_decompress_clock();
+#endif
 	/* Init the emar interface */
 	writel(0, HW_DEC_REG_BASE_ADDR + EAMR_RID_REG_OFST);
 	writel(0x3, HW_DEC_REG_BASE_ADDR + EAMR_ROSD_REG_OFST);
@@ -264,6 +355,11 @@ void hw_dec_uinit(void)
 {
 	hw_dec_work_en_set(0x0);
 	hw_dec_intr_en_set(0x0, 0x0);
+
+#if (defined CONFIG_HI3559 || defined CONFIG_HI3556 || defined CONFIG_HI3516CV300)
+    /* disable decompress clock */
+    disable_decompress_clock();
+#endif
 }
 
 

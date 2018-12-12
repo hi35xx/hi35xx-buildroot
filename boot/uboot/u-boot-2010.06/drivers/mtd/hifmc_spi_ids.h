@@ -1,11 +1,22 @@
-/******************************************************************************
- *	Flash Memory Controller Device Driver
- *	Copyright (c) 2014 - 2015 by Hisilicon
- *	All rights reserved.
- * ***
- *	Create by hisilicon
+/*
+ * The Flash Memory Controller v100 Device Driver for hisilicon
  *
- *****************************************************************************/
+ * Copyright (c) 2016-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #ifndef __HIFMC_SPI_IDS_H__
 #define __HIFMC_SPI_IDS_H__
@@ -20,6 +31,7 @@
 #define SPI_IF_READ_DUAL_ADDR		(0x08)
 #define SPI_IF_READ_QUAD		(0x10)
 #define SPI_IF_READ_QUAD_ADDR		(0x20)
+#define SPI_IF_READ_QUAD_DTR		(0x40)
 
 #define SPI_IF_WRITE_STD		(0x01)
 #define SPI_IF_WRITE_DUAL		(0x02)
@@ -39,7 +51,8 @@
 					| SPI_IF_READ_DUAL \
 					| SPI_IF_READ_DUAL_ADDR \
 					| SPI_IF_READ_QUAD \
-					| SPI_IF_READ_QUAD_ADDR)
+					| SPI_IF_READ_QUAD_ADDR\
+					| SPI_IF_READ_QUAD_DTR)
 
 #define HIFMC_SPI_NOR_SUPPORT_WRITE	(SPI_IF_WRITE_STD \
 					| SPI_IF_WRITE_DUAL \
@@ -47,7 +60,8 @@
 					| SPI_IF_WRITE_QUAD \
 					| SPI_IF_WRITE_QUAD_ADDR)
 
-#define HIFMC_SPI_NOR_SUPPORT_MAX_DUMMY		7
+#define HIFMC_SPI_NOR_STR_MAX_DUMMY		7
+#define HIFMC_SPI_NOR_DTR_MAX_DUMMY		12
 
 /******************************************************************************/
 #define HIFMC_SPI_NAND_SUPPORT_READ	(SPI_IF_READ_STD \
@@ -68,12 +82,15 @@
 #define SPI_CMD_READ_DUAL_ADDR		0xBB	/* 2 IO read cache date&addr */
 #define SPI_CMD_READ_QUAD		0x6B	/* 4 IO read cache only date */
 #define SPI_CMD_READ_QUAD_ADDR		0xEB	/* 4 IO read cache date&addr */
+#define SPI_CMD_READ_QUAD_DTR		0xEE	/* 4DTR MODE */
+#define SPI_CMD_READ_QUAD_DTR_WINBOND		0xED	/* 4DTR MODE */
 
 #define SPI_CMD_WRITE_STD		0x02	/* Standard page program */
 #define SPI_CMD_WRITE_DUAL		0xA2	/* 2 IO program only date */
 #define SPI_CMD_WRITE_DUAL_ADDR		0xD2	/* 2 IO program date&addr */
 #define SPI_CMD_WRITE_QUAD		0x32	/* 4 IO program only date */
-#define SPI_CMD_WRITE_QUAD_ADDR		0x12	/* 4 IO program date&addr */
+#define SPI_CMD_WRITE_QUAD_ADDR		0x38	/* 4 IO program date&addr */
+/* #define SPI_CMD_WRITE_QUAD_ADDR		0x12 */
 
 #define SPI_CMD_SE_4K			0x20	/* 4KB sector Erase */
 #define SPI_CMD_SE_32K			0x52	/* 32KB sector Erase */
@@ -105,6 +122,15 @@
 #define SET_READ_QUAD_ADDR(_dummy_, _size_, _clk_) \
 	static struct spi_op read_quad_addr_##_dummy_##_size_##_clk_ = { \
 	SPI_IF_READ_QUAD_ADDR, SPI_CMD_READ_QUAD_ADDR, _dummy_, _size_, _clk_ }
+#ifdef CONFIG_DTR_MODE_SUPPORT
+#define SET_READ_QUAD_DTR(_dummy_, _size_, _clk_) \
+	static struct spi_op read_quad_dtr_##_dummy_##_size_##_clk_ = { \
+	SPI_IF_READ_QUAD_DTR, SPI_CMD_READ_QUAD_DTR, _dummy_, _size_, _clk_ }
+#define SET_READ_QUAD_DTR_WINBOND(_dummy_, _size_, _clk_) \
+	static struct spi_op read_quad_dtr_winbond_##_dummy_##_size_##_clk_ = \
+	{SPI_IF_READ_QUAD_DTR, SPI_CMD_READ_QUAD_DTR_WINBOND, \
+		_dummy_, _size_, _clk_ }
+#endif
 
 /*****************************************************************************/
 #define SET_WRITE_STD(_dummy_, _size_, _clk_) \
@@ -157,6 +183,12 @@ SPI_IF_WRITE_QUAD_ADDR, SPI_CMD_WRITE_QUAD_ADDR, _dummy_, _size_, _clk_ }
 #define READ_QUAD(_dummy_, _size_, _clk_) read_quad_##_dummy_##_size_##_clk_
 #define READ_QUAD_ADDR(_dummy_, _size_, _clk_) \
 		read_quad_addr_##_dummy_##_size_##_clk_
+#ifdef CONFIG_DTR_MODE_SUPPORT
+#define READ_QUAD_DTR(_dummy_, _size_, _clk_) \
+		read_quad_dtr_##_dummy_##_size_##_clk_
+#define READ_QUAD_DTR_WINBOND(_dummy_, _size_, _clk_) \
+		read_quad_dtr_winbond_##_dummy_##_size_##_clk_
+#endif
 
 /*****************************************************************************/
 #define WRITE_STD(_dummy_, _size_, _clk_) write_std_##_dummy_##_size_##_clk_
@@ -196,6 +228,7 @@ SPI_IF_WRITE_QUAD_ADDR, SPI_CMD_WRITE_QUAD_ADDR, _dummy_, _size_, _clk_ }
 
 #define SPI_CMD_RDID			0x9F	/* Read Identification */
 
+#define SPI_CMD_RD_SFDP			0x5A	/* Read SFDP */
 /*****************************************************************************/
 #define SPI_CMD_GET_FEATURES		0x0F	/* Get Features */
 #define SPI_CMD_SET_FEATURE		0x1F	/* Set Feature */
@@ -226,7 +259,7 @@ struct spi_drv;
 /* SPI interface all operation */
 struct hifmc_spi {
 	char *name;
-	int chipselect;
+	unsigned int chipselect;
 	unsigned long long chipsize;
 	unsigned int erasesize;
 #define SPI_NOR_3BYTE_ADDR_LEN	3	/* address len 3Bytes */
@@ -240,6 +273,14 @@ struct hifmc_spi {
 	void *host;
 
 	struct spi_drv *driver;
+#ifdef CONFIG_DTR_MODE_SUPPORT
+	unsigned int dtr_mode_support;
+	/* @dtr_cookie: Some device must set some registers when wants to
+	 * work on DTR mode, so this cookie tells us to set s.th */
+	unsigned int dtr_cookie;
+	#define DTR_MODE_SET_NONE 0x0	/* Need not set anything */
+	#define DTR_MODE_SET_ODS  0x1	/* Need to set output driver strength */
+#endif
 };
 
 /* SPI interface special operation function hook */
@@ -249,6 +290,9 @@ struct spi_drv {
 	int (*qe_enable)(struct hifmc_spi *spi);
 	int (*bus_prepare)(struct hifmc_spi *spi, int op);
 	int (*entry_4addr)(struct hifmc_spi *spi, int en);
+#ifdef CONFIG_DTR_MODE_SUPPORT
+	int (*dtr_set_device)(struct hifmc_spi *spi, int dtr_en);
+#endif
 };
 
 struct spi_nand_info {
@@ -281,10 +325,24 @@ struct spi_nor_info {
 	struct spi_drv *driver;
 };
 
+/****************************************************************************/
+/* REG_SYSSTAT 0: 3 Bytes address boot mode; 1: 4Bytes address boot mode */
+#define GET_FMC_BOOT_MODE ({ \
+	unsigned int regval, boot_mode = 0; \
+	regval = readl(SYS_CTRL_REG_BASE + REG_SYSSTAT); \
+	boot_mode = GET_SPI_NOR_ADDR_MODE(regval); \
+	boot_mode; })
+
 /*****************************************************************************/
 extern u_char spi_nand_feature_op(struct hifmc_spi *spi, u_char op, u_char addr,
 		u_char val);
 
+extern void hifmc_set_fmc_system_clock(struct spi_op *op, int clk_en);
+
+extern void hifmc_get_fmc_best_2x_clock(unsigned int *clock);
+#ifdef CONFIG_DTR_MODE_SUPPORT
+extern void hifmc_get_fmc_best_4x_clock(unsigned int *clock);
+#endif
 /*****************************************************************************/
 
 #endif /* End of __HIFMC_SPI_IDS_H__ */

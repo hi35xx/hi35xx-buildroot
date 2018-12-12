@@ -1,11 +1,22 @@
-/******************************************************************************
- *	Flash Memory Controller v100 Device Driver
- *	Copyright (c) 2014 - 2015 by Hisilicon
- *	All rights reserved.
- * ***
- *	Create by hisilicon
+/*
+ * The Flash Memory Controller v100 Device Driver for hisilicon
  *
- *****************************************************************************/
+ * Copyright (c) 2016-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 /*****************************************************************************/
 #include <common.h>
@@ -22,14 +33,14 @@
 #include "hifmc100.h"
 
 /*****************************************************************************/
-static void hifmc100_dma_transfer(struct hifmc_host *host,
+static void hifmc100_dma_transfer(struct hifmc_spi *spi,
 	unsigned int spi_start_addr, unsigned char *dma_buffer,
 	unsigned char rw_op, unsigned int size)
 {
 	unsigned char if_type = 0, dummy = 0;
 	unsigned char w_cmd = 0, r_cmd = 0;
 	unsigned int regval;
-	struct hifmc_spi *spi = host->spi;
+	struct hifmc_host *host = spi->host;
 
 	FMC_PR(DMA_DB, "\t\t *-Start dma transfer => [%#x], len[%#x].\n",
 			spi_start_addr, size);
@@ -154,6 +165,15 @@ static int hifmc100_reg_read(struct spi_flash *spiflash, u_int from,
 		goto fail;
 	}
 
+#ifdef CONFIG_DTR_MODE_SUPPORT
+	/* DTR MODE disable */
+	if (host->dtr_mode_en == DISABLE && host->dtr_training_flag == 1) {
+		spi_dtr_dummy_training_set(host, ENABLE);
+		hifmc_dtr_mode_ctrl(spi, ENABLE);
+		FMC_PR(DTR_DB, "\t|*-Start reg DTR mode read.\n");
+	}
+#endif
+
 	host->set_system_clock(spi->read, ENABLE);
 
 	while (len > 0) {
@@ -188,6 +208,14 @@ static int hifmc100_reg_read(struct spi_flash *spiflash, u_int from,
 		}
 	}
 	result = 0;
+#ifdef CONFIG_DTR_MODE_SUPPORT
+	/* DTR MODE disable */
+	if (host->dtr_mode_en == ENABLE && host->dtr_training_flag == 1) {
+		hifmc_dtr_mode_ctrl(spi, DISABLE);
+		spi_dtr_dummy_training_set(host, DISABLE);
+		FMC_PR(DTR_DB, "\t|*-END reg DTR mode read.\n");
+	}
+#endif
 fail:
 	hifmc_ip_user--;
 	return result;
@@ -198,8 +226,7 @@ fail:
 static int hifmc100_dma_read(struct spi_flash *spiflash, u_int from, size_t len,
 				void *buf)
 {
-	int num;
-	unsigned char *ptr = (unsigned char *)buf;
+	size_t num;
 	struct hifmc_host *host = SPIFLASH_TO_HOST(spiflash);
 	struct hifmc_spi *spi = host->spi;
 
@@ -229,40 +256,53 @@ static int hifmc100_dma_read(struct spi_flash *spiflash, u_int from, size_t len,
 		hifmc_ip_user--;
 		return -EBUSY;
 	}
+#ifdef CONFIG_DTR_MODE_SUPPORT
+	/* DTR MODE enable */
+	if (host->dtr_mode_en == DISABLE && host->dtr_training_flag == 1) {
+		spi_dtr_dummy_training_set(host, ENABLE);
+		hifmc_dtr_mode_ctrl(spi, ENABLE);
+		FMC_PR(DTR_DB, "\t|*-Start dma DTR mode read.\n");
+	}
+#endif
+	host->set_system_clock(spi->read, ENABLE);
 
-	while (len > 0) {
+	while (len) {
+		num = ((len >= HIFMC100_DMA_RD_MAX_SIZE)
+				? HIFMC100_DMA_RD_MAX_SIZE : len);
+
 		while (from >= spi->chipsize) {
 			from -= spi->chipsize;
 			spi++;
 			if (!spi->name)
 				DB_BUG("read memory out of range.\n");
+
+			if (spi->driver->wait_ready(spi)) {
+				DB_MSG("Error: Dma read wait ready fail!!\n");
+				return -EBUSY;
+			}
+
+			host->set_system_clock(spi->read, ENABLE);
 		}
 
-		num = ((from + len) >= spi->chipsize)
-			? (spi->chipsize - from) : len;
-		while (num >= HIFMC100_DMA_MAX_SIZE) {
-			hifmc100_dma_transfer(host, from,
-				(u_char *)host->dma_buffer, RW_OP_READ,
-				HIFMC100_DMA_MAX_SIZE);
-			memcpy(ptr, host->buffer, HIFMC100_DMA_MAX_SIZE);
-			ptr += HIFMC100_DMA_MAX_SIZE;
-			from += HIFMC100_DMA_MAX_SIZE;
-			len -= HIFMC100_DMA_MAX_SIZE;
-			num -= HIFMC100_DMA_MAX_SIZE;
-		}
+		if (from + num > spi->chipsize)
+			num = spi->chipsize - from;
 
-		if (num) {
-			hifmc100_dma_transfer(host, from,
-				(u_char *)host->dma_buffer, RW_OP_READ, num);
-			memcpy(ptr, host->buffer, num);
-			from += num;
-			ptr += num;
-			len -= num;
-		}
+		hifmc100_dma_transfer(spi, from, (u_char *)buf,
+				RW_OP_READ, num);
+		from += num;
+		buf  += num;
+		len  -= num;
 	}
 
 	hifmc_ip_user--;
-
+#ifdef CONFIG_DTR_MODE_SUPPORT
+	/* DTR MODE disable */
+	if (host->dtr_mode_en == ENABLE && host->dtr_training_flag == 1) {
+		hifmc_dtr_mode_ctrl(spi, DISABLE);
+		spi_dtr_dummy_training_set(host, DISABLE);
+		FMC_PR(DTR_DB, "\t|*-END dma DTR mode read.\n");
+	}
+#endif
 	FMC_PR(RD_DBG, "\t|*-End dma read.\n");
 
 	return 0;
@@ -352,10 +392,8 @@ static int hifmc100_reg_erase_one_block(struct hifmc_host *host,
 static int hifmc100_dma_write(struct spi_flash *spiflash, u_int to, size_t len,
 	const void *buf)
 {
-	int num;
+	size_t num;
 	int result = -EIO;
-
-	unsigned char *ptr = (unsigned char *)buf;
 	struct hifmc_host *host = SPIFLASH_TO_HOST(spiflash);
 	struct hifmc_spi *spi = host->spi;
 
@@ -373,25 +411,11 @@ static int hifmc100_dma_write(struct spi_flash *spiflash, u_int to, size_t len,
 		return 0;
 	}
 
-#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
-	if (host->level) {
-		if ((BP_CMP_TOP == host->cmp)
-			&& ((to + len) > host->start_addr)) {
-			puts("\n");
-			DB_MSG("DMA Write area[%#x => %#x] was locked\n",
-					host->start_addr, (to + len));
-			return -EINVAL;
-		}
-
-		if ((BP_CMP_BOTTOM == host->cmp) && (to < host->end_addr)) {
-			unsigned int end = ((to + len) > host->end_addr) ?
-				host->end_addr : (to + len);
-
-			puts("\n");
-			DB_MSG("DMA Write area[%#x => %#x] was locked\n", to,
-					end);
-			return -EINVAL;
-		}
+#ifdef CONFIG_SPI_BLOCK_PROTECT
+	if (host->level && (to < host->end_addr)) {
+		puts("\n");
+		printf("ERROR: The DMA write area was locked.");
+		return -EINVAL;
 	}
 #endif
 
@@ -408,11 +432,12 @@ static int hifmc100_dma_write(struct spi_flash *spiflash, u_int to, size_t len,
 		goto fail;
 
 	spi->driver->write_enable(spi);
+	host->set_system_clock(spi->write, ENABLE);
 
-	if (to & HIFMC100_DMA_MASK) {
-		num = HIFMC100_DMA_MAX_SIZE - (to & HIFMC100_DMA_MASK);
-		if (num > len)
-			num = len;
+	while (len) {
+		num = ((len >= HIFMC100_DMA_WR_MAX_SIZE)
+			? HIFMC100_DMA_WR_MAX_SIZE : len);
+
 		while (to >= spi->chipsize) {
 			to -= spi->chipsize;
 			spi++;
@@ -423,41 +448,15 @@ static int hifmc100_dma_write(struct spi_flash *spiflash, u_int to, size_t len,
 				goto fail;
 
 			spi->driver->write_enable(spi);
-		}
-		memcpy(host->buffer, ptr, num);
-		FMC_PR(WR_DBG, "\t\t  DMA align write, to:%#x len:%#x.\n", to,
-				num);
-		hifmc100_dma_transfer(host, to, (u_char *)host->dma_buffer,
-				RW_OP_WRITE, num);
-
-		to += num;
-		ptr += num;
-		len -= num;
-	}
-
-	while (len > 0) {
-		num = ((len >= HIFMC100_DMA_MAX_SIZE)
-			? HIFMC100_DMA_MAX_SIZE : len);
-		while (to >= spi->chipsize) {
-			to -= spi->chipsize;
-			spi++;
-			if (!spi->name)
-				DB_BUG("write memory out of range.\n");
-
-			if (spi->driver->wait_ready(spi))
-				goto fail;
-
-			spi->driver->write_enable(spi);
+			host->set_system_clock(spi->write, ENABLE);
 		}
 
-		memcpy(host->buffer, ptr, num);
-		FMC_PR(WR_DBG, "\t\t  DMA split write, to:%#x len:%#x.\n", to,
-				num);
-		hifmc100_dma_transfer(host, to, (u_char *)host->dma_buffer,
-				RW_OP_WRITE, num);
+		if (to + num > spi->chipsize)
+			num = spi->chipsize - to;
 
-		to += num;
-		ptr += num;
+		hifmc100_dma_transfer(spi, to, (u_char *)buf, RW_OP_WRITE, num);
+		to  += num;
+		buf += num;
 		len -= num;
 	}
 
@@ -523,7 +522,7 @@ static int hifmc100_reg_write(struct spi_flash *spiflash, u_int to, size_t len,
 		return 0;
 	}
 
-#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+#ifdef CONFIG_SPI_BLOCK_PROTECT
 	if (host->level) {
 		if ((BP_CMP_TOP == host->cmp)
 			&& ((to + len) > host->start_addr)) {
@@ -557,7 +556,7 @@ static int hifmc100_reg_write(struct spi_flash *spiflash, u_int to, size_t len,
 	if (spi->driver->wait_ready(spi))
 		goto fail;
 
-	host->set_system_clock(host, spi->write, ENABLE);
+	host->set_system_clock(spi->write, ENABLE);
 
 	if (to & HIFMC100_DMA_MASK) {
 		num = HIFMC100_DMA_MAX_SIZE - (to & HIFMC100_DMA_MASK);
@@ -573,7 +572,7 @@ static int hifmc100_reg_write(struct spi_flash *spiflash, u_int to, size_t len,
 			if (spi->driver->wait_ready(spi))
 				goto fail;
 
-			host->set_system_clock(host, spi->write, ENABLE);
+			host->set_system_clock(spi->write, ENABLE);
 		}
 
 		if (hifmc100_reg_write_buf(host, spi, to, num, ptr))
@@ -595,7 +594,7 @@ static int hifmc100_reg_write(struct spi_flash *spiflash, u_int to, size_t len,
 
 			if (spi->driver->wait_ready(spi))
 				goto fail;
-			host->set_system_clock(host, spi->write, ENABLE);
+			host->set_system_clock(spi->write, ENABLE);
 		}
 		if (hifmc100_reg_write_buf(host, spi, to, num, ptr))
 			goto fail;
@@ -636,25 +635,11 @@ static int hifmc100_reg_erase(struct spi_flash *spiflash, u_int offset,
 		return -EINVAL;
 	}
 
-#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
-	if (host->level) {
-		if ((BP_CMP_TOP == host->cmp)
-			&& ((offset + length) > host->start_addr)) {
-			puts("\n");
-			DB_MSG("Erase area[%#x => %#x] was locked\n",
-					host->start_addr, (offset + length));
-			return -EINVAL;
-		}
-
-		if ((BP_CMP_BOTTOM == host->cmp) && (offset < host->end_addr)) {
-			u_int end = ((offset + length) > host->end_addr) ?
-				host->end_addr : (offset + length);
-
-			puts("\n");
-			DB_MSG("Erase area[%#x => %#x] was locked\n", offset,
-					end);
-			return -EINVAL;
-		}
+#ifdef CONFIG_SPI_BLOCK_PROTECT
+	if ((host->level) && (offset < host->end_addr)) {
+		puts("\n");
+		printf("ERROR: The erase area was locked.\n");
+		return -EINVAL;
 	}
 #endif
 
@@ -715,7 +700,11 @@ struct spi_flash *hifmc100_spi_nor_scan(struct hifmc_host *host)
 #endif
 		return NULL;
 	}
-
+#ifdef CONFIG_SPI_BLOCK_PROTECT
+	host->cmp = BP_CMP_UPDATE_FLAG;
+	hifmc100_get_bp_lock_level(host);
+	spi_nor_flash->lock = hifmc100_spi_flash_lock;
+#endif
 	FMC_PR(BT_DBG, "\t||-Initial spi_flash structure\n");
 	spi_nor_flash->name = "hi_fmc";
 	spi_nor_flash->erase = hifmc100_reg_erase;
@@ -729,6 +718,23 @@ struct spi_flash *hifmc100_spi_nor_scan(struct hifmc_host *host)
 	spi_nor_flash->read = hifmc100_reg_read;
 #else
 	spi_nor_flash->read = hifmc100_dma_read;
+#endif
+#ifdef CONFIG_DTR_MODE_SUPPORT
+	if (spi->dtr_mode_support) {
+		int ret;
+
+		host->dtr_training_flag = 0;
+		/* setting DTR mode dummy and traning */
+		ret = spi_dtr_dummy_training_set(host, ENABLE);
+
+		/* switch DTR mode to SDR mode */
+		hifmc_dtr_mode_ctrl(spi, DISABLE);
+		spi_dtr_dummy_training_set(host, DISABLE);
+		if (ret) {
+			printf(" Reset to SDR mode.\n");
+			spi_dtr_to_sdr_switch(spi);
+		}
+	}
 #endif
 
 	FMC_PR(BT_DBG, "\t|*-Found SPI nor flash: %s\n", spi_nor_info->name);
@@ -753,7 +759,7 @@ static void hifmc100_set_host_addr_mode(struct hifmc_host *host, int enable)
 /*****************************************************************************/
 static int hifmc100_host_init(struct hifmc_host *host)
 {
-	unsigned int reg, flash_type, align_mask;
+	unsigned int reg, flash_type;
 
 	FMC_PR(BT_DBG, "\t|||*-Start SPI Nor host init\n");
 
@@ -774,17 +780,6 @@ static int hifmc100_host_init(struct hifmc_host *host)
 		hifmc_write(host, FMC_CFG, reg);
 		FMC_PR(BT_DBG, "\t||||-Set CFG[%#x]%#x\n", FMC_CFG, reg);
 	}
-
-	host->buforg = kmalloc((HIFMC100_DMA_MAX_SIZE + FMC_DMA_ALIGN),
-				GFP_KERNEL);
-	if (!host->buforg) {
-		FMC_PR(BT_DBG, "Error: Can't malloc memory for host\n");
-		return -ENOMEM;
-	}
-
-	align_mask = FMC_DMA_ALIGN - 1;
-	host->dma_buffer = (u_int)(host->buforg + align_mask) & ~align_mask;
-	host->buffer = (char *)host->dma_buffer;
 
 	host->set_system_clock = hifmc_set_fmc_system_clock;
 	host->set_host_addr_mode = hifmc100_set_host_addr_mode;
@@ -823,183 +818,548 @@ int hifmc100_spi_nor_init(struct hifmc_host *host)
 	return ret;
 }
 
-#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+#ifdef CONFIG_SPI_BLOCK_PROTECT
 /*****************************************************************************/
-void spi_lock_update_address(unsigned char cmp, unsigned char level,
-			unsigned int *start_addr, unsigned int *end_addr)
+void spi_lock_update_address(struct hifmc_host *host)
 {
-	unsigned int lock_len, erasesize, chipsize;
+	unsigned int lock_level_max, erasesize, chipsize;
+	unsigned char mid = host->spi_nor_info->ids[0];
+	struct hifmc_spi *spi = host->spi;
 
-	erasesize = *start_addr;
-	chipsize = *end_addr;
-
-	*start_addr = 0;
-
-	if (level) {
-		lock_len = erasesize << (level - 1);
-		if (lock_len > chipsize)
-			lock_len = chipsize;
-
-		if (BP_CMP_BOTTOM == cmp)
-			*end_addr = lock_len;
-		else if (BP_CMP_TOP == cmp)
-			*start_addr = chipsize - lock_len;
-
-		printf("Spi is locked. lock address[%#x => %#x]\n",
-				*start_addr, *end_addr);
-	} else {
-		if (BP_CMP_BOTTOM == cmp)
-			*end_addr = 0;
-		else if (BP_CMP_TOP == cmp)
-			*start_addr = chipsize;
+	if (!host->level) {
+		host->end_addr = 0;
+		FMC_PR(BP_DBG, "all blocks is unlocked.\n");
+		return;
 	}
+
+	chipsize = spi->chipsize;
+	erasesize = spi->erasesize;
+	lock_level_max = host->spi_nor_flash[0].bp_level_max;
+
+	switch (mid) {
+	case MID_MXIC:
+		if (spi->chipsize == _2M) {
+			if ((host->level != lock_level_max)
+					&& (host->level != 1))
+				host->end_addr = chipsize - (erasesize <<
+					(lock_level_max - host->level - 1));
+			else
+				host->end_addr = chipsize;
+			return;
+		}
+
+		if (spi->chipsize != _8M)
+			break;
+	case MID_ESMT:
+		/* this case is for ESMT and MXIC 8M devices */
+		if (host->level != lock_level_max)
+			host->end_addr = chipsize - (erasesize
+				<< (lock_level_max - host->level));
+		else
+			host->end_addr = chipsize;
+		return;
+	case MID_CFEON:
+		if (host->level != lock_level_max)
+			host->end_addr = chipsize - (erasesize
+					<< (host->level - 1));
+		else
+			host->end_addr = chipsize;
+		return;
+	default:
+		break;
+	}
+
+	/* general case */
+	host->end_addr = chipsize >> (lock_level_max - host->level);
 }
 
 /*****************************************************************************/
-unsigned hifmc100_get_spi_lock_info(unsigned char *cmp, unsigned char *level)
+void hifmc100_get_bp_lock_level(struct hifmc_host *host)
 {
-	unsigned char status, config, update_flag = *cmp;
-	struct hifmc_host *host = &fmc_host;
+	struct hifmc_spi *spi = host->spi;
+	unsigned char mid = host->spi_nor_info->ids[0];
+	unsigned int lock_level_max;
+
+	FMC_PR(BP_DBG, "Get manufacturer ID: [%#x]\n", mid);
+
+	/* match the manufacture ID to get the block protect info */
+	switch (mid) {
+	case MID_GD:
+	case MID_ESMT:
+	case MID_CFEON:
+	case MID_SPANSION:
+		host->bp_num = BP_NUM_3;
+		host->level = hifmc100_bp_to_level(host);
+		break;
+	case MID_WINBOND:
+		if (spi->chipsize <= _16M) {
+			host->bp_num = BP_NUM_3;
+			host->level = hifmc100_bp_to_level(host);
+		} else {
+			host->bp_num = BP_NUM_4;
+			host->level = hifmc100_bp_to_level(host);
+		}
+		break;
+	case MID_MXIC:
+		if (spi->chipsize <= _8M) {
+			host->bp_num = BP_NUM_3;
+			host->level = hifmc100_bp_to_level(host);
+		} else {
+			host->bp_num = BP_NUM_4;
+			host->level = hifmc100_bp_to_level(host);
+		}
+		break;
+	case MID_MICRON:
+	case MID_PARAGON:
+		return;
+	default:
+		goto usage;
+	}
+
+	/* this branch only for initialization */
+	if (host->cmp == BP_CMP_UPDATE_FLAG) {
+		/* get the max block protect level of current manufacture ID */
+		if (host->bp_num == BP_NUM_4) {
+			lock_level_max = LOCK_LEVEL_MAX(host->bp_num) - 5;
+			/* just for MXIC(16M), the max lock level is 9 */
+			if ((mid == MID_MXIC) && (spi->chipsize == _16M))
+				lock_level_max--;
+		} else
+			lock_level_max = LOCK_LEVEL_MAX(host->bp_num);
+
+		host->spi_nor_flash[0].bp_level_max = lock_level_max;
+		FMC_PR(BP_DBG, "Get the max bp level: [%d]\n", lock_level_max);
+
+		spi_lock_update_address(host);
+		if (host->end_addr)
+			printf("Spi is locked. lock address[0 => %#x]\n",
+					host->end_addr);
+	}
+	return;
+usage:
+	DB_MSG("Error:The ID: %#x isn't in the BP table,\n", mid);
+	DB_MSG("Current device can't not protect\n");
+}
+/*****************************************************************************/
+unsigned short hifmc100_set_spi_lock_info(struct hifmc_host *host)
+{
+	unsigned short val;
+	unsigned char mid = host->spi_nor_info->ids[0];
 	struct hifmc_spi *spi = host->spi;
 
+	FMC_PR(BP_DBG, "Get manufacturer ID: [%#x]\n", mid);
+
+	/* match the manufacture ID to get the block protect set info */
+	switch (mid) {
+	case MID_SPANSION:
+		val = hifmc100_handle_bp_rdcr_info(host, SPI_CMD_RDCR);
+		break;
+	case MID_MXIC:
+		if (spi->chipsize < _16M)
+			val = hifmc100_handle_bp_rdsr_info(host, SPI_CMD_RDSR);
+		else
+			val = hifmc100_handle_bp_rdcr_info(host,
+					SPI_CMD_RDCR_MX);
+		break;
+	case MID_GD:
+	case MID_ESMT:
+	case MID_CFEON:
+	case MID_WINBOND:
+		val = hifmc100_handle_bp_rdsr_info(host, SPI_CMD_RDSR);
+		break;
+	default:
+		goto usage;
+	}
+
+	return val;
+usage:
+	DB_MSG("Error: The manufacture ID is change,\n Pleaer check!!\n");
+	DB_MSG("Error: The ID: %#x isn't in the BP table,\n", mid);
+	return 1;
+}
+
+/*****************************************************************************/
+unsigned short hifmc100_handle_bp_rdcr_info(struct hifmc_host *host, u_char cmd)
+{
+	unsigned char status, config;
+	struct hifmc_spi *spi = host->spi;
+	unsigned char mid = host->spi_nor_info->ids[0];
+
+	/* this macro definition is for determining the writing length */
+	host->bt_loc = BT_LOC_RDCR;
 	spi->driver->wait_ready(spi);
 
-	status = spi_general_get_flash_register(spi, SPI_CMD_RDSR);
-	BP_MSG("Get Status Register[%#x]\n", status);
-	*level = (status & SPI_NOR_SR_BP_MASK) >> SPI_NOR_SR_BP0_SHIFT;
+	/* get the block protect B/P info in config register */
+	config = spi_general_get_flash_register(spi, cmd);
+	FMC_PR(BP_DBG, "Get Config Register[%#x]\n", config);
 
-	config = spi_general_get_flash_register(spi, SPI_CMD_RDCR);
-	BP_MSG("Get Config Register[%#x]\n", config);
-	*cmp = (config & SPI_NOR_SR_TB_MASK) >> SPI_NOR_SR_TB_SHIFT;
-
-	if (update_flag == BP_CMP_UPDATE_FLAG) {
-		host->start_addr = host->erasesize;
-		host->end_addr = host->spiflash[0].size;
-		spi_lock_update_address(*cmp, *level, &(host->start_addr),
-				&(host->end_addr));
+	/* the location of T/B bit in config register is different.
+	 SPANSION is 5th and the MXIC(16/32M) is 3th */
+	if (mid == MID_SPANSION) {
+		config = SPI_BP_BOTTOM_RDCR_SET_S(config);
+		FMC_PR(BP_DBG, "Set Config Register[%#x]\n", config);
+	} else {
+		config = SPI_BP_BOTTOM_RDCR_SET(config);
+		FMC_PR(BP_DBG, "Set Config Register[%#x]\n", config);
 	}
 
-	return (config << SPI_NOR_CR_SHIFT) | status;
+	/* get the block protect level info in status register */
+	status = spi_general_get_flash_register(spi, SPI_CMD_RDSR);
+	FMC_PR(BP_DBG, "Get Status Register[%#x]\n", status);
+
+	return ((unsigned short)config << SPI_NOR_CR_SHIFT) | status;
+}
+/*****************************************************************************/
+unsigned short hifmc100_handle_bp_rdsr_info(struct hifmc_host *host,
+					u_char cmd)
+{
+	unsigned char val;
+	struct hifmc_spi *spi = host->spi;
+	unsigned char mid = host->spi_nor_info->ids[0];
+
+	/* this macro definition is for determining the writing length */
+	host->bt_loc = BT_LOC_RDSR;
+	spi->driver->wait_ready(spi);
+
+	/* get the block protect level and B/T info in status register */
+	val = spi_general_get_flash_register(spi, cmd);
+	FMC_PR(BP_DBG, "Get Status Register[%#x]\n", val);
+	if (mid == MID_CFEON)
+		val &= SPI_BP_BOTTOM_RDSR_SET_0(host->bp_num);
+	else
+		val |= SPI_BP_BOTTOM_RDSR_SET_1(host->bp_num);
+	FMC_PR(BP_DBG, "Set Config Register[%#x]\n", val);
+
+	return val;
 }
 
 /*****************************************************************************/
-static void hifmc100_set_BP_level(struct hifmc_host *host, unsigned char cmp,
-					unsigned char level)
+static void hifmc100_set_bp_level(struct hifmc_host *host, unsigned char level)
 {
-	unsigned char old_level, old_cmp = 0;
-	unsigned int val, reg;
+	unsigned char old_level;
+	unsigned short val;
+	unsigned int reg;
 	struct hifmc_spi *spi = host->spi;
+	unsigned char mid = host->spi_nor_info->ids[0];
 
-	BP_MSG("* Start BP %s level %d\n", (cmp ? "bottom" : "top"), level);
+	FMC_PR(BP_DBG, "* Start BP bottom level %d\n", level);
 
-	val = hifmc100_get_spi_lock_info(&old_cmp, &old_level);
-	BP_MSG("  Read CR:SR[%#x]\n", val);
-
-	if ((old_cmp == cmp) && (old_level == level))
-		return;
-
-	spi->driver->write_enable(spi);
-
-	if ((old_cmp != cmp) && level && (level != BP_LEVEL_MAX)) {
-		val &= ~(SPI_NOR_SR_TB_MASK << SPI_NOR_CR_SHIFT);
-		val |= cmp << (SPI_NOR_SR_TB_SHIFT + SPI_NOR_CR_SHIFT);
-	}
+	val = hifmc100_set_spi_lock_info(host);
+	old_level = host->level;
+	FMC_PR(BP_DBG, "  Read CR:SR[%#x]\n", val);
 
 	if (old_level != level) {
-		val &= ~SPI_NOR_SR_BP_MASK;
+		if (host->bp_num == BP_NUM_3)
+			val &= ~SPI_NOR_SR_BP_MASK_3;
+		else
+			val &= ~SPI_NOR_SR_BP_MASK_4;
 		val |= level << SPI_NOR_SR_BP0_SHIFT;
+		FMC_PR(BP_DBG, "Set Status Register[%#x]\n", val);
+	} else {
+		FMC_PR(BP_DBG, "NOTES: old_level[%#x] = level[%#x]\n",
+				old_level, level);
+		return;
 	}
 
+	if (((mid == MID_ESMT) || ((mid == MID_MXIC)
+				&& (spi->chipsize < _16M))) && (level == 0)) {
+		val &= SPI_BP_BOTTOM_RDSR_SET_0(host->bp_num);
+		FMC_PR(BP_DBG, "set level = 0[PB3 = 0]:[%#x]\n", val);
+	}
+
+	spi->driver->write_enable(spi);
 	reg = hifmc_read(host, FMC_GLOBAL_CFG);
 	if (reg & FMC_GLOBAL_CFG_WP_ENABLE) {
-		BP_MSG("  Hardware protected enable!, reg[%#x]\n", reg);
+		FMC_PR(BP_DBG, " Hardware protected enable!, reg[%#x]\n", reg);
 		reg &= ~FMC_GLOBAL_CFG_WP_ENABLE;
 		hifmc_write(host, FMC_GLOBAL_CFG, reg);
 		val &= ~SPI_NOR_SR_SRWD_MASK;
-		BP_MSG("Disable SR[%d]:SRWD and WP#\n", SPI_NOR_SR_SRWD_SHIFT);
+		FMC_PR(BP_DBG, "Disable SR[%d]:SRWD and WP#\n",
+				SPI_NOR_SR_SRWD_SHIFT);
 	}
 
-	writeb(val, host->iobase);
-	BP_MSG(" WriAte IO[%#x]%#x\n", (unsigned int)host->iobase,
-			*(unsigned char *)host->iobase);
+	if (host->bt_loc == BT_LOC_RDSR) {
+		writeb(val, host->iobase);
+		FMC_PR(BP_DBG, "Write IO[%#x]%#x\n", (unsigned int)host->iobase,
+				*(unsigned char *)host->iobase);
+	} else {
+		writew(val, host->iobase);
+		FMC_PR(BP_DBG, "Write IO[%#x]%#x\n", (unsigned int)host->iobase,
+				*(unsigned short *)host->iobase);
+	}
 
 	reg = FMC_CMD_CMD1(SPI_CMD_WRSR);
 	hifmc_write(host, FMC_CMD, reg);
-	BP_MSG(" Set CMD[%#x]%#x\n", FMC_CMD, reg);
+	FMC_PR(BP_DBG, " Set CMD[%#x]%#x\n", FMC_CMD, reg);
 
 	reg = OP_CFG_FM_CS(spi->chipselect);
 	hifmc_write(host, FMC_OP_CFG, reg);
-	BP_MSG(" Set OP_CFG[%#x]%#x\n", FMC_OP_CFG, reg);
+	FMC_PR(BP_DBG, " Set OP_CFG[%#x]%#x\n", FMC_OP_CFG, reg);
 
-	reg = FMC_DATA_NUM_CNT(SPI_NOR_SR_LEN);
+	if (host->bt_loc == BT_LOC_RDSR)
+		reg = FMC_DATA_NUM_CNT(SPI_NOR_SR_LEN);
+	else
+		reg = FMC_DATA_NUM_CNT(SPI_NOR_SR_LEN + SPI_NOR_CR_LEN);
+
 	hifmc_write(host, FMC_DATA_NUM, reg);
-	BP_MSG(" Set DATA_NUM[%#x]%#x\n", FMC_DATA_NUM, reg);
+	FMC_PR(BP_DBG, " Set DATA_NUM[%#x]%#x\n", FMC_DATA_NUM, reg);
 
 	reg = FMC_OP_CMD1_EN(ENABLE)
 		| FMC_OP_WRITE_DATA_EN(ENABLE)
 		| FMC_OP_REG_OP_START;
 	hifmc_write(host, FMC_OP, reg);
-	BP_MSG(" Set OP[%#x]%#x\n", FMC_OP, reg);
+	FMC_PR(BP_DBG, " Set OP[%#x]%#x\n", FMC_OP, reg);
 
 	FMC_CMD_WAIT_CPU_FINISH(host);
 
-	BP_MSG("* Set BP level end.\n");
+	FMC_PR(BP_DBG, "* Set BP level end.\n");
 }
 
 /*****************************************************************************/
-void hifmc100_spi_lock(unsigned char cmp, unsigned char level)
+void hifmc100_spi_lock(struct hifmc_host *host, unsigned char level)
 {
-	unsigned char old_level, old_cmp = 0;
-	struct hifmc_host *host = &fmc_host;
+	unsigned char current_level;
 
-	/* Set lock start of top to bottom, warning */
-	if ((cmp == BP_CMP_BOTTOM) && (host->cmp == BP_CMP_TOP)) {
-		puts("Warning: Set bottom option will change a OTP(One Time ");
-		puts("Program) bit!\nThere is no way to recover if them ");
-		puts("are changed.\nAre sure of what you are doing!\n");
-		puts("Really set start of bottom address? <y/n>\n");
-		if (getc() != 'y') {
-			puts("Set start of bottom address aborted\n");
-			return;
-		}
-	}
+	hifmc100_set_bp_level(host, level);
 
-	/* Set lock start of bottom to top, error */
-	if ((level != BP_LEVEL_0) && (level != BP_LEVEL_MAX)
-	    && (cmp == BP_CMP_TOP) && (host->cmp == BP_CMP_BOTTOM)) {
-		DB_MSG("Error: Set top option will change a OTP(One Time ");
-		DB_MSG("Program) bit when it is changed!\n");
-		return;
-	}
-
-	hifmc100_set_BP_level(host, cmp, level);
-
-	hifmc100_get_spi_lock_info(&old_cmp, &old_level);
-	if ((old_cmp != cmp) && level && (level != BP_LEVEL_MAX)) {
-		DB_MSG("Error: Current lock start of %s address, but set ",
-				(old_cmp ? "bottom" : "top"));
-		DB_MSG("value: %s\n", (cmp ? "bottom" : "top"));
-		return;
-	}
-
-	if (old_level != level) {
+	/* check if we have set successfully or not */
+	current_level = hifmc100_bp_to_level(host);
+	if (current_level != level) {
 		DB_MSG("Error: Current lock level: %d, but set value: %d\n",
-			old_level, level);
+			current_level, level);
 		return;
 	}
 
-	host->start_addr = host->erasesize;
-	host->end_addr = host->spiflash[0].size;
-	spi_lock_update_address(cmp, level, &(host->start_addr),
-				&(host->end_addr));
-
-	if ((level != BP_LEVEL_0) && (level != BP_LEVEL_MAX))
-		host->cmp = cmp;
 	host->level = level;
+	spi_lock_update_address(host);
+
+	if (host->end_addr)
+		printf("Spi is locked. lock address[0 => %#x]\n",
+				host->end_addr);
 
 	return;
 }
 
 /*****************************************************************************/
-#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+unsigned char hifmc100_bp_to_level(struct hifmc_host *host)
+{
+	unsigned char val;
+	unsigned char level;
+	struct hifmc_spi *spi = host->spi;
 
+	spi->driver->wait_ready(spi);
+	val = spi_general_get_flash_register(spi, SPI_CMD_RDSR);
+	FMC_PR(BP_DBG, "Get Status Register[%#x]\n", val);
+
+	FMC_PR(BP_DBG, "the bp_num[%d]\n", host->bp_num);
+
+	if (host->bp_num == BP_NUM_3)
+		level = (val & SPI_NOR_SR_BP_MASK_3) >> SPI_NOR_SR_BP0_SHIFT;
+	else
+		level = (val & SPI_NOR_SR_BP_MASK_4) >> SPI_NOR_SR_BP0_SHIFT;
+
+	FMC_PR(BP_DBG, "the current level[%d]\n", level);
+
+	return level;
+}
+/*****************************************************************************/
+#endif /* CONFIG_SPI_BLOCK_PROTECT */
+
+#ifdef CONFIG_DTR_MODE_SUPPORT
+/*****************************************************************************/
+int spi_dtr_dummy_training_set(struct hifmc_host *host, int dtr_en)
+{
+	struct hifmc_spi *spi = host->spi;
+	int ret;
+
+	switch (spi->dtr_cookie) {
+	case DTR_MODE_SET_ODS:
+		if (spi->driver->dtr_set_device)
+			spi->driver->dtr_set_device(spi, dtr_en);
+		break;
+	case DTR_MODE_SET_NONE:
+	default:
+		break;
+	}
+
+	/* disable DTR mode without training */
+	/* dtr dummy training is done, return it */
+	if ((host->dtr_training_flag == 1) || (dtr_en == DISABLE))
+		return 0;
+
+	/* enable DTR mode and set sample point */
+	hifmc_dtr_mode_ctrl(spi, ENABLE);
+
+	/* set training */
+	ret = spi_dtr_training(host);
+	if (ret) {
+		printf("* Set dtr training fail.\n");
+		return 1;
+	}
+	FMC_PR(DTR_DB, "* Set dtr and dummy end.\n");
+	return 0;
+}
+/*****************************************************************************/
+static int dtr_training_handle(struct hifmc_host *host)
+{
+	int ret_tmp = 0, ret, ix;
+	unsigned int reg = 0, regval, p_count = 0, p_temp = 0;
+	unsigned char *buf, status[DTR_TRAINING_POINT_NUM] = {0};
+	struct hifmc_spi *spi = host->spi;
+
+	/* set div 4 clock */
+	host->set_system_clock(spi->read, ENABLE);
+
+	buf = malloc(DTR_TRAINING_CMP_LEN);
+	if (!buf)
+		return -1;
+
+	/* start training to check every sample point */
+	regval = hifmc_read(host, FMC_GLOBAL_CFG);
+	for (ix = 0; ix < DTR_TRAINING_POINT_NUM; ix++) {
+		regval = DTR_TRAINING_POINT_CLR(regval);
+		regval |= (ix << DTR_TRAINING_POINT_MASK);
+		FMC_PR(DTR_DB, " setting the dtr training point:%d\n", ix);
+		hifmc_write(host, FMC_GLOBAL_CFG, regval);
+		FMC_PR(DTR_DB, " Set dtr_training[%#x]%#x\n",
+				FMC_GLOBAL_CFG, regval);
+		/* read */
+		spi->driver->wait_ready(spi);
+		hifmc100_dma_transfer(spi, DTR_TRAINING_CMP_ADDR_SHIFT, buf,
+				RW_OP_READ, DTR_TRAINING_CMP_LEN);
+		ret = memcmp((const void *)buf,
+				(const void *)DTR_TRAINING_CMP_ADDR_S,
+				DTR_TRAINING_CMP_LEN);
+		if (ret == 0) {
+			ret_tmp = 1;
+			status[ix] = 1; /* like */
+			FMC_PR(DTR_DB, " status[%d] = 1\n", ix);
+		}
+		if (!ret_tmp && (ix == DTR_TRAINING_POINT_NUM - 1))
+			goto fail_training;
+	}
+
+	kfree(buf);
+
+	/* select the best smaple point */
+	for (ix = 0; ix < DTR_TRAINING_POINT_NUM;) {
+		if (status[ix] == 1) {
+			p_count++;
+			ix++;
+			if ((DTR_TRAINING_POINT_NUM == ix)
+					&& (p_count > p_temp)) {
+				p_temp = p_count;
+				p_count = 0;
+				reg = ix - ((p_temp + 1) >> 1);
+				FMC_PR(DTR_DB, "the sample point choice: %#x\n",
+						reg);
+				break;
+			}
+			if ((status[ix] == 0) && (p_count > p_temp)) {
+				p_temp = p_count;
+				p_count = 0;
+				reg = ix - ((p_temp + 1) >> 1);
+				FMC_PR(DTR_DB, "the sample point choice: %#x\n",
+						reg);
+				break;
+			}
+			continue;
+		}
+		ix++;
+	}
+
+	/* to set the best sample point */
+	regval = DTR_TRAINING_POINT_CLR(regval);
+	regval |= (reg << DTR_TRAINING_POINT_MASK);
+	FMC_PR(DTR_DB, " set the sample point[%#x]%#x\n",
+			FMC_GLOBAL_CFG, regval);
+	hifmc_write(host, FMC_GLOBAL_CFG, regval);
+
+	/* training handle end */
+	return regval;
+
+fail_training:
+	printf("Cannot find an useful sample point.\n");
+	kfree(buf);
+	return -1;
+}
+/*****************************************************************************/
+unsigned int spi_dtr_training(struct hifmc_host *host)
+{
+	int reg, cur_reg;
+
+	FMC_PR(DTR_DB, "DTR traiining start ...\n");
+
+	/* DTR traiining start */
+	reg = dtr_training_handle(host);
+	if (reg == -1) {
+		host->dtr_training_flag = 0;
+		printf("DTR traiining fail.\n");
+		return 1;
+	}
+	FMC_PR(DTR_DB, "* DTR traiining end.\n");
+	cur_reg = hifmc_read(host, FMC_GLOBAL_CFG);
+
+	/* to check whether training is done */
+	if (cur_reg == reg) {
+		host->dtr_training_flag = 1;
+		FMC_PR(DTR_DB, "* Set dtr_training seccess.\n");
+		return 0;
+	}
+	return 1;
+}
+/*****************************************************************************/
+void hifmc_dtr_mode_ctrl(struct hifmc_spi *spi, int dtr_en)
+{
+	unsigned int regval;
+	struct hifmc_host *host = (struct hifmc_host *)spi->host;
+
+	host->dtr_mode_en = dtr_en;
+	regval = hifmc_read(host, FMC_GLOBAL_CFG);
+	if (dtr_en == ENABLE) {
+		/* enable DTR mode and set the DC value */
+		regval |= (1 << DTR_MODE_REQUEST_SHIFT);
+		hifmc_write(host, FMC_GLOBAL_CFG, regval);
+		FMC_PR(DTR_DB, " enable dtr mode[%#x]%#x\n",
+				FMC_GLOBAL_CFG, regval);
+	} else {
+		/* disable DTR mode */
+		regval &= (~(1 << DTR_MODE_REQUEST_SHIFT));
+		hifmc_write(host, FMC_GLOBAL_CFG, regval);
+		FMC_PR(DTR_DB, " disable dtr mode[%#x]%#x\n",
+				FMC_GLOBAL_CFG, regval);
+	}
+}
+/*****************************************************************************/
+void hifmc_check_spi_dtr_support(struct hifmc_spi *spi, u_char *ids)
+{
+	unsigned manu_id = ids[0], dev_id = ids[1];
+
+	spi->dtr_mode_support = 0;
+	spi->dtr_cookie = DTR_MODE_SET_NONE;
+
+	switch (manu_id) {
+	case MID_MXIC:
+		if (spi_mxic_check_spi_dtr_support(spi)) {
+			spi->dtr_cookie = DTR_MODE_SET_ODS;
+			goto dtr_on;
+		}
+		break;
+	case MID_WINBOND:
+		/* Device ID: 0x70 means support DTR Mode for Winbond */
+		if (dev_id == DEVICE_ID_SUPPORT_DTR_WINBOND) {
+			spi->dtr_mode_support = 1;
+			goto dtr_on;
+		}
+		break;
+	default:
+		break;
+	}
+
+	FMC_PR(DTR_DB, "The Double Transfer Rate Read Mode isn't supported.\n");
+	return;
+
+dtr_on:
+	printf("The Double Transfer Rate Read Mode is supported.\n");
+}
+#endif /* CONFIG_DTR_MODE_SUPPORT */

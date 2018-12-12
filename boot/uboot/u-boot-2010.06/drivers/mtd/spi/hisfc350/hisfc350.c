@@ -1,9 +1,21 @@
-/******************************************************************************
- *    Copyright (c) 2009-2010 by Hisilicon
- *    All rights reserved.
- ******************************************************************************/
+/*
+ * Copyright (c) 2016 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
-/*****************************************************************************/
 #include <common.h>
 #include <malloc.h>
 #include <asm/io.h>
@@ -342,6 +354,7 @@ static int hisfc350_dma_read(struct spi_flash *spiflash, u32 from,
 	if (spi->driver->wait_ready(spi))
 		goto fail;
 	spi->driver->bus_prepare(spi, READ);
+	host->set_system_clock(host, spi->read, TRUE);
 
 	if (from & HISFC350_DMA_ALIGN_MASK) {
 		num = HISFC350_DMA_ALIGN_SIZE -
@@ -356,6 +369,7 @@ static int hisfc350_dma_read(struct spi_flash *spiflash, u32 from,
 			if (spi->driver->wait_ready(spi))
 				goto fail;
 			spi->driver->bus_prepare(spi, READ);
+			host->set_system_clock(host, spi->read, TRUE);
 		}
 		hisfc350_dma_transfer(host, from,
 			(unsigned char *)host->dma_buffer, READ,
@@ -375,6 +389,7 @@ static int hisfc350_dma_read(struct spi_flash *spiflash, u32 from,
 			if (spi->driver->wait_ready(spi))
 				goto fail;
 			spi->driver->bus_prepare(spi, READ);
+			host->set_system_clock(host, spi->read, TRUE);
 		}
 
 		num = ((from + len) >= spi->chipsize)
@@ -486,7 +501,7 @@ static int hisfc350_dma_write(struct spi_flash *spiflash, u32 to, size_t len,
 		return 0;
 	}
 
-#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+#ifdef CONFIG_SPI_BLOCK_PROTECT
 	if (host->level) {
 		if ((BP_CMP_TOP == host->cmp)
 		    && ((to + len) > host->start_addr)) {
@@ -507,13 +522,14 @@ static int hisfc350_dma_write(struct spi_flash *spiflash, u32 to, size_t len,
 			return -EINVAL;
 		}
 	}
-#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+#endif /* CONFIG_SPI_BLOCK_PROTECT */
 
 	if (spi->driver->wait_ready(spi))
 		goto fail;
 
 	spi->driver->write_enable(spi);
 	spi->driver->bus_prepare(spi, WRITE);
+	host->set_system_clock(host, spi->write, TRUE);
 
 	if (to & HISFC350_DMA_ALIGN_MASK) {
 		num = HISFC350_DMA_ALIGN_SIZE - (to & HISFC350_DMA_ALIGN_MASK);
@@ -528,6 +544,7 @@ static int hisfc350_dma_write(struct spi_flash *spiflash, u32 to, size_t len,
 				goto fail;
 			spi->driver->write_enable(spi);
 			spi->driver->bus_prepare(spi, WRITE);
+			host->set_system_clock(host, spi->write, TRUE);
 		}
 		memcpy(host->buffer, ptr, num);
 		hisfc350_dma_transfer(host, to,
@@ -551,6 +568,7 @@ static int hisfc350_dma_write(struct spi_flash *spiflash, u32 to, size_t len,
 				goto fail;
 			spi->driver->write_enable(spi);
 			spi->driver->bus_prepare(spi, WRITE);
+			host->set_system_clock(host, spi->write, TRUE);
 		}
 
 		memcpy(host->buffer, ptr, num);
@@ -629,7 +647,7 @@ static int hisfc350_reg_write(struct spi_flash *spiflash, u32 to, size_t len,
 		return 0;
 	}
 
-#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+#ifdef CONFIG_SPI_BLOCK_PROTECT
 	if (host->level) {
 		if ((BP_CMP_TOP == host->cmp)
 		    && ((to + len) > host->start_addr)) {
@@ -650,7 +668,7 @@ static int hisfc350_reg_write(struct spi_flash *spiflash, u32 to, size_t len,
 			return -EINVAL;
 		}
 	}
-#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+#endif /* CONFIG_SPI_BLOCK_PROTECT */
 
 	if (spi->driver->wait_ready(spi))
 		goto fail;
@@ -728,7 +746,7 @@ static int hisfc350_reg_erase(struct spi_flash *spiflash, u32 offset,
 		return -EINVAL;
 	}
 
-#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+#ifdef CONFIG_SPI_BLOCK_PROTECT
 	if (host->level) {
 		if ((BP_CMP_TOP == host->cmp)
 		    && ((offset + length) > host->start_addr)) {
@@ -749,7 +767,7 @@ static int hisfc350_reg_erase(struct spi_flash *spiflash, u32 offset,
 			return -EINVAL;
 		}
 	}
-#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+#endif /* CONFIG_SPI_BLOCK_PROTECT */
 
 	while (length) {
 		if (spi->chipsize <= offset) {
@@ -842,7 +860,7 @@ static int hisfc350_bus_write(struct spi_flash *spiflash, u32 to, size_t len,
 		return 0;
 	}
 
-#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+#ifdef CONFIG_SPI_BLOCK_PROTECT
 	if (host->level) {
 		if ((BP_CMP_TOP == host->cmp)
 		    && ((to + len) > host->start_addr)) {
@@ -863,7 +881,7 @@ static int hisfc350_bus_write(struct spi_flash *spiflash, u32 to, size_t len,
 			return -EINVAL;
 		}
 	}
-#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+#endif /* CONFIG_SPI_BLOCK_PROTECT */
 
 	if (spi->driver->wait_ready(spi))
 		goto fail;
@@ -1157,7 +1175,7 @@ static struct spi_flash *hisfc350_init(void)
 	}
 	hisfc_probe_spi_size(host, spiflash);
 
-#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+#ifdef CONFIG_SPI_BLOCK_PROTECT
 	host->cmp = BP_CMP_UPDATE_FLAG;
 	hisfc350_get_spi_lock_info(&(host->cmp), &(host->level));
 #endif
@@ -1200,7 +1218,7 @@ int hisfc350_spiflash_init(struct spi_flash **spiflash,
 }
 /*****************************************************************************/
 
-#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
+#ifdef CONFIG_SPI_BLOCK_PROTECT
 /*****************************************************************************/
 void spi_lock_update_address(unsigned char cmp, unsigned char level,
 			unsigned int *start_addr, unsigned int *end_addr)
@@ -1377,5 +1395,5 @@ void hisfc350_spi_lock(unsigned char cmp, unsigned char level)
 }
 
 /*****************************************************************************/
-#endif /* CONFIG_CMD_SPI_BLOCK_PROTECTION */
+#endif /* CONFIG_SPI_BLOCK_PROTECT */
 

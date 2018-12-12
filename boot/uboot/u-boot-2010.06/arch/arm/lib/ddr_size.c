@@ -17,7 +17,7 @@
 unsigned int get_ddr_size(void)
 {
 #define TO_UINT32(_p)   (*(volatile unsigned int *)(_p))
-#define MAX_DDR_SIZE (0xc0000000)
+	DECLARE_GLOBAL_DATA_PTR;
 	static unsigned int ddr_size;
 	volatile unsigned char *memskip;
 	volatile unsigned char *membase = (unsigned char *)MEM_BASE_DDR;
@@ -32,8 +32,8 @@ unsigned int get_ddr_size(void)
 	     memskip <= membase + get_max_ddr_size();
 	     memskip += _16M) {
 		offset = memskip - membase;
-		if (offset == MAX_DDR_SIZE) {
-			ddr_size = MAX_DDR_SIZE;
+		if (offset == gd->bd->bi_dram[0].size) {
+			ddr_size = gd->bd->bi_dram[0].size;
 			break;
 		}
 		TO_UINT32(membase) = 0xA9A9A9A9;

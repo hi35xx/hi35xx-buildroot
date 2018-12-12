@@ -88,6 +88,7 @@
 #define DDR_BYPASS_HW_MASK          0x100000 /* [20]Hardware read training */
 #define DDR_BYPASS_MPR_MASK         0x200000 /* [21]MPR training */
 #define DDR_BYPASS_AC_MASK          0x400000 /* [22]AC training */
+#define DDR_BYPASS_LPCA_MASK        0x800000 /* [23]LPDDR CA training */
 #define DDR_BYPASS_VREF_HOST_MASK   0x1000000 /* [24]Host Vref training */
 #define DDR_BYPASS_VREF_DRAM_MASK   0x2000000 /* [25]DRAM Vref training */
 #define DDR_BYPASS_DATAEYE_ADJ_MASK 0x10000000 /* [28]Dataeye adjust */
@@ -115,6 +116,13 @@
 
 #define DDR_HWR_WAIT_TIMEOUT	          (1000)
 #define DDR_SFC_WAIT_TIMEOUT	          (1000)
+#define DDR_LPCA_WAIT_TIMEOUT	          (1000)
+
+#ifdef CFG_EDA_VERIFY
+#define DDR_AUTO_TIMING_DELAY	          (1)
+#else
+#define DDR_AUTO_TIMING_DELAY	          (1000)
+#endif
 
 #define DDR_FIND_DQ_BOTH                  (1 << 0) /* find a valid value*/
 /* x is valid, (x-1) is invalid*/
@@ -134,6 +142,9 @@
 #define DDR_PHY_BIT_MAX                   (DDR_PHY_BYTE_MAX * DDR_PHY_BIT_NUM)
 #define DDR_PHY_REG_DQ_NUM                4  /* one register has 4 DQ BDL */
 
+#define DDR_PHY_CA_MAX                    10
+#define DDR_PHY_CA_REG_MAX                (DDR_PHY_CA_MAX >> 1)
+
 #define DDR_TRUE                          1
 #define DDR_FALSE                         0
 
@@ -144,14 +155,26 @@
 #define DDR_DELAY_PHASE                   1
 #define DDR_DELAY_BDL                     2
 
+#ifndef DDR_DATAEYE_WIN_NUM
 /* Dateeye window number. More bigger more slower when Vref training. */
 #define DDR_DATAEYE_WIN_NUM               8
+#endif
+#ifndef DDR_LOOP_TIMES_LMT
 /* Dataeye DQ deskew times for best result. More bigger more slower. */
 #define DDR_LOOP_TIMES_LMT                1
+#endif
+#ifndef DDR_VREF_COMPARE_TIMES
 /* Compare times when find best vref value. More bigger more slower. */
 #define DDR_VREF_COMPARE_TIMES            3
-/* MPR Find first start rdqs times. More bigger, start rdqs more bigger . */
+#endif
+#ifndef DDR_MPR_RDQS_FIND_TIMES
+/* MPR Find first start rdqs times. More bigger, start rdqs more bigger. */
 #define DDR_MPR_RDQS_FIND_TIMES           3
+#endif
+#ifndef DDR_VREF_COMPARE_STEP
+/* Compare step when begin to find. More bigger, more mistake, more stable. */
+#define DDR_VREF_COMPARE_STEP             3
+#endif
 
 #define DDR_DATAEYE_RESULT_MASK           0xffff
 #define DDR_DATAEYE_RESULT_BIT            16
@@ -205,6 +228,8 @@
 #define DDR_ERR_MPR                       (1 << 5)
 /* 0x00000040 Dataeye error */
 #define DDR_ERR_DATAEYE                   (1 << 6)
+/* 0x00000080 LPDDR CA error */
+#define DDR_ERR_LPCA                      (1 << 7)
 
 /* [13:12] Error phy */
 /* 0x00001000 PHY0 training error */
@@ -244,6 +269,7 @@ struct tr_relate_reg {
 	unsigned int dmc_scramb_cfg[DDR_PHY_NUM];
 	unsigned int misc_scramb[DDR_PHY_NUM];
 	unsigned int ac_phy_ctl[DDR_PHY_NUM];
+	unsigned int swapdfibyte_en[DDR_PHY_NUM];
 	struct tr_custom_reg custom;
 	struct ddr_ddrc_data ddrc;
 };
@@ -252,6 +278,23 @@ struct tr_dq_data {
 	unsigned int dq03[DDR_PHY_BYTE_MAX]; /* DQ0-DQ3 BDL */
 	unsigned int dq47[DDR_PHY_BYTE_MAX]; /* DQ4-DQ7 BDL */
 	unsigned int wdm[DDR_PHY_BYTE_MAX];  /* WDM */
+};
+
+struct ca_bit_st {
+	unsigned int bit_p;
+	unsigned int bit_n;
+};
+
+struct ca_data_st {
+	unsigned int base_dmc;
+	unsigned int base_phy;
+	unsigned int done; /* whether all ca found bdl range */
+	unsigned int min; /* min left bound */
+	unsigned int max; /* max right bound */
+	unsigned def[DDR_PHY_CA_REG_MAX];
+	int left[DDR_PHY_CA_MAX];
+	int right[DDR_PHY_CA_MAX];
+	struct ca_bit_st bits[DDR_PHY_CA_MAX];
 };
 
 /*******function interface define*********************************************/
@@ -286,12 +329,15 @@ int ddr_dataeye_training(unsigned int base_dmc, unsigned int base_phy,
 int ddr_vref_training(unsigned int base_dmc, unsigned int base_phy,
 	void *ddrtr_result, unsigned int mode);
 int ddr_ac_training(unsigned int base_dmc, unsigned int base_phy);
+int ddr_lpca_training(unsigned int base_dmc, unsigned int base_phy,
+	void *ddrtr_result);
 int ddr_dataeye_deskew(struct training_data *training,
 	unsigned int byte_index, unsigned int mode);
 void ddr_adjust_dataeye(struct training_data *training,
 	unsigned int mode);
 void ddr_result_data_save(void *ddrtr_result,
 	struct training_data *training, unsigned int mode);
+void ddr_lpca_data_save(void *ddrtr_result, struct ca_data_st *data);
 int ddr_ddrt_get_test_addr(void);
 int ddr_ddrt_test(unsigned int mask, int byte, int dq);
 int ddr_dataeye_check_dq(const struct training_data *training,
@@ -312,4 +358,5 @@ void ddr_training_error(unsigned int mask, unsigned int phy, int byte, int dq);
 void ddr_training_start(void);
 void ddr_training_suc(void);
 unsigned int ddr_phy_get_byte_num(unsigned int base_dmc);
+void ddr_training_set_timing(unsigned int base_dmc, unsigned int timing);
 #endif /* __ASSEMBLY__ */

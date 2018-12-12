@@ -139,6 +139,7 @@
 /* DDR_VREF_TRAINING_CONFIG    : DDR Vref training. */
 /* DDR_MPR_TRAINING_CONFIG     : DDR MPR training. */
 /* DDR_AC_TRAINING_CONFIG      : DDR AC training. */
+/* DDR_LPCA_TRAINING_CONFIG    : LPDDR CA training. */
 /* DDR_DDRT_SPECIAL_CONFIG     : DDRT read and write special operate. */
 /* DDR_DDR4_CONFIG             : DDR4 special operate. */
 /* DDR_TRAINING_CUT_CODE_CONFIG: Cut code for small SRAM. */

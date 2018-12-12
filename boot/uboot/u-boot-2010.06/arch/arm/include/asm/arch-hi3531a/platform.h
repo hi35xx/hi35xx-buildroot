@@ -71,6 +71,7 @@
 /* FMC CRG register offset */
 #define REG_FMC_CRG			REG_CRG82
 #define FMC_CLK_SEL(_clk)		(((_clk) & 0x3) << 2)
+#define GET_FMC_CLK_TYPE(_reg)		(((_reg) >> 2) & 0x3)
 #define FMC_CLK_SEL_MASK		(0x3 << 2)
 #define FMC_CLK_24M			0
 #define FMC_CLK_83M			1

@@ -11,6 +11,7 @@
 #define MMU_SEC_CB	( (1<<3) | (1<<2) )	/* cached, write back */
 #define MMU_SEC_NCB	~((1<<3) | (1<<2))	/* no cached, no writebuf */
 
+#define VM_EXEC 0x00000004
 
 /* r0: page directory address, must align to 16KB */
 .global mmu_pagedir_init
@@ -121,7 +122,7 @@ mmu_startup:
 	mcr	p15, 0, r1, c3, c0, 0	/* write domain access control reg */
 	mcr	p15, 0, r3, c1, c0, 0	/* enable mmu */
 	mcr	p15, 0, r2, c8, c7, 0	/* flush TLBs */
-#if !defined(CONFIG_HI3518EV200) && !defined(CONFIG_HI3518)
+#if __ARM_ARCH__ >= 7
 	isb
 #endif
 
@@ -138,7 +139,7 @@ mmu_turnoff:
 	bic	r3, r3, #P15_CTRL_MMU	/* disable mmu bit */
 	mcr	p15, 0, r3, c1, c0, 0	/* load control register */
 
-#if !defined(CONFIG_HI3518EV200) && !defined(CONFIG_HI3518)
+#if __ARM_ARCH__ >= 7
 	isb
 #endif
 
@@ -171,9 +172,15 @@ dcache_stop_noflush:
 	mov	pc,lr
 #if !defined(CONFIG_HI3516A) \
 	&& !defined(CONFIG_HI3536) \
-	&& !defined(CONFIG_HI3521A)
+	&& !defined(CONFIG_HI3536C) \
+	&& !defined(CONFIG_HI3521A) \
+	&& !defined(CONFIG_HI3519) \
+        && !defined(CONFIG_HI3519V101) \
+        && !defined(CONFIG_HI3516AV200) \
+        && !defined(CONFIG_HI3559)
 .global dcache_flush_all
 dcache_flush_all:
+#if __ARM_ARCH__ >= 7
 	mov	r0, #0			/* set up for MCR */
 	mcr	p15, 0, r0, c8, c7, 0	/* invalidate TLBs */
 	mcr	p15, 0, r0, c7, c5, 0	/* invalidate icache */
@@ -202,9 +209,22 @@ line_loop:
     	blt     way_loop		/* if not, continue the way_loop */
 
 	mov	pc,lr
+#else
+stmfd	r13!, {r2, ip, lr}
+        mov     r2, #VM_EXEC
+        mov     ip, #0
+1:      mrc     p15, 0, r15, c7, c14, 3         @ test,clean,invalidate
+        bne     1b
+
+	tst     r2, #VM_EXEC
+        mcrne   p15, 0, ip, c7, c5, 0           @ invalidate I cache
+        mcrne   p15, 0, ip, c7, c10, 4          @ drain WB
+	ldmfd	r13!, {r2, ip, pc}
+#endif
 
 .global dcache_inv_all
 dcache_inv_all:
+#if __ARM_ARCH__ >= 7
 	mov	r0, #0			/* set up for MCR */
 	mcr	p15, 0, r0, c8, c7, 0	/* invalidate TLBs */
 	mcr	p15, 0, r0, c7, c5, 0	/* invalidate icache */
@@ -231,4 +251,8 @@ line_lp:
     	blt     way_lp			/* if not, continue the way_loop */
 
 	mov	pc,lr
+#else
+	mcr	p15, 0, r0, c7, c7, 0
+	mov     pc,lr
+#endif
 #endif

@@ -1,11 +1,22 @@
-/******************************************************************************
- *	Flash Memory Controller v100 Device Driver
- *	Copyright (c) 2014 - 2015 by Hisilicon
- *	All rights reserved.
- * ***
- *	Create by hisilicon
+/*
+ * The Flash Memory Controller v100 Device Driver for hisilicon
  *
- *****************************************************************************/
+ * Copyright (c) 2016-2017 HiSilicon Technologies Co., Ltd.
+ *
+ * This program is free software; you can redistribute  it and/or modify it
+ * under  the terms of  the GNU General  Public License as published by the
+ * Free Software Foundation;  either version 2 of the  License, or (at your
+ * option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 /*****************************************************************************/
 #include <common.h>
@@ -29,6 +40,8 @@ static void hifmc100_driver_shutdown(void)
 		struct hifmc_host *host = &hifmc100_host;
 		struct hifmc_spi *spi = host->spi;
 		struct mtd_info_ex *spi_nor_info = &hifmc100_spi_nor_info;
+
+		hifmc_dev_type_switch(FLASH_TYPE_SPI_NOR);
 
 		for (ix = 0; ix < spi_nor_info->numchips; ix++, spi++) {
 			if (spi->addrcycle == 4) {
@@ -61,11 +74,6 @@ static int hifmc100_driver_probe(void)
 		FMC_PR(BT_DBG, "Error: SPI Nor init failed, ret: %d\n", ret);
 		goto end;
 	}
-
-#ifdef CONFIG_CMD_SPI_BLOCK_PROTECTION
-	host->cmp = BP_CMP_UPDATE_FLAG;
-	hifmc100_get_spi_lock_info(&(host->cmp), &(host->level));
-#endif
 
 end:
 	FMC_PR(BT_DBG, "\t|*-End SPI nor flash driver probe\n");
@@ -154,3 +162,45 @@ end:
 	return spi_nor_flash;
 }
 
+/*****************************************************************************/
+#ifdef CONFIG_SPI_BLOCK_PROTECT
+void hifmc100_spi_flash_lock(unsigned char cmp, unsigned char level,
+		unsigned char op)
+{
+	struct hifmc_host *host = &hifmc100_host;
+	struct spi_flash *nor = host->spi_nor_flash;
+
+	host->cmp = cmp;
+
+	if (BP_OP_GET == op) {
+		puts("Get spi lock information\n");
+		if (host->level) {
+			if (host->level == nor->bp_level_max)
+				puts("all blocks are locked.\n");
+			else
+				printf("level: %d\n", host->level);
+			printf("Spi is locked. lock address[0 => %#x]\n",
+					host->end_addr);
+		} else
+			puts("all blocks are unlocked.\n");
+
+		return;
+	}
+
+	if (BP_OP_SET == op) {
+		if (level) {
+			if (level == nor->bp_level_max)
+				puts("lock all blocks.\n");
+			else
+				printf("lock level: %d\n", level);
+		} else
+			puts("unlock all block.\n");
+
+		hifmc100_spi_lock(host, level);
+		return;
+	}
+
+	printf("%s ERROR: Invalid optin argument!", __func__);
+}
+/*****************************************************************************/
+#endif /* CONFIG_SPI_BLOCK_PROTECT */
