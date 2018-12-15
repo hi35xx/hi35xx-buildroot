@@ -1,0 +1,21 @@
+comment "Options for hi3516cv300 mpp"
+
+config BR2_PACKAGE_HIMPP_PREFIX
+	string "Install prefix"
+	default "/usr"
+	help
+	  Prefix to install himpp on the target file system.
+
+choice
+	bool "SDK Version"
+	default BR2_PACKAGE_HIMPP_HI3516CV200_SDK_V1_0_2_0
+
+config BR2_PACKAGE_HIMPP_HI3516CV300_SDK_V1_0_2_0
+	bool "1.0.2.0"
+
+endchoice
+
+config BR2_PACKAGE_HIMPP_HI3516CV300_SDK_VERSION
+	string
+	default "1.0.2.0" if BR2_PACKAGE_HIMPP_HI3516CV300_SDK_V1_0_2_0
+

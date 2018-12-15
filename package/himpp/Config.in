@@ -22,6 +22,11 @@ config BR2_PACKAGE_HIMPP_HI3518V200
 	help
 	  MPP for Hi3518 / Hi3518 v200 chips
 
+config BR2_PACKAGE_HIMPP_HI3516CV300
+	bool "hi3516cv300"
+	help
+	  MPP for Hi3516cv300 chip
+
 config BR2_PACKAGE_HIMPP_HI3520V100
 	bool "hi3520/hi3521 v100"
 	help
@@ -38,6 +43,7 @@ config BR2_PACKAGE_HIMPP_CHIP
 	string
 	default "hi3518v100" if BR2_PACKAGE_HIMPP_HI3518V100
 	default "hi3518v200" if BR2_PACKAGE_HIMPP_HI3518V200
+	default "hi3516cv300" if BR2_PACKAGE_HIMPP_HI3516CV300
 	default "hi3520v100" if BR2_PACKAGE_HIMPP_HI3520V100
 	default "hi3520dv200" if BR2_PACKAGE_HIMPP_HI3520DV200
 
@@ -48,6 +54,10 @@ endif # BR2_PACKAGE_HIMPP_HI3518V100
 if BR2_PACKAGE_HIMPP_HI3518V200
 source "package/himpp/himpp-hi3518v200/Config.in"
 endif # BR2_PACKAGE_HIMPP_HI3518V200
+
+if BR2_PACKAGE_HIMPP_HI3516CV300
+source "package/himpp/himpp-hi3516cv300/Config.in"
+endif # BR2_PACKAGE_HIMPP_HI3516CV300
 
 if BR2_PACKAGE_HIMPP_HI3520V100
 source "package/himpp/himpp-hi3520v100/Config.in"
