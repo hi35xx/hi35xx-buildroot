@@ -8,7 +8,7 @@ on_exit()
 trap on_exit 0
 
 mount -t proc proc /proc || exit
-grep -q overlayfs /proc/filesystems || exit
+grep -q overlay /proc/filesystems || exit
 
 # kernel cmdline option "overlay=" specifies the overlayfs device,
 # and "overlayfstype=" specifies the overlay filesystem type.
@@ -17,7 +17,13 @@ ovl_fstype=`sed -nr 's/.*\<overlayfstype=([^[:space:]]*).*/\1/p' /proc/cmdline`
 mount -t "${ovl_fstype:-jffs2}" "${ovl_device}" /overlay || \
 mount -t tmpfs tmpfs /overlay || exit
 
-mount -t overlayfs overlayfs -olowerdir=/,upperdir=/overlay,ro /mnt \
+OVL_ROOTDIR=/overlay/ovlroot
+OVL_WORKDIR=/overlay/ovlwork
+
+mkdir -p ${OVL_ROOTDIR} ${OVL_WORKDIR}
+
+mount -t overlay overlay \
+	-olowerdir=/,upperdir=${OVL_ROOTDIR},workdir=${OVL_WORKDIR} /mnt \
   || { umount /overlay; exit; }
 
 pivot_root /mnt /mnt/rom
