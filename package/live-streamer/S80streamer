@@ -3,14 +3,27 @@
 # Start live-streamer
 #
 
-SENSOR_TYPE=$(fw_printenv sensor_type 2>/dev/null)
-SENSOR_TYPE=${SENSOR_TYPE:12}
-SENSOR_TYPE=${SENSOR_TYPE:-ov9712}
+SENSOR_TYPE=$(fw_printenv -n sensor_type 2>/dev/null)
+SENSOR_TYPE=${SENSOR_TYPE:-sc4236}
+VICROP=$(fw_printenv -n vicrop 2>/dev/null)
+
+CONFIGFILE=/etc/config/live-streamer-${SENSOR_TYPE}.conf
+[ -f "$CONFIGFILE" ] || cp -f /etc/config/live-streamer.conf "$CONFIGFILE"
+
+VPIPE="--pipe isp0:sensor=${SENSOR_TYPE}|videv0:vbcnt=8,${VICROP}|vichn0-0:vbcnt=0|vpgrp0|vpchn0-0:enable"
+VPIPE="$VPIPE --pipe vpchn0-0|vechn0:encoding=MJPEG,fr=10"
+VPIPE="$VPIPE --pipe vpchn0-0|vechn1:encoding=H264,br=2048"
+VPIPE="$VPIPE --pipe vpchn0-0|vechn2:encoding=H264,br=2048"
+VPIPE="$VPIPE --pipe vpgrp0|vpchn0-3:vbcnt=2,resolution=640x640,fr=15|vechn3:encoding=H264,br=1024"
+VSRCOPT="-vsrc vpchn0-0"
+VENCOPT="-venc vechn2 -venc vechn3 -venc vechn0 -venc vechn1"
+STREAMOPT="-stream snapshot:vechn0 -stream record:vechn1 -stream 0:vechn2 -stream 1:vechn3"
+MEDIA_OPTIONS="$VPIPE $VSRCOPT $VENCOPT $APIPE $ASRCOPT $AENCOPT $STREAMOPT"
 
 start() {
     echo -n "Starting live-streamer: "
     start-stop-daemon -S -q -m -b -p /var/run/live-streamer.pid \
-                      -x live-streamer -- -S ${SENSOR_TYPE}
+                      -x live-streamer -- -S -c${CONFIGFILE} ${MEDIA_OPTIONS}
     [ $? = 0 ] && echo "OK" || echo "FAIL"
 }
 
