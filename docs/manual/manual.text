@@ -161,16 +161,16 @@ List of Examples
 
 ---------------------------------------------------------------------
 
-Buildroot 2018.08.2 manual generated on 2018-10-25 12:52:25 UTC from
-git revision 5070201391
+Buildroot 2019.11 manual generated on 2019-12-01 21:41:52 UTC from
+git revision 836b84a774
 
 The Buildroot manual is written by the Buildroot developers. It is
 licensed under the GNU General Public License, version 2. Refer to
 the COPYING [http://git.buildroot.org/buildroot/tree/COPYING?id=
-507020139190aaf44793c3c901321d23ba476c13] file in the Buildroot
+836b84a7743cbf7d6b745efd023217bed47e34e8] file in the Buildroot
 sources for the full text of this license.
 
-Copyright © 2004-2018 The Buildroot developers
+Copyright © 2004-2019 The Buildroot developers
 
 Part I. Getting started
 
@@ -235,8 +235,8 @@ vary between distributions).
       + make (version 3.81 or any later)
       + binutils
       + build-essential (only for Debian based systems)
-      + gcc (version 4.4 or any later)
-      + g++ (version 4.4 or any later)
+      + gcc (version 4.8 or any later)
+      + g++ (version 4.8 or any later)
       + bash
       + patch
       + gzip
@@ -244,7 +244,6 @@ vary between distributions).
       + perl (version 5.8.7 or any later)
       + tar
       + cpio
-      + python (version 2.6 or any later)
       + unzip
       + rsync
       + file (must be in /usr/bin/file)
@@ -255,6 +254,14 @@ vary between distributions).
 
 2.2. Optional packages
 
+  * Recommended dependencies:
+
+    Some features or utilities in Buildroot, like the legal-info, or
+    the graph generation tools, have additional dependencies.
+    Although they are not mandatory for a simple build, they are
+    still highly recommended:
+
+      + python (version 2.7 or any later)
   * Configuration interface dependencies:
 
     For these libraries, you need to install both runtime and
@@ -263,7 +270,7 @@ vary between distributions).
     -devel suffix.
 
       + ncurses5 to use the menuconfig interface
-      + qt4 to use the xconfig interface
+      + qt5 to use the xconfig interface
       + glib2, gtk2 and glade2 to use the gconfig interface
   * Source fetching tools:
 
@@ -362,9 +369,8 @@ All of these "make" commands will need to build a configuration
 utility (including the interface), so you may need to install
 "development" packages for relevant libraries used by the
 configuration utilities. Refer to Chapter 2, System requirements for
-more details, specifically the optional requirements Section 2.2,
-“Optional packages” to get the dependencies of your favorite
-interface.
+more details, specifically the optional requirements to get the
+dependencies of your favorite interface.
 
 For each menu entry in the configuration tool, you can find
 associated help that describes the purpose of the entry. Refer to
@@ -404,15 +410,21 @@ directory contains several subdirectories:
     needed by Buildroot on the host and packages compiled for the
     target). This directory contains one subdirectory for each of
     these components.
-  * staging/ which contains a hierarchy similar to a root filesystem
-    hierarchy. This directory contains the headers and libraries of
-    the cross-compilation toolchain and all the userspace packages
-    selected for the target. However, this directory is not intended
-    to be the root filesystem for the target: it contains a lot of
-    development files, unstripped binaries and libraries that make it
-    far too big for an embedded system. These development files are
-    used to compile libraries and applications for the target that
-    depend on other libraries.
+  * host/ contains both the tools built for the host, and the sysroot
+    of the target toolchain. The former is an installation of tools
+    compiled for the host that are needed for the proper execution of
+    Buildroot, including the cross-compilation toolchain. The latter
+    is a hierarchy similar to a root filesystem hierarchy. It
+    contains the headers and libraries of all user-space packages
+    that provide and install libraries used by other packages.
+    However, this directory is not intended to be the root filesystem
+    for the target: it contains a lot of development files,
+    unstripped binaries and libraries that make it far too big for an
+    embedded system. These development files are used to compile
+    libraries and applications for the target that depend on other
+    libraries.
+  * staging/ is a symlink to the target toolchain sysroot inside host
+    /, which exists for backwards compatibility.
   * target/ which contains almost the complete root filesystem for
     the target: everything needed is present except the device files
     in /dev/ (Buildroot can’t create them because Buildroot doesn’t
@@ -426,9 +438,6 @@ directory contains several subdirectories:
     /, target/ contains only the files and libraries needed to run
     the selected target applications: the development files (headers,
     etc.) are not present, the binaries are stripped.
-  * host/ contains the installation of tools compiled for the host
-    that are needed for the proper execution of Buildroot, including
-    the cross-compilation toolchain.
 
 These commands, make menuconfig|nconfig|gconfig|xconfig and make, are
 the basic ones that allow to easily and quickly generate images
@@ -765,9 +774,9 @@ Buildroot or crosstool-NG.
 
 If you want to generate a custom toolchain for your project, that can
 be used as an external toolchain in Buildroot, our recommendation is
-definitely to build it with crosstool-NG [http://crosstool-ng.org].
-We recommend to build the toolchain separately from Buildroot, and
-then import it in Buildroot using the external toolchain backend.
+to build it either with Buildroot itself (see Section 6.1.3, “Build
+an external toolchain with Buildroot”) or with crosstool-NG [http://
+crosstool-ng.org].
 
 Advantages of this backend:
 
@@ -781,9 +790,45 @@ Drawbacks of this backend:
 
   * If your pre-built external toolchain has a bug, may be hard to
     get a fix from the toolchain vendor, unless you build your
-    external toolchain by yourself using Crosstool-NG.
+    external toolchain by yourself using Buildroot or Crosstool-NG.
 
-6.1.2.1. External toolchain wrapper
+6.1.3. Build an external toolchain with Buildroot
+
+The Buildroot internal toolchain option can be used to create an
+external toolchain. Here are a series of steps to build an internal
+toolchain and package it up for reuse by Buildroot itself (or other
+projects).
+
+Create a new Buildroot configuration, with the following details:
+
+  * Select the appropriate Target options for your target CPU
+    architecture
+  * In the Toolchain menu, keep the default of Buildroot toolchain
+    for Toolchain type, and configure your toolchain as desired
+  * In the System configuration menu, select None as the Init system
+    and none as /bin/sh
+  * In the Target packages menu, disable BusyBox
+  * In the Filesystem images menu, disable tar the root filesystem
+
+Then, we can trigger the build, and also ask Buildroot to generate a
+SDK. This will conveniently generate for us a tarball which contains
+our toolchain:
+
+make sdk
+
+This produces the SDK tarball in $(O)/images, with a name similar to
+arm-buildroot-linux-uclibcgnueabi_sdk-buildroot.tar.gz. Save this
+tarball, as it is now the toolchain that you can re-use as an
+external toolchain in other Buildroot projects.
+
+In those other Buildroot projects, in the Toolchain menu:
+
+  * Set Toolchain type to External toolchain
+  * Set Toolchain to Custom toolchain
+  * Set Toolchain origin to Toolchain to be downloaded and installed
+  * Set Toolchain URL to file:///path/to/your/sdk/tarball.tar.gz
+
+6.1.3.1. External toolchain wrapper
 
 When using an external toolchain, Buildroot generates a wrapper
 program, that transparently passes the appropriate options (according
@@ -1056,17 +1101,18 @@ Notes. If ccache is enabled, running make clean or distclean does not
 empty the compiler cache used by Buildroot. To delete it, refer to
 Section 8.12.3, “Using ccache in Buildroot”.
 
-Dumping the internal make variables: One can dump all the variables
-known to make, along with their values:
+Dumping the internal make variables: One can dump the variables known
+to make, along with their values:
 
- $ make -s printvars
- VARIABLE=value_of_variable
- ...
+ $ make -s printvars VARS='VARIABLE1 VARIABLE2'
+ VARIABLE1=value_of_variable
+ VARIABLE2=value_of_variable
 
 It is possible to tweak the output using some variables:
 
   * VARS will limit the listing to variables which names match the
-    specified make-pattern
+    specified make-patterns - this must be set else nothing is
+    printed
   * QUOTED_VARS, if set to YES, will single-quote the value
   * RAW_VARS, if set to YES, will print the unexpanded value
 
@@ -1193,15 +1239,21 @@ command.
 
 On the other hand, if you only want to restart the build process of a
 package from its compilation step, you can run make <package>
--rebuild, followed by make or make <package>. It will restart the
-compilation and installation of the package, but not from scratch: it
-basically re-executes make and make install inside the package, so it
-will only rebuild files that changed.
+-rebuild. It will restart the compilation and installation of the
+package, but not from scratch: it basically re-executes make and make
+install inside the package, so it will only rebuild files that
+changed.
 
 If you want to restart the build process of a package from its
-configuration step, you can run make <package>-reconfigure, followed
-by make or make <package>. It will restart the configuration,
-compilation and installation of the package.
+configuration step, you can run make <package>-reconfigure. It will
+restart the configuration, compilation and installation of the
+package.
+
+While <package>-rebuild implies <package>-reinstall and <package>
+-reconfigure implies <package>-rebuild, these targets as well as
+<package> only act on the said package, and do not trigger
+re-creating the root filesystem image. If re-creating the root
+filesystem in necessary, one should in addition run make or make all.
 
 Internally, Buildroot creates so-called stamp files to keep track of
 which build steps have been completed for each package. They are
@@ -1293,6 +1345,9 @@ passed to make or set in the environment:
     packages” for the accepted options
   * BR2_GRAPH_DOT_OPTS is passed verbatim as options to the dot
     utility to draw the dependency graph.
+  * BR2_GRAPH_SIZE_OPTS to pass extra options to the size graph; see
+    Section 8.10, “Graphing the filesystem size contribution of
+    packages” for the acepted options
 
 An example that uses config files located in the toplevel directory
 and in your $HOME:
@@ -1469,10 +1524,24 @@ installed (python-matplotlib on most distributions), and also the
 argparse module if you’re using a Python version older than 2.7
 (python-argparse on most distributions).
 
-Just like for the duration graph, a BR2_GRAPH_OUT environment is
-supported to adjust the output file format. See Section 8.8,
-“Graphing the dependencies between packages” for details about this
-environment variable.
+Just like for the duration graph, a BR2_GRAPH_OUT environment
+variable is supported to adjust the output file format. See
+Section 8.8, “Graphing the dependencies between packages” for details
+about this environment variable.
+
+Additionally, one may set the environment variable
+BR2_GRAPH_SIZE_OPTS to further control the generated graph. Accepted
+options are:
+
+  * --size-limit X, -l X, will group all packages which individual
+    contribution is below X percent, to a single entry labelled 
+    Others in the graph. By default, X=0.01, which means packages
+    each contributing less than 1% are grouped under Others. Accepted
+    values are in the range [0.0..1.0].
+  * --iec, --binary, --si, --decimal, to use IEC (binary, powers of
+    1024) or SI (decimal, powers of 1000; the default) prefixes.
+  * --biggest-first, to sort packages in decreasing size order,
+    rather than in increasing size order.
 
 Note. The collected filesystem size data is only meaningful after a
 complete clean rebuild. Be sure to run make clean all before using
@@ -1528,17 +1597,26 @@ host/. The simplest way to use it is to add output/host/bin/ to your
 PATH environment variable and then to use ARCH-linux-gcc,
 ARCH-linux-objdump, ARCH-linux-ld, etc.
 
-It is possible to relocate the toolchain, this allows to distribute
-the toolchain to other developers to build applications for your
-target. To achieve this:
+Alternatively, Buildroot can also export the toolchain and the
+development files of all selected packages, as an SDK, by running the
+command make sdk. This generates a tarball of the content of the host
+directory output/host/, named <TARGET-TUPLE>_sdk-buildroot.tar.gz
+(which can be overriden by setting the environment variable
+BR2_SDK_PREFIX) and located in the output directory output/images/.
 
-  * run make sdk, which prepares the toolchain to be relocatable;
-  * tarball the contents of the output/host directory;
-  * distribute the resulting tarball.
+This tarball can then be distributed to application developers, when
+they want to develop their applications that are not (yet) packaged
+as a Buildroot package.
 
-Once the toolchain is installed to the new location, the user must
-run the relocate-sdk.sh script to make sure all paths are updated
-with the new location.
+Upon extracting the SDK tarball, the user must run the script
+relocate-sdk.sh (located at the top directory of the SDK), to make
+sure all paths are updated with the new location.
+
+Alternatively, if you just want to prepare the SDK without generating
+the tarball (e.g. because you will just be moving the host directory,
+or will be generating the tarball on your own), Buildroot also allows
+you to just prepare the SDK with make prepare-sdk without actually
+generating a tarball.
 
 8.12.2. Using gdb in Buildroot
 
@@ -1707,31 +1785,52 @@ The package build targets are (in the order they are executed):
 Additionally, there are some other useful make targets:
 
 +------------------------------------------------------------+
-|  command/   |Description                                   |
-|   target    |                                              |
-|-------------+----------------------------------------------|
-|show-depends |Displays the dependencies required to build   |
-|             |the package                                   |
-|-------------+----------------------------------------------|
-|graph-depends|Generate a dependency graph of the package, in|
-|             |the context of the current Buildroot          |
-|             |configuration. See this section Section 8.8,  |
-|             |“Graphing the dependencies between packages”  |
-|             |for more details about dependency graphs.     |
-|-------------+----------------------------------------------|
-|  dirclean   |Remove the whole package build directory      |
-|-------------+----------------------------------------------|
-|  reinstall  |Re-run the install commands                   |
-|-------------+----------------------------------------------|
-|   rebuild   |Re-run the compilation commands - this only   |
-|             |makes sense when using the OVERRIDE_SRCDIR    |
-|             |feature or when you modified a file directly  |
-|             |in the build directory                        |
-|-------------+----------------------------------------------|
-| reconfigure |Re-run the configure commands, then rebuild - |
-|             |this only makes sense when using the          |
-|             |OVERRIDE_SRCDIR feature or when you modified a|
-|             |file directly in the build directory          |
+|    command/target     |Description                         |
+|-----------------------+------------------------------------|
+|     show-depends      |Displays the first-order            |
+|                       |dependencies required to build the  |
+|                       |package                             |
+|-----------------------+------------------------------------|
+|show-recursive-depends |Recursively displays the            |
+|                       |dependencies required to build the  |
+|                       |package                             |
+|-----------------------+------------------------------------|
+|     show-rdepends     |Displays the first-order reverse    |
+|                       |dependencies of the package (i.e    |
+|                       |packages that directly depend on it)|
+|-----------------------+------------------------------------|
+|show-recursive-rdepends|Recursively displays the reverse    |
+|                       |dependencies of the package (i.e the|
+|                       |packages that depend on it, directly|
+|                       |or indirectly)                      |
+|-----------------------+------------------------------------|
+|     graph-depends     |Generate a dependency graph of the  |
+|                       |package, in the context of the      |
+|                       |current Buildroot configuration. See|
+|                       |this section for more details about |
+|                       |dependency graphs.                  |
+|-----------------------+------------------------------------|
+|    graph-rdepends     |Generate a graph of this package    |
+|                       |reverse dependencies (i.e the       |
+|                       |packages that depend on it, directly|
+|                       |or indirectly)                      |
+|-----------------------+------------------------------------|
+|       dirclean        |Remove the whole package build      |
+|                       |directory                           |
+|-----------------------+------------------------------------|
+|       reinstall       |Re-run the install commands         |
+|-----------------------+------------------------------------|
+|        rebuild        |Re-run the compilation commands -   |
+|                       |this only makes sense when using the|
+|                       |OVERRIDE_SRCDIR feature or when you |
+|                       |modified a file directly in the     |
+|                       |build directory                     |
+|-----------------------+------------------------------------|
+|      reconfigure      |Re-run the configure commands, then |
+|                       |rebuild - this only makes sense when|
+|                       |using the OVERRIDE_SRCDIR feature or|
+|                       |when you modified a file directly in|
+|                       |the build directory                 |
 +------------------------------------------------------------+
 
 8.12.6. Using Buildroot during development
@@ -1761,10 +1860,21 @@ clean.
 Therefore, Buildroot provides a specific mechanism for this use case:
 the <pkg>_OVERRIDE_SRCDIR mechanism. Buildroot reads an override
 file, which allows the user to tell Buildroot the location of the
-source for certain packages. By default this override file is named
-local.mk and located in the top directory of the Buildroot source
-tree, but a different location can be specified through the
-BR2_PACKAGE_OVERRIDE_FILE configuration option.
+source for certain packages.
+
+The default location of the override file is $(CONFIG_DIR)/local.mk,
+as defined by the BR2_PACKAGE_OVERRIDE_FILE configuration option. $
+(CONFIG_DIR) is the location of the Buildroot .config file, so
+local.mk by default lives side-by-side with the .config file, which
+means:
+
+  * In the top-level Buildroot source directory for in-tree builds
+    (i.e., when O= is not used)
+  * In the out-of-tree directory for out-of-tree builds (i.e., when O
+    = is used)
+
+If a different location than these defaults is required, it can be
+specified through the BR2_PACKAGE_OVERRIDE_FILE configuration option.
 
 In this override file, Buildroot expects to find lines of the form:
 
@@ -1820,6 +1930,15 @@ WEBKITGTK_OVERRIDE_SRCDIR_RSYNC_EXCLUSIONS = \
         --exclude JSTests --exclude ManualTests --exclude PerformanceTests \
         --exclude WebDriverTests --exclude WebKitBuild --exclude WebKitLibraries \
         --exclude WebKit.xcworkspace --exclude Websites --exclude Examples
+
+By default, Buildroot skips syncing of VCS artifacts (e.g., the .git
+and .svn directories). Some packages prefer to have these VCS
+directories available during build, for example for automatically
+determining a precise commit reference for version information. To
+undo this built-in filtering at a cost of a slower speed, add these
+directories back:
+
+LINUX_OVERRIDE_SRCDIR_RSYNC_EXCLUSIONS = --include .git
 
 Chapter 9. Project-specific customization
 
@@ -1909,6 +2028,7 @@ choice is up to you.
 |
 +-- Config.in (if using a br2-external tree)
 +-- external.mk (if using a br2-external tree)
++-- external.desc (if using a br2-external tree)
 
 Details on the files shown above are given further in this chapter.
 
@@ -1983,7 +2103,7 @@ locations:
 One can tell Buildroot to use one or more br2-external trees by
 setting the BR2_EXTERNAL make variable set to the path(s) of the
 br2-external tree(s) to use. It can be passed to any Buildroot make
-invocation. It is automatically saved in the hidden .br-external.mk
+invocation. It is automatically saved in the hidden .br2-external.mk
 file in the output directory. Thanks to this, there is no need to
 pass BR2_EXTERNAL at every make invocation. It can however be changed
 at any time by passing a new value, and can be removed by passing an
@@ -2032,8 +2152,8 @@ described in the following chapters:
 
 Apart from those mandatory files, there may be additional and
 optional content that may be present in a br2-external tree, like the
-configs/ directory. They are described in the following chapters as
-well.
+configs/ or provides/ directories. They are described in the
+following chapters as well.
 
 A complete example br2-external tree layout is also described later.
 
@@ -2137,7 +2257,24 @@ tree, then the one from the last br2-external tree is used. It is
 thus possible to override a defconfig bundled in Buildroot or another
 br2-external tree.
 
-9.2.1.4. Free-form content
+9.2.1.4. The provides/ directory
+
+For some packages, Buildroot provides a choice between two (or more)
+implementations of API-compatible such packages. For example, there
+is a choice to choose either libjpeg ot jpeg-turbo, and another
+choice between openssl or libressl. Finally, there is a choice to
+select one of the known, pre-configured toolchains.
+
+It is possible for a br2-external to extend those choices, by
+providing a set of files that define those alternatives:
+
+  * provides/toolchains.in defines the pre-configured toolchains,
+    which will then be listed in the toolchain selection;
+  * provides/jpeg.in defines the alternative libjpeg implementations;
+  * provides/openssl.in defines the alternative openssl
+    implementations.
+
+9.2.1.5. Free-form content
 
 One can store all the board-specific configuration files there, such
 as the kernel configuration, the root filesystem overlay, or any
@@ -2151,7 +2288,13 @@ BR2_GLOBAL_PATCH_DIR=$(BR2_EXTERNAL_BAR_42_PATH)/patches/
 BR2_ROOTFS_OVERLAY=$(BR2_EXTERNAL_BAR_42_PATH)/board/<boardname>/overlay/
 BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE=$(BR2_EXTERNAL_BAR_42_PATH)/board/<boardname>/kernel.config
 
-9.2.1.5. Example layout
+9.2.1.6. Additional Linux kernel extensions
+
+Additional Linux kernel extensions (see Section 17.20.2,
+“linux-kernel-extensions”) can be added by storing them in the linux/
+directory at the root of a br2-external tree.
+
+9.2.1.7. Example layout
 
 Here is an example layout using all features of br2-external (the
 sample content is shown for the file above it, when it is relevant to
@@ -2165,8 +2308,10 @@ the sake of illustration, of course):
   |     `----
   |
   |- Config.in
+  |     |source "$BR2_EXTERNAL_BAR_42_PATH/toolchain/toolchain-external-mine/Config.in.options"
   |     |source "$BR2_EXTERNAL_BAR_42_PATH/package/pkg-1/Config.in"
   |     |source "$BR2_EXTERNAL_BAR_42_PATH/package/pkg-2/Config.in"
+  |     |source "$BR2_EXTERNAL_BAR_42_PATH/package/my-jpeg/Config.in"
   |     |
   |     |config BAR_42_FLASH_ADDR
   |     |    hex "my-board flash address"
@@ -2175,6 +2320,7 @@ the sake of illustration, of course):
   |
   |- external.mk
   |     |include $(sort $(wildcard $(BR2_EXTERNAL_BAR_42_PATH)/package/*/*.mk))
+  |     |include $(sort $(wildcard $(BR2_EXTERNAL_BAR_42_PATH)/toolchain/*/*.mk))
   |     |
   |     |flash-my-board:
   |     |    $(BR2_EXTERNAL_BAR_42_PATH)/board/my-board/flash-image \
@@ -2206,6 +2352,50 @@ the sake of illustration, of course):
   |- package/pkg-2/Config.in
   |- package/pkg-2/pkg-2.hash
   |- package/pkg-2/pkg-2.mk
+  |
+  |- provides/jpeg.in
+  |     |config BR2_PACKAGE_MY_JPEG
+  |     |    bool "my-jpeg"
+  |     `----
+  |- package/my-jpeg/Config.in
+  |     |config BR2_PACKAGE_PROVIDES_JPEG
+  |     |    default "my-jpeg" if BR2_PACKAGE_MY_JPEG
+  |     `----
+  |- package/my-jpeg/my-jpeg.mk
+  |     |# This is a normal package .mk file
+  |     |MY_JPEG_VERSION = 1.2.3
+  |     |MY_JPEG_SITE = https://example.net/some/place
+  |     |MY_JPEG_PROVIDES = jpeg
+  |     |$(eval $(autotools-package))
+  |     `----
+  |
+  |- provides/toolchains.in
+  |     |config BR2_TOOLCHAIN_EXTERNAL_MINE
+  |     |    bool "my custom toolchain"
+  |     |    depends on BR2_some_arch
+  |     |    select BR2_INSTALL_LIBSTDCPP
+  |     `----
+  |- toolchain/toolchain-external-mine/Config.in.options
+  |     |if BR2_TOOLCHAIN_EXTERNAL_MINE
+  |     |config BR2_TOOLCHAIN_EXTERNAL_PREFIX
+  |     |    default "arch-mine-linux-gnu"
+  |     |config BR2_PACKAGE_PROVIDES_TOOLCHAIN_EXTERNAL
+  |     |    default "toolchain-external-mine"
+  |     |endif
+  |     `----
+  |- toolchain/toolchain-external-mine/toolchain-external-mine.mk
+  |     |TOOLCHAIN_EXTERNAL_MINE_SITE = https://example.net/some/place
+  |     |TOOLCHAIN_EXTERNAL_MINE_SOURCE = my-toolchain.tar.gz
+  |     |$(eval $(toolchain-external-package))
+  |     `----
+  |
+  |- linux/Config.ext.in
+  |     |config BR2_LINUX_KERNEL_EXT_EXAMPLE_DRIVER
+  |     |    bool "example-external-driver"
+  |     |    help
+  |     |      Example external driver
+  |     |---
+  |- linux/linux-ext-example-driver.mk
   |
   |- configs/my-board_defconfig
   |     |BR2_GLOBAL_PATCH_DIR="$(BR2_EXTERNAL_BAR_42_PATH)/patches/"
@@ -2254,6 +2444,33 @@ External options  --->
         *** FOO_27 (in /path/to/another-br2-ext)
         [ ] foo
         [ ] bar
+
+Additionally, the jpeg provider will be visible in the jpeg choice:
+
+Target packages  --->
+    Libraries  --->
+        Graphics  --->
+            [*] jpeg support
+                jpeg variant ()  --->
+                    ( ) jpeg
+                    ( ) jpeg-turbo
+                        *** jpeg from: Example br2-external tree ***
+                    (X) my-jpeg
+                        *** jpeg from: FOO_27 ***
+                    ( ) another-jpeg
+
+And similarly for the toolchains:
+
+Toolchain  --->
+    Toolchain ()  --->
+        ( ) Custom toolchain
+            *** Toolchains from: Example br2-external tree ***
+        (X) my custom toolchain
+
+Note. The toolchain options in toolchain/toolchain-external-mine/
+Config.in.options will not appear in the Toolchain menu. They must be
+explicitly included from within the br2-external’s top-level
+Config.in and will thus appear in the External options menu.
 
 9.3. Storing the Buildroot configuration
 
@@ -2335,6 +2552,13 @@ Root filesystem overlays (BR2_ROOTFS_OVERLAY)
     tree. Hidden directories of version control systems, like .git,
     .svn, .hg, etc., files called .empty and files ending in ~ are
     excluded from the copy.
+
+    When BR2_ROOTFS_MERGED_USR is enabled, then the overlay must not
+    contain the /bin, /lib or /sbin directories, as Buildroot will
+    create them as symbolic links to the relevant folders in /usr. In
+    such a situation, should the overlay have any programs or
+    libraries, they should be placed in /usr/bin, /usr/sbin and /usr/
+    lib.
 
     As shown in Section 9.1, “Recommended directory structure”, the
     recommended path for this overlay is board/<company>/<boardname>/
@@ -2421,6 +2645,15 @@ Custom target skeleton (BR2_ROOTFS_SKELETON_CUSTOM)
     menu. If you specify a relative path, it will be relative to the
     root of the Buildroot tree.
 
+    Custom skeletons don’t need to contain the /bin, /lib or /sbin
+    directories, since they are created automatically during the
+    build. When BR2_ROOTFS_MERGED_USR is enabled, then the custom
+    skeleton must not contain the /bin, /lib or /sbin directories, as
+    Buildroot will create them as symbolic links to the relevant
+    folders in /usr. In such a situation, should the skeleton have
+    any programs or libraries, they should be placed in /usr/bin, /
+    usr/sbin and /usr/lib.
+
     This method is not recommended because it duplicates the entire
     skeleton, which prevents taking advantage of the fixes or
     improvements brought to the default skeleton in later Buildroot
@@ -2471,8 +2704,7 @@ from the post-build script.
 Instead, Buildroot provides support for so-called permission tables.
 To use this feature, set config option BR2_ROOTFS_DEVICE_TABLE to a
 space-separated list of permission tables, regular text files
-following the makedev syntax Chapter 23, Makedev syntax documentation
-.
+following the makedev syntax.
 
 If you are using a static device table (i.e. not using devtmpfs,
 mdev, or (e)udev) then you can add device nodes using the same
@@ -2494,8 +2726,7 @@ Sometimes it is needed to add specific users in the target system. To
 cover this requirement, Buildroot provides support for so-called 
 users tables. To use this feature, set config option
 BR2_ROOTFS_USERS_TABLES to a space-separated list of users tables,
-regular text files following the makeusers syntax Chapter 24, 
-Makeusers syntax documentation.
+regular text files following the makeusers syntax.
 
 As shown in Section 9.1, “Recommended directory structure”, the
 recommended location for such files is board/<company>/<boardname>/.
@@ -3455,9 +3686,11 @@ is as follows:
 
  1. The type of option: bool, string… with the prompt
  2. If needed, the default value(s)
- 3. Any dependency of the depends on form
- 4. Any dependency of the select form
- 5. The help keyword and help text.
+ 3. Any dependencies on the target in depends on form
+ 4. Any dependencies on the toolchain in depends on form
+ 5. Any dependencies on other packages in depends on form
+ 6. Any dependency of the select form
+ 7. The help keyword and help text.
 
 You can add other sub-options into a if BR2_PACKAGE_LIBFOO…endif
 statement to configure particular things in your software. You can
@@ -3602,8 +3835,7 @@ also enabled, but not necessarily built before your package. To do
 so, the dependency also needs to be expressed in the .mk file of the
 package.
 
-Further formatting details: see the coding style Section 15.1,
-“Config.in file”.
+Further formatting details: see the coding style.
 
 17.2.4. Dependencies on target and toolchain options
 
@@ -3709,6 +3941,10 @@ the text to use in the comment.
 
       + Dependency symbol: BR2_INSTALL_LIBSTDCPP
       + Comment string: C++
+  * D support
+
+      + Dependency symbol: BR2_TOOLCHAIN_HAS_DLANG
+      + Comment string: Dlang
   * Fortran support
 
       + Dependency symbol: BR2_TOOLCHAIN_HAS_FORTRAN
@@ -3787,36 +4023,27 @@ different way, using different infrastructures:
     infrastructure must be used for all packages that do not use the
     autotools as their build system. In the future, other specialized
     infrastructures might be written for other build systems. We
-    cover them through in a tutorial Section 17.5.1, “generic-package
-    tutorial” and a reference Section 17.5.2, “generic-package
-    reference”.
+    cover them through in a tutorial and a reference.
   * Makefiles for autotools-based software (autoconf, automake,
     etc.): We provide a dedicated infrastructure for such packages,
     since autotools is a very common build system. This
     infrastructure must be used for new packages that rely on the
     autotools as their build system. We cover them through a tutorial
-    Section 17.6.1, “autotools-package tutorial” and reference
-    Section 17.6.2, “autotools-package reference”.
+    and reference.
   * Makefiles for cmake-based software: We provide a dedicated
     infrastructure for such packages, as CMake is a more and more
     commonly used build system and has a standardized behaviour. This
     infrastructure must be used for new packages that rely on CMake.
-    We cover them through a tutorial Section 17.7.1, “cmake-package
-    tutorial” and reference Section 17.7.2, “cmake-package reference”
-    .
+    We cover them through a tutorial and reference.
   * Makefiles for Python modules: We have a dedicated infrastructure
     for Python modules that use either the distutils or the
-    setuptools mechanism. We cover them through a tutorial
-    Section 17.8.1, “python-package tutorial” and a reference
-    Section 17.8.2, “python-package reference”.
+    setuptools mechanism. We cover them through a tutorial and a
+    reference.
   * Makefiles for Lua modules: We have a dedicated infrastructure for
     Lua modules available through the LuaRocks web site. We cover
-    them through a tutorial Section 17.9.1, “luarocks-package
-    tutorial” and a reference Section 17.9.2, “luarocks-package
-    reference”.
+    them through a tutorial and a reference.
 
-Further formatting details: see the writing rules Section 15.2, “The
-.mk file”.
+Further formatting details: see the writing rules.
 
 17.4. The .hash file
 
@@ -3824,6 +4051,13 @@ When possible, you must add a third file, named libfoo.hash, that
 contains the hashes of the downloaded files for the libfoo package.
 The only reason for not adding a .hash file is when hash checking is
 not possible due to how the package is downloaded.
+
+When a package has a version selection choice, then the hash file may
+be stored in a subdirectory named after the version, e.g. package/
+libfoo/1.2.3/libfoo.hash. This is especially important if the
+different versions have different licensing terms, but they are
+stored in the same file. Otherwise, the hash file should stay in the
+package’s directory.
 
 The hashes stored in that file are used to validate the integrity of
 the downloaded files and of the license files.
@@ -4151,9 +4385,9 @@ information is (assuming the package name is libfoo) :
     are included in Buildroot itself use a different mechanism: all
     files of the form *.patch present in the package directory inside
     Buildroot will be applied to the package after extraction (see
-    patching a package Chapter 18, Patching a package). Finally,
-    patches listed in the LIBFOO_PATCH variable are applied before
-    the patches stored in the Buildroot package directory.
+    patching a package). Finally, patches listed in the LIBFOO_PATCH
+    variable are applied before the patches stored in the Buildroot
+    package directory.
   * LIBFOO_SITE provides the location of the package, which can be a
     URL or a local filesystem path. HTTP, FTP and SCP are supported
     URL types for retrieving package tarballs. In these cases don’t
@@ -4332,6 +4566,10 @@ information is (assuming the package name is libfoo) :
         license, then annotate the license with that component,
         between parenthesis (e.g. LIBFOO_LICENSE = GPL-2.0+
         (programs), LGPL-2.1+ (libraries)).
+      + If some licenses are conditioned on a sub-option being
+        enabled, append the conditional licenses with a comma (e.g.:
+        FOO_LICENSE += , GPL-2.0+ (programs)); the infrastructure
+        will internally remove the space before the comma.
       + If the package is dual licensed, then separate licenses with
         the or keyword (e.g. LIBFOO_LICENSE = AFL-2.1 or GPL-2.0+).
   * LIBFOO_LICENSE_FILES is a space-separated list of files in the
@@ -4424,12 +4662,17 @@ different steps of the build process.
     example, a package should utilize this step if it has binaries
     which would be similar to the kernel image, bootloader or root
     filesystem images.
-  * LIBFOO_INSTALL_INIT_SYSV and LIBFOO_INSTALL_INIT_SYSTEMD list the
-    actions to install init scripts either for the systemV-like init
-    systems (busybox, sysvinit, etc.) or for the systemd units. These
-    commands will be run only when the relevant init system is
-    installed (i.e. if systemd is selected as the init system in the
-    configuration, only LIBFOO_INSTALL_INIT_SYSTEMD will be run).
+  * LIBFOO_INSTALL_INIT_SYSV, LIBFOO_INSTALL_INIT_OPENRC and
+    LIBFOO_INSTALL_INIT_SYSTEMD list the actions to install init
+    scripts either for the systemV-like init systems (busybox,
+    sysvinit, etc.), openrc or for the systemd units. These commands
+    will be run only when the relevant init system is installed (i.e.
+    if systemd is selected as the init system in the configuration,
+    only LIBFOO_INSTALL_INIT_SYSTEMD will be run). The only exception
+    is when openrc is chosen as init system and
+    LIBFOO_INSTALL_INIT_OPENRC has not been set, in such situation
+    LIBFOO_INSTALL_INIT_SYSV will be called, since openrc supports
+    sysv init scripts.
   * LIBFOO_HELP_CMDS lists the actions to print the package help,
     which is included to the main make help output. These commands
     can print anything in any format. This is seldom used, as
@@ -4812,9 +5055,13 @@ be named python-<something> in Buildroot. Other packages that use the
 Python build system, but are not Python modules, can freely choose
 their name (existing examples in Buildroot are scons and supervisor).
 
-In their Config.in file, they should depend on BR2_PACKAGE_PYTHON so
-that when Buildroot will enable Python 3 usage for modules, we will
-be able to enable Python modules progressively on Python 3.
+Packages that are only compatible with one version of Python (as in:
+Python 2 or Python 3) should depend on that version explicitely in
+their Config.in file (BR2_PACKAGE_PYTHON for Python 2,
+BR2_PACKAGE_PYTHON3 for Python 3). Packages that are compatible with
+both versions should not explicitely depend on them in their
+Config.in file, since that condition is already expressed for the
+whole "External python modules" menu.
 
 The main macro of the Python package infrastructure is
 python-package. It is similar to the generic-package macro. It is
@@ -4826,12 +5073,11 @@ by defining a number of variables before calling the python-package
 or host-python-package macros.
 
 All the package metadata information variables that exist in the
-generic package infrastructure Section 17.5.2, “generic-package
-reference” also exist in the Python infrastructure:
-PYTHON_FOO_VERSION, PYTHON_FOO_SOURCE, PYTHON_FOO_PATCH,
-PYTHON_FOO_SITE, PYTHON_FOO_SUBDIR, PYTHON_FOO_DEPENDENCIES,
-PYTHON_FOO_LICENSE, PYTHON_FOO_LICENSE_FILES,
-PYTHON_FOO_INSTALL_STAGING, etc.
+generic package infrastructure also exist in the Python
+infrastructure: PYTHON_FOO_VERSION, PYTHON_FOO_SOURCE,
+PYTHON_FOO_PATCH, PYTHON_FOO_SITE, PYTHON_FOO_SUBDIR,
+PYTHON_FOO_DEPENDENCIES, PYTHON_FOO_LICENSE,
+PYTHON_FOO_LICENSE_FILES, PYTHON_FOO_INSTALL_STAGING, etc.
 
 Note that:
 
@@ -4858,6 +5104,11 @@ can optionally be defined, depending on the package’s needs. Many of
 them are only useful in very specific cases, typical packages will
 therefore only use a few of them, or none.
 
+  * PYTHON_FOO_SUBDIR may contain the name of a subdirectory inside
+    the package that contains the main setup.py file. This is useful,
+    if for example, the main setup.py file is not at the root of the
+    tree extracted by the tarball. If HOST_PYTHON_FOO_SUBDIR is not
+    specified, it defaults to PYTHON_FOO_SUBDIR.
   * PYTHON_FOO_ENV, to specify additional environment variables to
     pass to the Python setup.py script (for both the build and
     install steps). Note that the infrastructure is automatically
@@ -5027,6 +5278,16 @@ Finally, on line 16, we invoke the luarocks-package macro that
 generates all the Makefile rules that actually allows the package to
 be built.
 
+Most of these details can be retrieved from the rock and rockspec.
+So, this file and the Config.in file can be generated by running the
+command luarocks buildroot foo lua-foo in the Buildroot directory.
+This command runs a specific Buildroot addon of luarocks that will
+automatically generate a Buildroot package. The result must still be
+manually inspected and possibly modified.
+
+  * The package/Config.in file has to be updated manually to include
+    the generated Config.in files.
+
 17.9.2. luarocks-package reference
 
 LuaRocks is a deployment and management system for Lua modules, and
@@ -5091,8 +5352,9 @@ with an example :
 10: PERL_FOO_BAR_DEPENDENCIES = perl-strictures
 11: PERL_FOO_BAR_LICENSE = Artistic or GPL-1.0+
 12: PERL_FOO_BAR_LICENSE_FILES = LICENSE
-13:
-14: $(eval $(perl-package))
+13: PERL_FOO_BAR_DISTNAME = Foo-Bar
+14:
+15: $(eval $(perl-package))
 
 On line 7, we declare the version of the package.
 
@@ -5107,7 +5369,10 @@ On line 11 and 12, we give licensing details about the package (its
 license on line 11, and the file containing the license text on line
 12).
 
-Finally, on line 14, we invoke the perl-package macro that generates
+On line 13, the name of the distribution as needed by the script
+utils/scancpan (in order to regenerate/upgrade these package files).
+
+Finally, on line 15, we invoke the perl-package macro that generates
 all the Makefile rules that actually allow the package to be built.
 
 Most of these data can be retrieved from https://metacpan.org/. So,
@@ -5354,6 +5619,11 @@ This snippet creates the following make targets:
     source configuration file. The configuration file will only list
     the options that differ from the default values. It is not
     possible to use this target when fragment files are set.
+  * foo-diff-config, which outputs the differences between the
+    current configuration and the one defined in the Buildroot
+    configuration for this kconfig package. The output is useful to
+    identify the configuration changes that may have to be propagated
+    to configuration fragments for example.
 
 and ensures that the source configuration file is copied to the build
 directory at the right moment.
@@ -5468,6 +5738,11 @@ typical packages will therefore only use a few of them.
 
   * ERLANG_FOOBAR_REBAR_ENV, to specify additional environment
     variables to pass to the rebar utility.
+  * ERLANG_FOOBAR_KEEP_DEPENDENCIES, to keep the dependencies
+    described in the rebar.config file. Valid values are YES or NO
+    (the default). Unless this variable is set to YES, the rebar
+    infrastructure removes such dependencies in a post-patch hook to
+    ensure rebar does not download nor compile them.
 
 With the rebar infrastructure, all the steps required to build and
 install the packages are already defined, and they generally work
@@ -5536,10 +5811,15 @@ LIBFOO_INSTALL_TARGET.
 An additional variable, specific to the Waf infrastructure, can also
 be defined.
 
+  * LIBFOO_SUBDIR may contain the name of a subdirectory inside the
+    package that contains the main wscript file. This is useful, if
+    for example, the main wscript file is not at the root of the tree
+    extracted by the tarball. If HOST_LIBFOO_SUBDIR is not specified,
+    it defaults to LIBFOO_SUBDIR.
   * LIBFOO_NEEDS_EXTERNAL_WAF can be set to YES or NO to tell
     Buildroot to use the bundled waf executable. If set to NO, the
     default, then Buildroot will use the waf executable provided in
-    the package source tree; if set to YES, then Buidlroot will
+    the package source tree; if set to YES, then Buildroot will
     download, install waf as a host tool and use it to build the
     package.
   * LIBFOO_WAF_OPTS, to specify additional options to pass to the waf
@@ -5639,13 +5919,36 @@ A few additional variables, specific to the Meson infrastructure, can
 also be defined. Many of them are only useful in very specific cases,
 typical packages will therefore only use a few of them.
 
+  * FOO_SUBDIR may contain the name of a subdirectory inside the
+    package that contains the main meson.build file. This is useful,
+    if for example, the main meson.build file is not at the root of
+    the tree extracted by the tarball. If HOST_FOO_SUBDIR is not
+    specified, it defaults to FOO_SUBDIR.
   * FOO_CONF_ENV, to specify additional environment variables to pass
     to meson for the configuration step. By default, empty.
   * FOO_CONF_OPTS, to specify additional options to pass to meson for
     the configuration step. By default, empty.
+  * FOO_CFLAGS, to specify compiler arguments added to the package
+    specific cross-compile.conf file c_args property. By default, the
+    value of TARGET_CFLAGS.
+  * FOO_CXXFLAGS, to specify compiler arguments added to the package
+    specific cross-compile.conf file cpp_args property. By default,
+    the value of TARGET_CXXFLAGS.
+  * FOO_LDFLAGS, to specify compiler arguments added to the package
+    specific cross-compile.conf file c_link_args and cpp_link_args
+    properties. By default, the value of TARGET_LDFLAGS.
+  * FOO_MESON_EXTRA_BINARIES, to specify a space-separated list of
+    programs to add to the [binaries] section of the meson
+    cross-compilation.conf configuration file. The format is
+    program-name='/path/to/program', with no space around the = sign,
+    and with the path of the program between single quotes. By
+    default, empty. Note that Buildroot already sets the correct
+    values for c, cpp, ar, strip, and pkgconfig.
   * FOO_NINJA_ENV, to specify additional environment variables to
     pass to ninja, meson companion tool in charge of the build
     operations. By default, empty.
+  * FOO_NINJA_OPTS, to specify a space-separated list of targets to
+    build. By default, empty, to build the default target(s).
 
 17.16. Integration of Cargo-based packages
 
@@ -5660,7 +5963,7 @@ The Config.in file of Cargo-based package foo should contain:
 
 01: config BR2_PACKAGE_FOO
 02:     bool "foo"
-03:     depends on BR2_PACKAGE_HOST_RUSTC_ARCH_SUPPORTS
+03:     depends on BR2_PACKAGE_HOST_RUSTC_TARGET_ARCH_SUPPORTS
 04:     select BR2_PACKAGE_HOST_CARGO
 05:     help
 06:       This is a comment that explains what foo is.
@@ -5713,9 +6016,8 @@ The Makefile starts with the definition of the standard variables for
 package declaration (lines 7 to 11).
 
 As seen in line 35, it is based on the generic-package infrastructure
-Section 17.5.1, “generic-package tutorial”. So, it defines the
-variables required by this particular infrastructure, where Cargo is
-invoked:
+. So, it defines the variables required by this particular
+infrastructure, where Cargo is invoked:
 
   * FOO_BUILD_CMDS: Cargo is invoked to perform the build. The
     options required to configure the cross-compilation of the
@@ -5786,22 +6088,26 @@ be built.
 17.17.2. golang-package reference
 
 In their Config.in file, packages using the golang-package
-infrastructure should depend on BR2_PACKAGE_HOST_GO_ARCH_SUPPORTS and
-BR2_PACKAGE_HOST_GO_CGO_LINKING_SUPPORTS because Buildroot will
-automatically add a dependency on host-go to such packages.
+infrastructure should depend on
+BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS because Buildroot will
+automatically add a dependency on host-go to such packages. If you
+need CGO support in your package, you must add a dependency on
+BR2_PACKAGE_HOST_GO_TARGET_CGO_LINKING_SUPPORTS.
 
 The main macro of the Go package infrastructure is golang-package. It
-is similar to the generic-package macro. Only target packages are
-supported with golang-package.
+is similar to the generic-package macro. The ability to build host
+packages is also available, with the host-golang-package macro. Host
+packages built by host-golang-package macro should depend on
+BR2_PACKAGE_HOST_GO_HOST_ARCH_SUPPORTS.
 
 Just like the generic infrastructure, the Go infrastructure works by
 defining a number of variables before calling the golang-package.
 
 All the package metadata information variables that exist in the
-generic package infrastructure Section 17.5.2, “generic-package
-reference” also exist in the Go infrastructure: FOO_VERSION,
-FOO_SOURCE, FOO_PATCH, FOO_SITE, FOO_SUBDIR, FOO_DEPENDENCIES,
-FOO_LICENSE, FOO_LICENSE_FILES, FOO_INSTALL_STAGING, etc.
+generic package infrastructure also exist in the Go infrastructure:
+FOO_VERSION, FOO_SOURCE, FOO_PATCH, FOO_SITE, FOO_SUBDIR,
+FOO_DEPENDENCIES, FOO_LICENSE, FOO_LICENSE_FILES,
+FOO_INSTALL_STAGING, etc.
 
 Note that it is not necessary to add host-go in the FOO_DEPENDENCIES
 variable of a package, since this basic dependency is automatically
@@ -5890,8 +6196,7 @@ On line 13, we invoke the kernel-module helper infrastructure, that
 generates all the appropriate Makefile rules and variables to build
 that kernel module.
 
-Finally, on line 14, we invoke the generic-package infrastructure
-Section 17.5.1, “generic-package tutorial”.
+Finally, on line 14, we invoke the generic-package infrastructure.
 
 The dependency on linux is automatically added, so it is not needed
 to specify it in FOO_DEPENDENCIES.
@@ -6003,10 +6308,9 @@ there is, as for packages, an infrastructure for rendering documents
 using the AsciiDoc syntax.
 
 Also as for packages, the AsciiDoc infrastructure is available from a
-br2-external tree Section 9.2, “Keeping customizations outside of
-Buildroot”. This allows documentation for a br2-external tree to
-match the Buildroot documentation, as it will be rendered to the same
-formats and use the same layout and theme.
+br2-external tree. This allows documentation for a br2-external tree
+to match the Buildroot documentation, as it will be rendered to the
+same formats and use the same layout and theme.
 
 17.19.1. asciidoc-document tutorial
 
@@ -6047,8 +6351,6 @@ information is (assuming the document name is foo) :
     (like CSS or images). By default, empty.
   * FOO_DEPENDENCIES, optional, the list of packages (most probably,
     host-packages) that must be built before building this document.
-    If a hook of your document needs to access the Kconfig structure,
-    you may add prepare-kconfig to the list of dependencies.
 
 There are also additional hooks (see Section 17.21, “Hooks available
 in the various build steps” for general information on hooks), that a
@@ -6177,10 +6479,9 @@ only when the foo tool is selected.
 
 The rest of the Makefile, lines 11-25 defines what should be done at
 the different steps of the Linux tool build process like for a
-generic package Section 17.5.1, “generic-package tutorial”. They will
-actually be used only when the foo tool is selected. The only
-supported commands are _BUILD_CMDS, _INSTALL_STAGING_CMDS and
-_INSTALL_TARGET_CMDS.
+generic package. They will actually be used only when the foo tool is
+selected. The only supported commands are _BUILD_CMDS,
+_INSTALL_STAGING_CMDS and _INSTALL_TARGET_CMDS.
 
 Note. One must not call $(eval $(generic-package)) or any other
 package infrastructure! Linux tools are not packages by themselves,
@@ -6241,8 +6542,7 @@ modify the Linux kernel tree; this is specific to the linux extension
 and can use the variables defined by the foo package, like: $
 (FOO_DIR) or $(FOO_VERSION)… as well as all the Linux variables,
 like: $(LINUX_VERSION) or $(LINUX_VERSION_PROBED), $(KERNEL_ARCH)…
-See the definition of those kernel variables Section 17.18.2,
-“kernel-module reference”.
+See the definition of those kernel variables.
 
 17.21. Hooks available in the various build steps
 
@@ -6832,7 +7132,7 @@ basically two things that can be done:
         patch fixing an autobuild failure, add a reference to the
         build result directory, as follows:
 
-Fixes http://autobuild.buildroot.org/results/51000a9d4656afe9e0ea6f07b9f8ed374c2e4069
+Fixes: http://autobuild.buildroot.org/results/51000a9d4656afe9e0ea6f07b9f8ed374c2e4069
 
 21.3. Reviewing and testing patches
 
@@ -6951,14 +7251,26 @@ use git bisect to locate the origin of a problem.
 
 First of all, it is essential that the patch has a good commit
 message. The commit message should start with a separate line with a
-brief summary of the change, starting with the name of the affected
-package. The body of the commit message should describe why this
+brief summary of the change, prefixed by the area touched by the
+patch. A few examples of good commit titles:
+
+  * package/linuxptp: bump version to 2.0
+  * configs/imx23evk: bump Linux version to 4.19
+  * package/pkg-generic: postpone evaluation of dependency conditions
+  * boot/uboot: needs host-{flex,bison}
+  * support/testing: add python-ubjson tests
+
+The description that follows the prefix should start with a lower
+case letter (i.e "bump", "needs", "postpone", "add" in the above
+examples).
+
+Second, the body of the commit message should describe why this
 change is needed, and if necessary also give details about how it was
 done. When writing the commit message, think of how the reviewers
 will read it, but also think about how you will read it when you look
 at this change again a few years down the line.
 
-Second, the patch itself should do only one change, but do it
+Third, the patch itself should do only one change, but do it
 completely. Two unrelated or weakly related changes should usually be
 done in two separate patches. This usually means that a patch affects
 only a single package. If several changes are related, it is often
@@ -7018,8 +7330,8 @@ options that no longer exist or are no longer needed.
 If you are interested in getting notified of build failures and of
 further changes in the packages you added or modified, please add
 yourself to the DEVELOPERS file. This should be done in the same
-patch creating or modifying the package. See the DEVELOPERS file
-Chapter 22, DEVELOPERS file and get-developers for more information.
+patch creating or modifying the package. See the DEVELOPERS file for
+more information.
 
 Buildroot provides a handy tool to check for common coding style
 mistakes on files you created or modified, called check-package (see
@@ -7057,6 +7369,22 @@ $ ./utils/get-developers outgoing/*
 Use the output of get-developers to send your patches:
 
 $ git send-email --to buildroot@buildroot.org --cc bob --cc alice outgoing/*
+
+Alternatively, get-developers -e can be used directly with the
+--cc-cmd argument to git send-email to automatically CC the affected
+developers:
+
+$ git send-email --to buildroot@buildroot.org \
+      --cc-cmd './utils/get-developers -e' origin/master
+
+git can be configured to automatically do this out of the box with:
+
+$ git config sendemail.to buildroot@buildroot.org
+$ git config sendemail.ccCmd "$(pwd)/utils/get-developers -e"
+
+And then just do:
+
+$ git send-email origin/master
 
 Note that git should be configured to use your mail account. To
 configure git, see man git-send-email or google it.
@@ -7111,7 +7439,7 @@ the problem is complex, it is OK to add more paragraphs. All paragraphs
 should be wrapped at 72 characters.
 
 A paragraph that explains the root cause of the problem. Again, more
-than on paragraph is OK.
+than one paragraph is OK.
 
 Finally, one or more paragraphs that explain how the problem is solved.
 Don't hesitate to explain complex solutions in detail.
@@ -7161,14 +7489,12 @@ as superseded.
 21.6. Reporting issues/bugs or getting help
 
 Before reporting any issue, please check in the mailing list archive
-Chapter 5, Community resources whether someone has already reported
-and/or fixed a similar problem.
+whether someone has already reported and/or fixed a similar problem.
 
 However you choose to report bugs or get help, either by opening a
-bug in the bug tracker Chapter 5, Community resources or by sending a
-mail to the mailing list Chapter 5, Community resources, there are a
-number of details to provide in order to help people reproduce and
-find a solution to the issue.
+bug in the bug tracker or by sending a mail to the mailing list,
+there are a number of details to provide in order to help people
+reproduce and find a solution to the issue.
 
 Try to think as if you were trying to help someone else; in that
 case, what would you need?
@@ -7200,7 +7526,7 @@ Chapter 22. DEVELOPERS file and get-developers
 
 The main Buildroot directory contains a file named DEVELOPERS that
 lists the developers involved with various areas of Buildroot. Thanks
-to this file, the get-developer tool allows to:
+to this file, the get-developers tool allows to:
 
   * Calculate the list of developers to whom patches should be sent,
     by parsing the patches and matching the modified files with the
@@ -7220,21 +7546,23 @@ DEVELOPERS file.
 The DEVELOPERS file format is documented in detail inside the file
 itself.
 
-The get-developer tool, located in utils/ allows to use the
+The get-developers tool, located in utils/ allows to use the
 DEVELOPERS file for various tasks:
 
   * When passing one or several patches as command line argument,
-    get-developer will return the appropriate git send-email command.
-  * When using the -a <arch> command line option, get-developer will
+    get-developers will return the appropriate git send-email
+    command. If the -e option is passed, only the email addresses are
+    printed in a format suitable for git send-email --cc-cmd.
+  * When using the -a <arch> command line option, get-developers will
     return the list of developers in charge of the given
     architecture.
-  * When using the -p <package> command line option, get-developer
+  * When using the -p <package> command line option, get-developers
     will return the list of developers in charge of the given
     package.
-  * When using the -c command line option, get-developer will look at
-    all files under version control in the Buildroot repository, and
-    list the ones that are not handled by any developer. The purpose
-    of this option is to help completing the DEVELOPERS file.
+  * When using the -c command line option, get-developers will look
+    at all files under version control in the Buildroot repository,
+    and list the ones that are not handled by any developer. The
+    purpose of this option is to help completing the DEVELOPERS file.
   * When using without any arguments, it validates the integrity of
     the DEVELOPERS file and will note WARNINGS for items that don’t
     match.

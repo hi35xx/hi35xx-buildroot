@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-S6_NETWORKING_VERSION = 2.3.0.2
+S6_NETWORKING_VERSION = 2.3.1.1
 S6_NETWORKING_SITE = http://skarnet.org/software/s6-networking
 S6_NETWORKING_LICENSE = ISC
 S6_NETWORKING_LICENSE_FILES = COPYING
@@ -25,7 +25,7 @@ S6_NETWORKING_CONF_OPTS = \
 
 ifeq ($(BR2_PACKAGE_LIBRESSL),y)
 S6_NETWORKING_CONF_OPTS += --enable-ssl=libressl
-S6_NETWORKING_DEPENDENCIES = libressl
+S6_NETWORKING_DEPENDENCIES += libressl
 endif
 
 define S6_NETWORKING_CONFIGURE_CMDS

@@ -429,13 +429,17 @@ not and can not work as people would expect it should:
   the +license+ field of the manifest file for this package. +
   The expected format for this variable must comply with the following rules:
   ** If different parts of the package are released under different
-  licenses, then +comma+ separate licenses (e.g. +`LIBFOO_LICENSE =
-  GPL-2.0+, LGPL-2.1+`+). If there is clear distinction between which
-  component is licensed under what license, then annotate the license
-  with that component, between parenthesis (e.g. +`LIBFOO_LICENSE =
-  GPL-2.0+ (programs), LGPL-2.1+ (libraries)`+).
+     licenses, then +comma+ separate licenses (e.g. +`LIBFOO_LICENSE =
+     GPL-2.0+, LGPL-2.1+`+). If there is clear distinction between which
+     component is licensed under what license, then annotate the license
+     with that component, between parenthesis (e.g. +`LIBFOO_LICENSE =
+     GPL-2.0+ (programs), LGPL-2.1+ (libraries)`+).
+  ** If some licenses are conditioned on a sub-option being enabled, append
+     the conditional licenses with a comma (e.g.: `FOO_LICENSE += , GPL-2.0+
+     (programs)`); the infrastructure will internally remove the space before
+     the comma.
   ** If the package is dual licensed, then separate licenses with the
-  +or+ keyword (e.g. +`LIBFOO_LICENSE = AFL-2.1 or GPL-2.0+`+).
+     +or+ keyword (e.g. +`LIBFOO_LICENSE = AFL-2.1 or GPL-2.0+`+).
 
 * +LIBFOO_LICENSE_FILES+ is a space-separated list of files in the package
   tarball that contain the license(s) under which the package is released.
@@ -536,12 +540,16 @@ different steps of the build process.
   should utilize this step if it has binaries which would be similar
   to the kernel image, bootloader or root filesystem images.
 
-* +LIBFOO_INSTALL_INIT_SYSV+ and +LIBFOO_INSTALL_INIT_SYSTEMD+ list the
-  actions to install init scripts either for the systemV-like init systems
-  (busybox, sysvinit, etc.) or for the systemd units. These commands
-  will be run only when the relevant init system is installed (i.e. if
-  systemd is selected as the init system in the configuration, only
-  +LIBFOO_INSTALL_INIT_SYSTEMD+ will be run).
+* +LIBFOO_INSTALL_INIT_SYSV+, +LIBFOO_INSTALL_INIT_OPENRC+ and
+  +LIBFOO_INSTALL_INIT_SYSTEMD+ list the actions to install init
+  scripts either for the systemV-like init systems (busybox,
+  sysvinit, etc.), openrc or for the systemd units. These commands
+  will be run only when the relevant init system is installed (i.e.
+  if systemd is selected as the init system in the configuration,
+  only +LIBFOO_INSTALL_INIT_SYSTEMD+ will be run). The only exception
+  is when openrc is chosen as init system and +LIBFOO_INSTALL_INIT_OPENRC+
+  has not been set, in such situation +LIBFOO_INSTALL_INIT_SYSV+ will
+  be called, since openrc supports sysv init scripts.
 
 * +LIBFOO_HELP_CMDS+ lists the actions to print the package help, which
   is included to the main +make help+ output. These commands can print

@@ -4,8 +4,8 @@
 #
 ################################################################################
 
-FLTK_VERSION = 1.3.4
-FLTK_SOURCE = fltk-$(FLTK_VERSION)-1-source.tar.gz
+FLTK_VERSION = 1.3.5
+FLTK_SOURCE = fltk-$(FLTK_VERSION)-source.tar.gz
 FLTK_SITE = http://fltk.org/pub/fltk/$(FLTK_VERSION)
 FLTK_INSTALL_STAGING = YES
 # We force --libdir=/usr/lib, because by default, it is set to
@@ -52,6 +52,13 @@ ifeq ($(BR2_PACKAGE_XLIB_LIBXINERAMA),y)
 FLTK_DEPENDENCIES += xlib_libXinerama
 else
 FLTK_CONF_OPTS += --disable-xinerama
+endif
+
+ifeq ($(BR2_PACKAGE_XLIB_LIBXRENDER),y)
+FLTK_DEPENDENCIES += xlib_libXrender
+FLTK_CONF_OPTS += --enable-xrender
+else
+FLTK_CONF_OPTS += --disable-xrender
 endif
 
 $(eval $(autotools-package))

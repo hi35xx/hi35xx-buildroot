@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LFTP_VERSION = 4.8.3
+LFTP_VERSION = 4.8.4
 LFTP_SOURCE = lftp-$(LFTP_VERSION).tar.xz
 LFTP_SITE = http://lftp.yar.ru/ftp
 LFTP_LICENSE = GPL-3.0+
@@ -25,6 +25,9 @@ endif
 
 ifeq ($(BR2_PACKAGE_EXPAT)$(BR2_PACKAGE_LFTP_PROTO_HTTP),yy)
 LFTP_DEPENDENCIES += expat
+LFTP_CONF_OPTS += --with-expat=$(STAGING_DIR)/usr
+else
+LFTP_CONF_OPTS += --without-expat
 endif
 
 ifeq ($(BR2_PACKAGE_GNUTLS),y)

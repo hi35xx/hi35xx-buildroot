@@ -4,18 +4,24 @@
 # menu options using "make menuconfig" and by running "make" with appropriate
 # packages enabled.
 
+import os
 import re
 
-from base import _CheckFunction
-from lib import ConsecutiveEmptyLines  # noqa: F401
-from lib import EmptyLastLine          # noqa: F401
-from lib import NewlineAtEof           # noqa: F401
-from lib import TrailingSpace          # noqa: F401
+from checkpackagelib.base import _CheckFunction
+from checkpackagelib.lib import ConsecutiveEmptyLines  # noqa: F401
+from checkpackagelib.lib import EmptyLastLine          # noqa: F401
+from checkpackagelib.lib import NewlineAtEof           # noqa: F401
+from checkpackagelib.lib import TrailingSpace          # noqa: F401
+from checkpackagelib.lib import Utf8Characters         # noqa: F401
+
+# used in more than one check
+start_conditional = ["ifdef", "ifeq", "ifndef", "ifneq"]
+end_conditional = ["endif"]
 
 
 class Indent(_CheckFunction):
     COMMENT = re.compile("^\s*#")
-    CONDITIONAL = re.compile("^\s*(ifeq|ifneq|endif)\s")
+    CONDITIONAL = re.compile("^\s*({})\s".format("|".join(start_conditional + end_conditional)))
     ENDS_WITH_BACKSLASH = re.compile(r"^[^#].*\\$")
     END_DEFINE = re.compile("^\s*endef\s")
     MAKEFILE_TARGET = re.compile("^[^# \t]+:\s")
@@ -69,6 +75,68 @@ class Indent(_CheckFunction):
                         text]
 
 
+class OverriddenVariable(_CheckFunction):
+    CONCATENATING = re.compile("^([A-Z0-9_]+)\s*(\+|:|)=\s*\$\(\\1\)")
+    END_CONDITIONAL = re.compile("^\s*({})".format("|".join(end_conditional)))
+    OVERRIDING_ASSIGNMENTS = [':=', "="]
+    START_CONDITIONAL = re.compile("^\s*({})".format("|".join(start_conditional)))
+    VARIABLE = re.compile("^([A-Z0-9_]+)\s*((\+|:|)=)")
+    USUALLY_OVERRIDDEN = re.compile("^[A-Z0-9_]+({})".format("|".join([
+        "_ARCH\s*=\s*",
+        "_CPU\s*=\s*",
+        "_SITE\s*=\s*",
+        "_SOURCE\s*=\s*",
+        "_VERSION\s*=\s*"])))
+
+    def before(self):
+        self.conditional = 0
+        self.unconditionally_set = []
+        self.conditionally_set = []
+
+    def check_line(self, lineno, text):
+        if self.START_CONDITIONAL.search(text):
+            self.conditional += 1
+            return
+        if self.END_CONDITIONAL.search(text):
+            self.conditional -= 1
+            return
+
+        m = self.VARIABLE.search(text)
+        if m is None:
+            return
+        variable, assignment = m.group(1, 2)
+
+        if self.conditional == 0:
+            if variable in self.conditionally_set:
+                self.unconditionally_set.append(variable)
+                if assignment in self.OVERRIDING_ASSIGNMENTS:
+                    return ["{}:{}: unconditional override of variable {} previously conditionally set"
+                            .format(self.filename, lineno, variable),
+                            text]
+
+            if variable not in self.unconditionally_set:
+                self.unconditionally_set.append(variable)
+                return
+            if assignment in self.OVERRIDING_ASSIGNMENTS:
+                return ["{}:{}: unconditional override of variable {}"
+                        .format(self.filename, lineno, variable),
+                        text]
+        else:
+            if variable not in self.unconditionally_set:
+                self.conditionally_set.append(variable)
+                return
+            if self.CONCATENATING.search(text):
+                return ["{}:{}: immediate assignment to append to variable {}"
+                        .format(self.filename, lineno, variable),
+                        text]
+            if self.USUALLY_OVERRIDDEN.search(text):
+                return
+            if assignment in self.OVERRIDING_ASSIGNMENTS:
+                return ["{}:{}: conditional override of variable {}"
+                        .format(self.filename, lineno, variable),
+                        text]
+
+
 class PackageHeader(_CheckFunction):
     def before(self):
         self.skip = False
@@ -100,10 +168,9 @@ class PackageHeader(_CheckFunction):
 
 class RemoveDefaultPackageSourceVariable(_CheckFunction):
     packages_that_may_contain_default_source = ["binutils", "gcc", "gdb"]
-    PACKAGE_NAME = re.compile("/([^/]+)\.mk")
 
     def before(self):
-        package = self.PACKAGE_NAME.search(self.filename).group(1)
+        package, _ = os.path.splitext(os.path.basename(self.filename))
         package_upper = package.replace("-", "_").upper()
         self.package = package
         self.FIND_SOURCE = re.compile(
@@ -173,11 +240,10 @@ class TypoInPackageVariable(_CheckFunction):
         "TARGET_FINALIZE_HOOKS",
         "TARGETS_ROOTFS",
         "XTENSA_CORE_NAME"]))
-    PACKAGE_NAME = re.compile("/([^/]+)\.mk")
     VARIABLE = re.compile("^([A-Z0-9_]+_[A-Z0-9_]+)\s*(\+|)=")
 
     def before(self):
-        package = self.PACKAGE_NAME.search(self.filename).group(1)
+        package, _ = os.path.splitext(os.path.basename(self.filename))
         package = package.replace("-", "_").upper()
         # linux tools do not use LINUX_TOOL_ prefix for variables
         package = package.replace("LINUX_TOOL_", "")
@@ -222,8 +288,8 @@ class UselessFlag(_CheckFunction):
         "_INSTALL_REDISTRIBUTE\s*=\s*YES",
         "_INSTALL_STAGING\s*=\s*NO",
         "_INSTALL_TARGET\s*=\s*YES"])))
-    END_CONDITIONAL = re.compile("^\s*(endif)")
-    START_CONDITIONAL = re.compile("^\s*(ifeq|ifneq)")
+    END_CONDITIONAL = re.compile("^\s*({})".format("|".join(end_conditional)))
+    START_CONDITIONAL = re.compile("^\s*({})".format("|".join(start_conditional)))
 
     def before(self):
         self.conditional = 0
@@ -250,4 +316,14 @@ class UselessFlag(_CheckFunction):
             return ["{}:{}: useless default value "
                     "({}#_infrastructure_for_autotools_based_packages)"
                     .format(self.filename, lineno, self.url_to_manual),
+                    text]
+
+
+class VariableWithBraces(_CheckFunction):
+    VARIABLE_WITH_BRACES = re.compile(r"^[^#].*[^$]\${\w+}")
+
+    def check_line(self, lineno, text):
+        if self.VARIABLE_WITH_BRACES.match(text.rstrip()):
+            return ["{}:{}: use $() to delimit variables, not ${{}}"
+                    .format(self.filename, lineno),
                     text]

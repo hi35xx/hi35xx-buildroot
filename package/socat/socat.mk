@@ -4,13 +4,11 @@
 #
 ################################################################################
 
-SOCAT_VERSION = 1.7.3.2
+SOCAT_VERSION = 1.7.3.3
 SOCAT_SOURCE = socat-$(SOCAT_VERSION).tar.bz2
 SOCAT_SITE = http://www.dest-unreach.org/socat/download
 SOCAT_LICENSE = GPL-2.0 with OpenSSL exception
 SOCAT_LICENSE_FILES = README COPYING COPYING.OpenSSL
-
-SOCAT_CONF_ENV = sc_cv_termios_ispeed=no
 
 ifeq ($(BR2_powerpc)$(BR2_powerpc64)$(BR2_powerpc64le),y)
 SOCAT_CONF_ENV += \
@@ -29,17 +27,13 @@ endif
 # automake, so we can't use the normal autoreconf logic.
 
 SOCAT_DEPENDENCIES = host-autoconf
+# incompatibile license (GPL-3.0+)
+SOCAT_CONF_OPTS = --disable-readline
 
 ifeq ($(BR2_PACKAGE_OPENSSL),y)
 SOCAT_DEPENDENCIES += openssl
 else
 SOCAT_CONF_OPTS += --disable-openssl
-endif
-
-ifeq ($(BR2_PACKAGE_READLINE),y)
-SOCAT_DEPENDENCIES += readline
-else
-SOCAT_CONF_OPTS += --disable-readline
 endif
 
 define SOCAT_RUN_AUTOCONF

@@ -4,10 +4,9 @@
 #
 ################################################################################
 
-SYSVINIT_VERSION = 2.88
-SYSVINIT_SOURCE = sysvinit_$(SYSVINIT_VERSION)dsf.orig.tar.gz
-SYSVINIT_PATCH = sysvinit_$(SYSVINIT_VERSION)dsf-13.1+squeeze1.diff.gz
-SYSVINIT_SITE = http://snapshot.debian.org/archive/debian/20141023T043132Z/pool/main/s/sysvinit
+SYSVINIT_VERSION = 2.96
+SYSVINIT_SOURCE = sysvinit-$(SYSVINIT_VERSION).tar.xz
+SYSVINIT_SITE = http://download.savannah.nongnu.org/releases/sysvinit
 SYSVINIT_LICENSE = GPL-2.0+
 SYSVINIT_LICENSE_FILES = COPYING
 
@@ -18,17 +17,7 @@ SYSVINIT_DEPENDENCIES += libselinux
 SYSVINIT_MAKE_OPTS += WITH_SELINUX="yes"
 endif
 
-define SYSVINIT_DEBIAN_PATCHES
-	if [ -d $(@D)/debian/patches ]; then \
-		$(APPLY_PATCHES) $(@D) $(@D)/debian/patches \*.patch; \
-	fi
-endef
-
-SYSVINIT_POST_PATCH_HOOKS = SYSVINIT_DEBIAN_PATCHES
-
 define SYSVINIT_BUILD_CMDS
-	# Force sysvinit to link against libcrypt as it otherwise
-	# use an incorrect test to see if it's available
 	$(TARGET_CONFIGURE_OPTS) $(MAKE) $(SYSVINIT_MAKE_OPTS) -C $(@D)/src
 endef
 
@@ -47,8 +36,13 @@ define SYSVINIT_SET_GETTY
 	$(SED) '/# GENERIC_SERIAL$$/s~^.*#~$(shell echo $(SYSTEM_GETTY_PORT) | tail -c+4)::respawn:/sbin/getty -L $(SYSTEM_GETTY_OPTIONS) $(SYSTEM_GETTY_PORT) $(SYSTEM_GETTY_BAUDRATE) $(SYSTEM_GETTY_TERM) #~' \
 		$(TARGET_DIR)/etc/inittab
 endef
-SYSVINIT_TARGET_FINALIZE_HOOKS += SYSVINIT_SET_GETTY
+else
+define SYSVINIT_SET_GETTY
+	$(SED) '/# GENERIC_SERIAL$$/s~^.*#~# S0:1:respawn:/sbin/getty -L ttyS0 115200 vt100 #~' \
+		$(TARGET_DIR)/etc/inittab
+endef
 endif # BR2_TARGET_GENERIC_GETTY
+SYSVINIT_TARGET_FINALIZE_HOOKS += SYSVINIT_SET_GETTY
 
 SYSVINIT_TARGET_FINALIZE_HOOKS += SYSTEM_REMOUNT_ROOT_INITTAB
 

@@ -82,20 +82,6 @@ comment "gtk3 support needs libgtk3"
 	depends on BR2_TOOLCHAIN_HAS_SYNC_4
 	depends on !BR2_PACKAGE_LIBGTK3
 
-config BR2_PACKAGE_OPENCV3_WITH_QT
-	bool "qt4"
-	depends on BR2_PACKAGE_QT
-	select BR2_PACKAGE_QT_STL
-	select BR2_PACKAGE_QT_GUI_MODULE
-	select BR2_PACKAGE_QT_TEST
-	help
-	  Use Qt4 with QtTest and QtGui modules and STL support, as
-	  GUI toolkit.
-
-comment "qt4 support needs qt"
-	depends on BR2_USE_MMU # qt
-	depends on !BR2_PACKAGE_QT && !BR2_PACKAGE_QT5
-
 config BR2_PACKAGE_OPENCV3_WITH_QT5
 	bool "qt5"
 	depends on BR2_PACKAGE_QT5
@@ -108,7 +94,7 @@ config BR2_PACKAGE_OPENCV3_WITH_QT5
 	  components, as GUI toolkit.
 
 comment "qt5 support needs qt5"
-	depends on !BR2_PACKAGE_QT && !BR2_PACKAGE_QT5
+	depends on !BR2_PACKAGE_QT5
 
 endchoice
 
@@ -154,6 +140,7 @@ config BR2_PACKAGE_OPENCV3_LIB_ML
 config BR2_PACKAGE_OPENCV3_LIB_OBJDETECT
 	bool "objdetect"
 	# opencv_core dependency is already enabled
+	select BR2_PACKAGE_OPENCV3_LIB_CALIB3D
 	select BR2_PACKAGE_OPENCV3_LIB_IMGPROC
 	select BR2_PACKAGE_OPENCV3_LIB_ML
 	help
@@ -171,10 +158,14 @@ config BR2_PACKAGE_OPENCV3_LIB_PYTHON
 	bool "python"
 	depends on BR2_PACKAGE_PYTHON || BR2_PACKAGE_PYTHON3
 	depends on BR2_PACKAGE_PYTHON_NUMPY_ARCH_SUPPORTS
+	depends on BR2_TOOLCHAIN_USES_GLIBC || BR2_TOOLCHAIN_USES_MUSL # python-numpy
 	select BR2_PACKAGE_PYTHON_NUMPY
 	help
 	  Include opencv_python module into the OpenCV build.  No
 	  python example is installed.
+
+comment "python support needs glibc or musl"
+	depends on !(BR2_TOOLCHAIN_USES_GLIBC || BR2_TOOLCHAIN_USES_MUSL)
 
 config BR2_PACKAGE_OPENCV3_LIB_SHAPE
 	bool "shape"

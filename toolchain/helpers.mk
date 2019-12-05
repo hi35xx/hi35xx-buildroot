@@ -158,11 +158,12 @@ copy_toolchain_sysroot = \
 # Check the specified kernel headers version actually matches the
 # version in the toolchain.
 #
-# $1: sysroot directory
-# $2: kernel version string, in the form: X.Y
+# $1: build directory
+# $2: sysroot directory
+# $3: kernel version string, in the form: X.Y
 #
 check_kernel_headers_version = \
-	if ! support/scripts/check-kernel-headers.sh $(1) $(2); then \
+	if ! support/scripts/check-kernel-headers.sh $(1) $(2) $(3); then \
 		exit 1; \
 	fi
 
@@ -343,6 +344,24 @@ check_cplusplus = \
 
 #
 #
+# Check that the external toolchain supports D language
+#
+# $1: cross-gdc path
+#
+check_dlang = \
+	__CROSS_GDC=$(strip $1) ; \
+	__o=$(BUILD_DIR)/.br-toolchain-test-dlang.tmp ; \
+	printf 'import std.stdio;\nvoid main() { writeln("Hello World!"); }\n' | \
+	$${__CROSS_GDC} -x d -o $${__o} - ; \
+	if test $$? -ne 0 ; then \
+		rm -f $${__o}* ; \
+		echo "D language support is selected but is not available in external toolchain" ; \
+		exit 1 ; \
+	fi ; \
+	rm -f $${__o}* \
+
+#
+#
 # Check that the external toolchain supports Fortran
 #
 # $1: cross-gfortran path
@@ -355,6 +374,24 @@ check_fortran = \
 	if test $$? -ne 0 ; then \
 		rm -f $${__o}* ; \
 		echo "Fortran support is selected but is not available in external toolchain" ; \
+		exit 1 ; \
+	fi ; \
+	rm -f $${__o}* \
+
+#
+#
+# Check that the external toolchain supports OpenMP
+#
+# $1: cross-gcc path
+#
+check_openmp = \
+	__CROSS_CC=$(strip $1) ; \
+	__o=$(BUILD_DIR)/.br-toolchain-test-openmp.tmp ; \
+	printf '\#include <omp.h>\nint main(void) { return omp_get_thread_num(); }' | \
+	$${__CROSS_CC} -fopenmp -x c -o $${__o} - ; \
+	if test $$? -ne 0 ; then \
+		rm -f $${__o}* ; \
+		echo "OpenMP support is selected but is not available in external toolchain"; \
 		exit 1 ; \
 	fi ; \
 	rm -f $${__o}* \
@@ -415,6 +452,7 @@ check_unusable_toolchain = \
 # Check if the toolchain has SSP (stack smashing protector) support
 #
 # $1: cross-gcc path
+# $2: gcc ssp option
 #
 check_toolchain_ssp = \
 	__CROSS_CC=$(strip $1) ; \
@@ -427,6 +465,13 @@ check_toolchain_ssp = \
 		echo "SSP support not available in this toolchain, please disable BR2_TOOLCHAIN_EXTERNAL_HAS_SSP" ; \
 		exit 1 ; \
 	fi ; \
+	__SSP_OPTION=$(2); \
+	if [ -n "$${__SSP_OPTION}" ] ; then \
+		if ! echo 'void main(){}' | $${__CROSS_CC} -Werror $${__SSP_OPTION} -x c - -o $(BUILD_DIR)/.br-toolchain-test.tmp >/dev/null 2>&1 ; then \
+			echo "SSP option $${__SSP_OPTION} not available in this toolchain, please select another SSP level" ; \
+			exit 1 ; \
+		fi; \
+	fi; \
 	rm -f $(BUILD_DIR)/.br-toolchain-test.tmp*
 
 #

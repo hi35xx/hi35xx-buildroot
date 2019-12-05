@@ -4,12 +4,12 @@
 #
 ################################################################################
 
-PYTHON_MARKDOWN_VERSION = 2.6.8
+PYTHON_MARKDOWN_VERSION = 3.1.1
 PYTHON_MARKDOWN_SOURCE = Markdown-$(PYTHON_MARKDOWN_VERSION).tar.gz
-PYTHON_MARKDOWN_SITE = https://pypi.python.org/packages/1d/25/3f6d2cb31ec42ca5bd3bfbea99b63892b735d76e26f20dd2dcc34ffe4f0d
+PYTHON_MARKDOWN_SITE = https://files.pythonhosted.org/packages/ac/df/0ae25a9fd5bb528fe3c65af7143708160aa3b47970d5272003a1ad5c03c6
 PYTHON_MARKDOWN_LICENSE = BSD-3-Clause
 PYTHON_MARKDOWN_LICENSE_FILES = LICENSE.md
-PYTHON_MARKDOWN_SETUP_TYPE = distutils
+PYTHON_MARKDOWN_SETUP_TYPE = setuptools
 
 $(eval $(python-package))
 $(eval $(host-python-package))

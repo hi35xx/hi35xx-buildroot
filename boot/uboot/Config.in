@@ -39,7 +39,7 @@ choice
 	  Select the specific U-Boot version you want to use
 
 config BR2_TARGET_UBOOT_LATEST_VERSION
-	bool "2018.07"
+	bool "2019.10"
 
 config BR2_TARGET_UBOOT_CUSTOM_VERSION
 	bool "Custom version"
@@ -96,7 +96,7 @@ config BR2_TARGET_UBOOT_CUSTOM_LOCAL_PATH
 
 config BR2_TARGET_UBOOT_VERSION
 	string
-	default "2018.03"	if BR2_TARGET_UBOOT_LATEST_VERSION
+	default "2019.10"	if BR2_TARGET_UBOOT_LATEST_VERSION
 	default BR2_TARGET_UBOOT_CUSTOM_VERSION_VALUE \
 		if BR2_TARGET_UBOOT_CUSTOM_VERSION
 	default "custom"	if BR2_TARGET_UBOOT_CUSTOM_TARBALL
@@ -162,6 +162,14 @@ config BR2_TARGET_UBOOT_NEEDS_PYLIBFDT
 	  Select this option if your U-Boot board configuration
 	  requires the Python libfdt library to be available.
 
+config BR2_TARGET_UBOOT_NEEDS_PYELFTOOLS
+	bool "U-Boot needs pyelftools"
+	help
+	  Select this option if your U-Boot board configuration
+	  requires the Python pyelftools library to be available.
+	  This is used by some rockchip SOCs for elf parsing.
+	  For example: rk3399 soc boards.
+
 config BR2_TARGET_UBOOT_NEEDS_OPENSSL
 	bool "U-Boot needs OpenSSL"
 	help
@@ -169,6 +177,14 @@ config BR2_TARGET_UBOOT_NEEDS_OPENSSL
 	  requires OpenSSL to be available on the host. This is
 	  typically the case when the board configuration has
 	  CONFIG_FIT_SIGNATURE enabled.
+
+config BR2_TARGET_UBOOT_NEEDS_LZOP
+	bool "U-Boot needs lzop"
+	help
+	  Select this option if your U-Boot board configuration
+	  requires lzop to be available on the host. This is typically
+	  the case when the board configuration has CONFIG_SPL_LZO
+	  enabled.
 
 config BR2_TARGET_UBOOT_NEEDS_ATF_BL31
 	bool "U-Boot needs ATF BL31"
@@ -181,6 +197,19 @@ config BR2_TARGET_UBOOT_NEEDS_ATF_BL31
 	  makes sure ATF gets built prior to U-Boot, and that the BL31
 	  variable pointing to ATF's BL31 binary, is passed during the
 	  Buildroot build.
+
+choice
+	prompt "U-Boot ATF BL31 format"
+	default BR2_TARGET_UBOOT_NEEDS_ATF_BL31_BIN
+	depends on BR2_TARGET_UBOOT_NEEDS_ATF_BL31
+
+config BR2_TARGET_UBOOT_NEEDS_ATF_BL31_BIN
+	bool "bl31.bin"
+
+config BR2_TARGET_UBOOT_NEEDS_ATF_BL31_ELF
+	bool "bl31.elf"
+
+endchoice
 
 menu "U-Boot binary format"
 
@@ -231,7 +260,7 @@ config BR2_TARGET_UBOOT_FORMAT_SD
 	  This is Freescale i.MX28 SB format, with a header for booting
 	  from an SD card.
 
-	  U-boot includes an mxsboot tool to generate this format,
+	  U-Boot includes an mxsboot tool to generate this format,
 	  starting from 2011.12.
 
 	  See doc/README.mxs (or doc/README.mx28_common before 2013.07)
@@ -243,7 +272,7 @@ config BR2_TARGET_UBOOT_FORMAT_NAND
 	  This is Freescale i.MX28 BootStream format (.sb), with a
 	  header for booting from a NAND flash.
 
-	  U-boot includes an mxsboot tool to generate this format,
+	  U-Boot includes an mxsboot tool to generate this format,
 	  starting from 2011.12.
 
 	  There are two possibilities when preparing an image writable
@@ -513,6 +542,8 @@ config BR2_TARGET_UBOOT_ENVIMAGE_SOURCE
 
 	  Multiple source files are concatenated in the order listed.
 
+	  Leave empty to generate image from compiled-in env.
+
 config BR2_TARGET_UBOOT_ENVIMAGE_SIZE
 	string "Size of environment"
 	help
@@ -564,5 +595,11 @@ config BR2_TARGET_UBOOT_CUSTOM_DTS_PATH
 	  file must refer to it.
 
 endif
+
+config BR2_TARGET_UBOOT_CUSTOM_MAKEOPTS
+	string "Custom make options"
+	help
+	  List of custom make options passed at build time. Can be
+	  used for example to pass a DEVICE_TREE= value.
 
 endif # BR2_TARGET_UBOOT

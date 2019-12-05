@@ -4,19 +4,12 @@
 #
 ################################################################################
 
-PYTHON3_VERSION_MAJOR = 3.6
-PYTHON3_VERSION = $(PYTHON3_VERSION_MAJOR).3
+PYTHON3_VERSION_MAJOR = 3.8
+PYTHON3_VERSION = $(PYTHON3_VERSION_MAJOR).0
 PYTHON3_SOURCE = Python-$(PYTHON3_VERSION).tar.xz
 PYTHON3_SITE = https://python.org/ftp/python/$(PYTHON3_VERSION)
 PYTHON3_LICENSE = Python-2.0, others
 PYTHON3_LICENSE_FILES = LICENSE
-
-# Python itself doesn't use libtool, but it includes the source code
-# of libffi, which uses libtool. Unfortunately, it uses a beta version
-# of libtool for which we don't have a matching patch. However, this
-# is not a problem, because we don't use the libffi copy included in
-# the Python sources, but instead use an external libffi library.
-PYTHON3_LIBTOOL_PATCH = NO
 
 # This host Python is installed in $(HOST_DIR), as it is needed when
 # cross-compiling third-party Python modules.
@@ -33,8 +26,7 @@ HOST_PYTHON3_CONF_OPTS += \
 	--enable-unicodedata \
 	--disable-test-modules \
 	--disable-idle3 \
-	--disable-ossaudiodev \
-	--disable-openssl
+	--disable-ossaudiodev
 
 # Make sure that LD_LIBRARY_PATH overrides -rpath.
 # This is needed because libpython may be installed at the same time that
@@ -47,7 +39,13 @@ HOST_PYTHON3_CONF_ENV += \
 
 PYTHON3_DEPENDENCIES = host-python3 libffi
 
-HOST_PYTHON3_DEPENDENCIES = host-expat host-zlib
+HOST_PYTHON3_DEPENDENCIES = host-expat host-zlib host-libffi
+
+ifeq ($(BR2_PACKAGE_HOST_PYTHON3_SSL),y)
+HOST_PYTHON3_DEPENDENCIES += host-openssl
+else
+HOST_PYTHON3_CONF_OPTS += --disable-openssl
+endif
 
 PYTHON3_INSTALL_STAGING = YES
 
@@ -77,10 +75,6 @@ else
 PYTHON3_CONF_OPTS += --with-expat=none
 endif
 
-ifeq ($(BR2_PACKAGE_PYTHON3_PYC_ONLY),y)
-PYTHON3_CONF_OPTS += --enable-old-stdlib-cache
-endif
-
 ifeq ($(BR2_PACKAGE_PYTHON3_SQLITE),y)
 PYTHON3_DEPENDENCIES += sqlite
 else
@@ -100,6 +94,11 @@ endif
 ifneq ($(BR2_PACKAGE_PYTHON3_UNICODEDATA),y)
 PYTHON3_CONF_OPTS += --disable-unicodedata
 endif
+
+# Disable auto-detection of uuid.h (util-linux)
+# which would add _uuid module support, instead
+# default to the pure python implementation
+PYTHON3_CONF_OPTS += --disable-uuid
 
 ifeq ($(BR2_PACKAGE_PYTHON3_BZIP2),y)
 PYTHON3_DEPENDENCIES += bzip2
@@ -209,8 +208,8 @@ define PYTHON3_REMOVE_USELESS_FILES
 	rm -f $(TARGET_DIR)/usr/bin/python$(PYTHON3_VERSION_MAJOR)m-config
 	rm -f $(TARGET_DIR)/usr/bin/python3-config
 	rm -f $(TARGET_DIR)/usr/bin/smtpd.py.3
-	for i in `find $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR)/config-$(PYTHON3_VERSION_MAJOR)m/ \
-		-type f -not -name pyconfig.h -a -not -name Makefile` ; do \
+	for i in `find $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR)/config-$(PYTHON3_VERSION_MAJOR)m-*/ \
+		-type f -not -name Makefile` ; do \
 		rm -f $$i ; \
 	done
 	rm -rf $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR)/__pycache__/
@@ -256,6 +255,11 @@ endif
 # Provided to other packages
 PYTHON3_PATH = $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR)/
 
+# Support for socket.AF_BLUETOOTH
+ifeq ($(BR2_PACKAGE_BLUEZ5_UTILS_HEADERS),y)
+PYTHON3_DEPENDENCIES += bluez5_utils-headers
+endif
+
 $(eval $(autotools-package))
 $(eval $(host-autotools-package))
 
@@ -281,7 +285,9 @@ endif
 
 ifeq ($(BR2_PACKAGE_PYTHON3_PYC_ONLY),y)
 define PYTHON3_REMOVE_PY_FILES
-	find $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR) -name '*.py' -print0 | \
+	find $(TARGET_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR) -name '*.py' \
+		$(if $(strip $(KEEP_PYTHON_PY_FILES)),-not \( $(call finddirclauses,$(TARGET_DIR),$(KEEP_PYTHON_PY_FILES)) \) ) \
+		-print0 | \
 		xargs -0 --no-run-if-empty rm -f
 endef
 PYTHON3_TARGET_FINALIZE_HOOKS += PYTHON3_REMOVE_PY_FILES

@@ -4,7 +4,8 @@
 #
 ################################################################################
 
-FINDUTILS_VERSION = 4.6.0
+FINDUTILS_VERSION = 4.7.0
+FINDUTILS_SOURCE = findutils-$(FINDUTILS_VERSION).tar.xz
 FINDUTILS_SITE = $(BR2_GNU_MIRROR)/findutils
 FINDUTILS_LICENSE = GPL-3.0+
 FINDUTILS_LICENSE_FILES = COPYING

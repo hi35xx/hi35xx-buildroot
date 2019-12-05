@@ -4,17 +4,11 @@
 #
 ################################################################################
 
-PYTHON_PYTZ_VERSION = 2017.3
-PYTHON_PYTZ_SOURCE = pytz-$(PYTHON_PYTZ_VERSION).zip
-PYTHON_PYTZ_SITE = https://pypi.python.org/packages/60/88/d3152c234da4b2a1f7a989f89609ea488225eaea015bc16fbde2b3fdfefa
+PYTHON_PYTZ_VERSION = 2019.3
+PYTHON_PYTZ_SOURCE = pytz-$(PYTHON_PYTZ_VERSION).tar.gz
+PYTHON_PYTZ_SITE = https://files.pythonhosted.org/packages/82/c3/534ddba230bd4fbbd3b7a3d35f3341d014cca213f369a9940925e7e5f691
 PYTHON_PYTZ_SETUP_TYPE = setuptools
 PYTHON_PYTZ_LICENSE = MIT
 PYTHON_PYTZ_LICENSE_FILES = LICENSE.txt
-
-define PYTHON_PYTZ_EXTRACT_CMDS
-	unzip $(PYTHON_PYTZ_DL_DIR)/$(PYTHON_PYTZ_SOURCE) -d $(@D)
-	mv $(@D)/pytz-$(PYTHON_PYTZ_VERSION)/* $(@D)
-	rmdir $(@D)/pytz-$(PYTHON_PYTZ_VERSION)
-endef
 
 $(eval $(python-package))

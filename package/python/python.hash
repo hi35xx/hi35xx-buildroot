@@ -1,5 +1,5 @@
-# From https://www.python.org/downloads/release/python-2715/
-md5 a80ae3cc478460b922242f43a1b4094d Python-2.7.15.tar.xz
+# From https://www.python.org/downloads/release/python-2717/
+md5 b3b6d2c92f42a60667814358ab9f0cfd Python-2.7.17.tar.xz
 # Locally calculated
-sha256 22d9b1ac5b26135ad2b8c2901a9413537e08749a753356ee913c84dbd2df5574  Python-2.7.15.tar.xz
-sha256 b9a6d9320b8f2693e8d41e496ce56caadacaddcca9be2a64a61749278f425cf2  LICENSE
+sha256 4d43f033cdbd0aa7b7023c81b0e986fd11e653b5248dac9144d508f11812ba41  Python-2.7.17.tar.xz
+sha256 a77d71d6be6f9032e6b6e5d2cf6da68f9eeab9036edfbc043633c8979cd5e82c  LICENSE

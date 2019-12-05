@@ -67,9 +67,13 @@ Python build system, but are not Python modules, can freely choose
 their name (existing examples in Buildroot are +scons+ and
 +supervisor+).
 
-In their +Config.in+ file, they should depend on +BR2_PACKAGE_PYTHON+
-so that when Buildroot will enable Python 3 usage for modules, we will
-be able to enable Python modules progressively on Python 3.
+Packages that are only compatible with one version of Python (as in:
+Python 2 or Python 3) should depend on that version explicitely in
+their +Config.in+ file (+BR2_PACKAGE_PYTHON+ for Python 2,
++BR2_PACKAGE_PYTHON3+ for Python 3).  Packages that are compatible
+with both versions should not explicitely depend on them in their
++Config.in+ file, since that condition is already expressed for the
+whole "External python modules" menu.
 
 The main macro of the Python package infrastructure is
 +python-package+. It is similar to the +generic-package+ macro. It is
@@ -112,6 +116,12 @@ A few additional variables, specific to the Python infrastructure, can
 optionally be defined, depending on the package's needs. Many of them
 are only useful in very specific cases, typical packages will
 therefore only use a few of them, or none.
+
+* +PYTHON_FOO_SUBDIR+ may contain the name of a subdirectory inside the
+  package that contains the main +setup.py+ file. This is useful,
+  if for example, the main +setup.py+ file is not at the root of
+  the tree extracted by the tarball. If +HOST_PYTHON_FOO_SUBDIR+ is not
+  specified, it defaults to +PYTHON_FOO_SUBDIR+.
 
 * +PYTHON_FOO_ENV+, to specify additional environment variables to
   pass to the Python +setup.py+ script (for both the build and install

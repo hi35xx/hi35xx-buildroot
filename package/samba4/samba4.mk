@@ -4,24 +4,38 @@
 #
 ################################################################################
 
-SAMBA4_VERSION = 4.8.4
+SAMBA4_VERSION = 4.10.10
 SAMBA4_SITE = https://download.samba.org/pub/samba/stable
 SAMBA4_SOURCE = samba-$(SAMBA4_VERSION).tar.gz
 SAMBA4_INSTALL_STAGING = YES
 SAMBA4_LICENSE = GPL-3.0+
 SAMBA4_LICENSE_FILES = COPYING
 SAMBA4_DEPENDENCIES = \
-	host-e2fsprogs host-heimdal host-python host-nfs-utils \
-	e2fsprogs popt python zlib \
+	host-e2fsprogs host-heimdal host-nfs-utils \
+	cmocka e2fsprogs popt zlib \
 	$(if $(BR2_PACKAGE_LIBAIO),libaio) \
 	$(if $(BR2_PACKAGE_LIBCAP),libcap) \
 	$(if $(BR2_PACKAGE_READLINE),readline) \
 	$(TARGET_NLS_DEPENDENCIES)
 SAMBA4_CFLAGS = $(TARGET_CFLAGS)
-SAMBA4_LDFLAGS = $(TARGET_LDFLAGS)
+SAMBA4_LDFLAGS = $(TARGET_LDFLAGS) $(TARGET_NLS_LIBS)
 SAMBA4_CONF_ENV = \
 	CFLAGS="$(SAMBA4_CFLAGS)" \
-	LDFLAGS="$(SAMBA4_LDFLAGS)"
+	LDFLAGS="$(SAMBA4_LDFLAGS)" \
+	XSLTPROC=false \
+	WAF_NO_PREFORK=1
+
+ifeq ($(BR2_PACKAGE_PYTHON3),y)
+SAMBA4_PYTHON = \
+	PYTHON="$(HOST_DIR)/bin/python3" \
+	PYTHON_CONFIG="$(STAGING_DIR)/usr/bin/python3-config"
+SAMBA4_DEPENDENCIES += host-python3 python3
+else
+SAMBA4_PYTHON = \
+	PYTHON="$(HOST_DIR)/bin/python2" \
+	PYTHON_CONFIG="$(STAGING_DIR)/usr/bin/python-config"
+SAMBA4_DEPENDENCIES += host-python python
+endif
 
 ifeq ($(BR2_PACKAGE_LIBTIRPC),y)
 SAMBA4_CFLAGS += `$(PKG_CONFIG_HOST_BINARY) --cflags libtirpc`
@@ -69,6 +83,13 @@ else
 SAMBA4_CONF_OPTS += --disable-gnutls
 endif
 
+ifeq ($(BR2_PACKAGE_LIBARCHIVE),y)
+SAMBA4_CONF_OPTS += --with-libarchive
+SAMBA4_DEPENDENCIES += libarchive
+else
+SAMBA4_CONF_OPTS += --without-libarchive
+endif
+
 ifeq ($(BR2_PACKAGE_NCURSES),y)
 SAMBA4_CONF_ENV += NCURSES_CONFIG="$(STAGING_DIR)/usr/bin/$(NCURSES_CONFIG_SCRIPTS)"
 SAMBA4_DEPENDENCIES += ncurses
@@ -89,7 +110,7 @@ define SAMBA4_CONFIGURE_CMDS
 	$(INSTALL) -m 0644 package/samba4/samba4-cache.txt $(@D)/cache.txt;
 	echo 'Checking uname machine type: $(BR2_ARCH)' >>$(@D)/cache.txt;
 	(cd $(@D); \
-		PYTHON_CONFIG="$(STAGING_DIR)/usr/bin/python-config" \
+		$(SAMBA4_PYTHON) \
 		python_LDFLAGS="" \
 		python_LIBDIR="" \
 		$(TARGET_CONFIGURE_OPTS) \
@@ -108,6 +129,8 @@ define SAMBA4_CONFIGURE_CMDS
 			--disable-iprint \
 			--without-pam \
 			--without-dmapi \
+			--without-gpgme \
+			--without-ldb-lmdb \
 			--disable-glusterfs \
 			--with-cluster-support \
 			--bundled-libraries='!asn1_compile,!compile_et' \
@@ -116,19 +139,21 @@ define SAMBA4_CONFIGURE_CMDS
 endef
 
 define SAMBA4_BUILD_CMDS
-	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D)
+	$(TARGET_MAKE_ENV) $(SAMBA4_PYTHON) $(MAKE) -C $(@D)
 endef
 
 define SAMBA4_INSTALL_STAGING_CMDS
-	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) DESTDIR=$(STAGING_DIR) install
+	$(TARGET_MAKE_ENV) $(SAMBA4_PYTHON) $(MAKE) -C $(@D) DESTDIR=$(STAGING_DIR) install
 endef
 
 define SAMBA4_INSTALL_TARGET_CMDS
-	$(TARGET_MAKE_ENV) $(MAKE) -C $(@D) DESTDIR=$(TARGET_DIR) install
+	$(TARGET_MAKE_ENV) $(SAMBA4_PYTHON) $(MAKE) -C $(@D) DESTDIR=$(TARGET_DIR) install
 endef
 
-ifeq ($(BR2_PACKAGE_SAMBA4_AD_DC),)
-SAMBA4_CONF_OPTS += --without-ad-dc
+ifeq ($(BR2_PACKAGE_SAMBA4_AD_DC),y)
+SAMBA4_DEPENDENCIES += jansson
+else
+SAMBA4_CONF_OPTS += --without-ad-dc --without-json
 endif
 
 ifeq ($(BR2_PACKAGE_SAMBA4_ADS),y)
@@ -150,13 +175,12 @@ define SAMBA4_INSTALL_INIT_SYSV
 		$(TARGET_DIR)/etc/init.d/S91smb
 endef
 
+ifeq ($(BR2_INIT_SYSTEMD),y)
+SAMBA4_CONF_OPTS += --systemd-install-services
+SAMBA4_DEPENDENCIES += systemd
+endif
+
 define SAMBA4_INSTALL_INIT_SYSTEMD
-	$(INSTALL) -D -m 644 $(@D)/packaging/systemd/nmb.service \
-		$(TARGET_DIR)/usr/lib/systemd/system/nmb.service
-	$(INSTALL) -D -m 644 $(@D)/packaging/systemd/smb.service \
-		$(TARGET_DIR)/usr/lib/systemd/system/smb.service
-	$(INSTALL) -D -m 644 $(@D)/packaging/systemd/winbind.service \
-		$(TARGET_DIR)/usr/lib/systemd/system/winbind.service
 	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
 	ln -sf ../../../../usr/lib/systemd/system/nmb.service \
 		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/nmb.service

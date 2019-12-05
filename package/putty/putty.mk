@@ -4,9 +4,8 @@
 #
 ################################################################################
 
-PUTTY_VERSION = 0.70
+PUTTY_VERSION = 0.73
 PUTTY_SITE = http://the.earth.li/~sgtatham/putty/$(PUTTY_VERSION)
-PUTTY_SUBDIR = unix
 PUTTY_LICENSE = MIT
 PUTTY_LICENSE_FILES = LICENCE
 PUTTY_CONF_OPTS = --disable-gtktest

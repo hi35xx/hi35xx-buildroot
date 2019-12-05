@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-OPENVPN_VERSION = 2.4.6
+OPENVPN_VERSION = 2.4.8
 OPENVPN_SOURCE = openvpn-$(OPENVPN_VERSION).tar.xz
 OPENVPN_SITE = http://swupdate.openvpn.net/community/releases
 OPENVPN_DEPENDENCIES = host-pkgconf openssl
@@ -36,6 +36,20 @@ ifeq ($(BR2_PACKAGE_OPENVPN_LZO),y)
 OPENVPN_DEPENDENCIES += lzo
 else
 OPENVPN_CONF_OPTS += --disable-lzo
+endif
+
+ifeq ($(BR2_PACKAGE_LIBSELINUX),y)
+OPENVPN_DEPENDENCIES += libselinux
+OPENVPN_CONF_OPTS += --enable-selinux
+else
+OPENVPN_CONF_OPTS += --disable-selinux
+endif
+
+ifeq ($(BR2_PACKAGE_SYSTEMD),y)
+OPENVPN_DEPENDENCIES += systemd
+OPENVPN_CONF_OPTS += --enable-systemd
+else
+OPENVPN_CONF_OPTS += --disable-systemd
 endif
 
 define OPENVPN_INSTALL_TARGET_CMDS

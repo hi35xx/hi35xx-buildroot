@@ -4,10 +4,10 @@
 #
 ################################################################################
 
-DROPBEAR_VERSION = 2018.76
+DROPBEAR_VERSION = 2019.78
 DROPBEAR_SITE = https://matt.ucc.asn.au/dropbear/releases
 DROPBEAR_SOURCE = dropbear-$(DROPBEAR_VERSION).tar.bz2
-DROPBEAR_LICENSE = MIT, BSD-2-Clause-like, BSD-2-Clause
+DROPBEAR_LICENSE = MIT, BSD-2-Clause, BSD-3-Clause
 DROPBEAR_LICENSE_FILES = LICENSE
 DROPBEAR_TARGET_BINS = dropbearkey dropbearconvert scp
 DROPBEAR_PROGRAMS = dropbear $(DROPBEAR_TARGET_BINS)
@@ -81,6 +81,12 @@ define DROPBEAR_DISABLE_STANDALONE
 	echo '#define NON_INETD_MODE 0'                 >> $(@D)/localoptions.h
 endef
 
+define DROPBEAR_CUSTOM_PATH
+	echo '#define DEFAULT_PATH $(BR2_SYSTEM_DEFAULT_PATH)' >>$(@D)/localoptions.h
+endef
+
+DROPBEAR_POST_EXTRACT_HOOKS += DROPBEAR_CUSTOM_PATH
+
 define DROPBEAR_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -D -m 644 package/dropbear/dropbear.service \
 		$(TARGET_DIR)/usr/lib/systemd/system/dropbear.service
@@ -116,6 +122,14 @@ endif
 
 ifneq ($(BR2_PACKAGE_DROPBEAR_LASTLOG),y)
 DROPBEAR_CONF_OPTS += --disable-lastlog
+endif
+
+DROPBEAR_LOCALOPTIONS_FILE = $(call qstrip,$(BR2_PACKAGE_DROPBEAR_LOCALOPTIONS_FILE))
+ifneq ($(DROPBEAR_LOCALOPTIONS_FILE),)
+define DROPBEAR_APPEND_LOCALOPTIONS_FILE
+	cat $(DROPBEAR_LOCALOPTIONS_FILE) >> $(@D)/localoptions.h
+endef
+DROPBEAR_POST_EXTRACT_HOOKS += DROPBEAR_APPEND_LOCALOPTIONS_FILE
 endif
 
 define DROPBEAR_INSTALL_TARGET_CMDS

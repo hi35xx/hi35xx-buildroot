@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LIVE555_VERSION = 2018.10.17
+LIVE555_VERSION = 2019.09.30
 LIVE555_SOURCE = live.$(LIVE555_VERSION).tar.gz
 LIVE555_SITE = http://www.live555.com/liveMedia/public
 LIVE555_LICENSE = LGPL-2.1+

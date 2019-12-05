@@ -7,19 +7,18 @@
 IPSEC_TOOLS_VERSION = 0.8.2
 IPSEC_TOOLS_SOURCE = ipsec-tools-$(IPSEC_TOOLS_VERSION).tar.bz2
 IPSEC_TOOLS_SITE = http://sourceforge.net/projects/ipsec-tools/files/ipsec-tools/$(IPSEC_TOOLS_VERSION)
+IPSEC_TOOLS_LICENSE = BSD-3-Clause
+IPSEC_TOOLS_LICENSE_FILES = src/setkey/setkey.c
 IPSEC_TOOLS_INSTALL_STAGING = YES
 IPSEC_TOOLS_MAKE = $(MAKE1)
-IPSEC_TOOLS_DEPENDENCIES = openssl flex host-flex host-bison
+IPSEC_TOOLS_DEPENDENCIES = openssl flex host-pkgconf host-flex host-bison
 # we patch configure.ac
 IPSEC_TOOLS_AUTORECONF = YES
 
 # configure hardcodes -Werror, so override CFLAGS on make invocation
 IPSEC_TOOLS_MAKE_OPTS = CFLAGS='$(TARGET_CFLAGS)'
 
-# openssl uses zlib, so we need to explicitly link with it when static
-ifeq ($(BR2_STATIC_LIBS),y)
-IPSEC_TOOLS_CONF_ENV += LIBS=-lz
-endif
+IPSEC_TOOLS_CONF_ENV = LIBS=`$(PKG_CONFIG_HOST_BINARY) --libs openssl`
 
 IPSEC_TOOLS_CONF_OPTS = \
 	  --without-libpam \

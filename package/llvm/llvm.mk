@@ -4,18 +4,25 @@
 #
 ################################################################################
 
-LLVM_VERSION = 6.0.1
+# LLVM, Clang and lld should be version bumped together
+LLVM_VERSION = 9.0.0
 LLVM_SITE = http://llvm.org/releases/$(LLVM_VERSION)
 LLVM_SOURCE = llvm-$(LLVM_VERSION).src.tar.xz
-LLVM_LICENSE = NCSA
+LLVM_LICENSE = Apache-2.0 with exceptions
 LLVM_LICENSE_FILES = LICENSE.TXT
 LLVM_SUPPORTS_IN_SOURCE_BUILD = NO
 LLVM_INSTALL_STAGING = YES
 
-# http://llvm.org/docs/GettingStarted.html#software
-# host-python: Python interpreter 2.7 or newer is required for builds and testing.
-HOST_LLVM_DEPENDENCIES = host-python
+# LLVM >= 9.0 can use python3 to build.
+HOST_LLVM_DEPENDENCIES = host-python3
 LLVM_DEPENDENCIES = host-llvm
+
+# LLVM >= 9.0 will soon require C++14 support, building llvm 8.x using a
+# toolchain using gcc < 5.1 gives an error but actually still works. Setting
+# this option makes it still build with gcc >= 4.8.
+# https://reviews.llvm.org/D57264
+HOST_LLVM_CONF_OPTS += -DLLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN=ON
+LLVM_CONF_OPTS += -DLLVM_TEMPORARILY_ALLOW_OLD_TOOLCHAIN=ON
 
 # Don't build clang libcxx libcxxabi lldb compiler-rt lld polly as llvm subprojects
 # This flag assumes that projects are checked out side-by-side and not nested
@@ -29,11 +36,6 @@ LLVM_CONF_OPTS += -DLLVM_CCACHE_BUILD=$(if $(BR2_CCACHE),ON,OFF)
 # binaries. Otherwise, llvm-config (host variant installed in STAGING)
 # will try to use target's libc.
 HOST_LLVM_CONF_OPTS += -DCMAKE_INSTALL_RPATH="$(HOST_DIR)/lib"
-
-# Disable experimental Global Instruction Selection support.
-# https://llvm.org/docs/GlobalISel.html
-HOST_LLVM_CONF_OPTS += -DLLVM_BUILD_GLOBAL_ISEL=OFF
-LLVM_CONF_OPTS += -DLLVM_BUILD_GLOBAL_ISEL=OFF
 
 # Get target architecture
 LLVM_TARGET_ARCH = $(call qstrip,$(BR2_PACKAGE_LLVM_TARGET_ARCH))
@@ -61,6 +63,9 @@ endif
 
 # Use native llvm-tblgen from host-llvm (needed for cross-compilation)
 LLVM_CONF_OPTS += -DLLVM_TABLEGEN=$(HOST_DIR)/bin/llvm-tblgen
+
+# Use native llvm-config from host-llvm (needed for cross-compilation)
+LLVM_CONF_OPTS += -DLLVM_CONFIG_PATH=$(HOST_DIR)/bin/llvm-config
 
 # BUILD_SHARED_LIBS has a misleading name. It is in fact an option for
 # LLVM developers to build all LLVM libraries as separate shared libraries.
@@ -126,6 +131,15 @@ LLVM_CONF_OPTS += -DLLVM_ENABLE_THREADS=ON
 HOST_LLVM_CONF_OPTS += -DLLVM_ENABLE_ZLIB=ON
 HOST_LLVM_DEPENDENCIES += host-zlib
 LLVM_CONF_OPTS += -DLLVM_ENABLE_ZLIB=OFF
+
+# libxml2 can be disabled as it is used for LLVM Windows builds where COFF
+# files include manifest info
+HOST_LLVM_CONF_OPTS += -DLLVM_ENABLE_LIBXML2=OFF
+LLVM_CONF_OPTS += -DLLVM_ENABLE_LIBXML2=OFF
+
+# Disable optional Z3Prover since there is no such package in Buildroot.
+HOST_LLVM_CONF_OPTS += -DLLVM_ENABLE_Z3_SOLVER=OFF
+LLVM_CONF_OPTS += -DLLVM_ENABLE_Z3_SOLVER=OFF
 
 # We don't use llvm for static only build, so enable PIC
 HOST_LLVM_CONF_OPTS += -DLLVM_ENABLE_PIC=ON
@@ -204,6 +218,14 @@ HOST_LLVM_CONF_OPTS += \
 LLVM_CONF_OPTS += \
 	-DLLVM_INCLUDE_TOOLS=ON \
 	-DLLVM_BUILD_TOOLS=OFF
+
+ifeq ($(BR2_PACKAGE_LLVM_RTTI),y)
+HOST_LLVM_CONF_OPTS += -DLLVM_ENABLE_RTTI=ON
+LLVM_CONF_OPTS += -DLLVM_ENABLE_RTTI=ON
+else
+HOST_LLVM_CONF_OPTS += -DLLVM_ENABLE_RTTI=OFF
+LLVM_CONF_OPTS += -DLLVM_ENABLE_RTTI=OFF
+endif
 
 # Compiler-rt not in the source tree.
 # llvm runtime libraries are not in the source tree.

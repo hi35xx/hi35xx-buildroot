@@ -1,4 +1,4 @@
-# https://download.gnome.org/sources/glib/2.56/glib-2.56.1.sha256sum
-sha256  40ef3f44f2c651c7a31aedee44259809b6f03d3d20be44545cd7d177221c0b8d  glib-2.56.1.tar.xz
+# https://download.gnome.org/sources/glib/2.60/glib-2.60.6.sha256sum
+sha256  6c257205a0a343b662c9961a58bb4ba1f1e31c82f5c6b909ec741194abc3da10  glib-2.62.0.tar.xz
 # License files, locally calculated
 sha256	dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551  COPYING

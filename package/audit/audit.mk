@@ -4,10 +4,12 @@
 #
 ################################################################################
 
-AUDIT_VERSION = 2.8.2
+AUDIT_VERSION = 2.8.5
 AUDIT_SITE = http://people.redhat.com/sgrubb/audit
 AUDIT_LICENSE = GPL-2.0+ (programs), LGPL-2.1+ (libraries)
 AUDIT_LICENSE_FILES = COPYING COPYING.LIB
+# 0002-Add-substitue-functions-for-strndupa-rawmemchr.patch
+AUDIT_AUTORECONF = YES
 
 AUDIT_INSTALL_STAGING = YES
 
@@ -38,7 +40,7 @@ AUDIT_CONF_OPTS += --disable-systemd
 endif
 
 define AUDIT_INSTALL_INIT_SYSV
-	$(INSTALL) -D -m 755 package/audit/S01auditd $(TARGET_DIR)/etc/init.d/S01auditd
+	$(INSTALL) -D -m 755 package/audit/S02auditd $(TARGET_DIR)/etc/init.d/S02auditd
 endef
 
 define AUDIT_INSTALL_INIT_SYSTEMD

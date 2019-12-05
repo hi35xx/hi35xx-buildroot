@@ -141,11 +141,16 @@ UBOOT_MAKE_OPTS += \
 	CROSS_COMPILE="$(TARGET_CROSS)" \
 	ARCH=$(UBOOT_ARCH) \
 	HOSTCC="$(HOSTCC) $(subst -I/,-isystem /,$(subst -I /,-isystem /,$(HOST_CFLAGS)))" \
-	HOSTLDFLAGS="$(HOST_LDFLAGS)"
+	HOSTLDFLAGS="$(HOST_LDFLAGS)" \
+	$(call qstrip,$(BR2_TARGET_UBOOT_CUSTOM_MAKEOPTS))
 
 ifeq ($(BR2_TARGET_UBOOT_NEEDS_ATF_BL31),y)
 UBOOT_DEPENDENCIES += arm-trusted-firmware
+ifeq ($(BR2_TARGET_UBOOT_NEEDS_ATF_BL31_ELF),y)
+UBOOT_MAKE_OPTS += BL31=$(BINARIES_DIR)/bl31.elf
+else
 UBOOT_MAKE_OPTS += BL31=$(BINARIES_DIR)/bl31.bin
+endif
 endif
 
 ifeq ($(BR2_TARGET_UBOOT_NEEDS_DTC),y)
@@ -156,8 +161,16 @@ ifeq ($(BR2_TARGET_UBOOT_NEEDS_PYLIBFDT),y)
 UBOOT_DEPENDENCIES += host-python host-swig
 endif
 
+ifeq ($(BR2_TARGET_UBOOT_NEEDS_PYELFTOOLS),y)
+UBOOT_DEPENDENCIES += host-python-pyelftools
+endif
+
 ifeq ($(BR2_TARGET_UBOOT_NEEDS_OPENSSL),y)
 UBOOT_DEPENDENCIES += host-openssl
+endif
+
+ifeq ($(BR2_TARGET_UBOOT_NEEDS_LZOP),y)
+UBOOT_DEPENDENCIES += host-lzop
 endif
 
 # prior to u-boot 2013.10 the license info was in COPYING. Copy it so
@@ -231,8 +244,9 @@ UBOOT_KCONFIG_EDITORS = menuconfig xconfig gconfig nconfig
 # (which is typically wchar) but link with
 # $(HOST_DIR)/lib/libncurses.so (which is not).  We don't actually
 # need any host-package for kconfig, so remove the HOSTCC/HOSTLDFLAGS
-# override again.
-UBOOT_KCONFIG_OPTS = $(UBOOT_MAKE_OPTS) HOSTCC="$(HOSTCC)" HOSTLDFLAGS=""
+# override again. In addition, host-ccache is not ready at kconfig
+# time, so use HOSTCC_NOCCACHE.
+UBOOT_KCONFIG_OPTS = $(UBOOT_MAKE_OPTS) HOSTCC="$(HOSTCC_NOCCACHE)" HOSTLDFLAGS=""
 define UBOOT_HELP_CMDS
 	@echo '  uboot-menuconfig       - Run U-Boot menuconfig'
 	@echo '  uboot-savedefconfig    - Run U-Boot savedefconfig'
@@ -274,8 +288,11 @@ define UBOOT_BUILD_OMAP_IFT
 endef
 
 ifneq ($(BR2_TARGET_UBOOT_ENVIMAGE),)
+UBOOT_GENERATE_ENV_FILE = $(call qstrip,$(BR2_TARGET_UBOOT_ENVIMAGE_SOURCE))
 define UBOOT_GENERATE_ENV_IMAGE
-	cat $(call qstrip,$(BR2_TARGET_UBOOT_ENVIMAGE_SOURCE)) \
+	$(if $(UBOOT_GENERATE_ENV_FILE), \
+		cat $(UBOOT_GENERATE_ENV_FILE), \
+		CROSS_COMPILE="$(TARGET_CROSS)" $(@D)/scripts/get_default_envs.sh $(@D)) \
 		>$(@D)/buildroot-env.txt
 	$(HOST_DIR)/bin/mkenvimage -s $(BR2_TARGET_UBOOT_ENVIMAGE_SIZE) \
 		$(if $(BR2_TARGET_UBOOT_ENVIMAGE_REDUNDANT),-r) \
@@ -298,7 +315,7 @@ define UBOOT_INSTALL_IMAGES_CMDS
 	)
 	$(UBOOT_GENERATE_ENV_IMAGE)
 	$(if $(BR2_TARGET_UBOOT_BOOT_SCRIPT),
-		$(HOST_DIR)/bin/mkimage -C none -A $(MKIMAGE_ARCH) -T script \
+		$(MKIMAGE) -C none -A $(MKIMAGE_ARCH) -T script \
 			-d $(call qstrip,$(BR2_TARGET_UBOOT_BOOT_SCRIPT_SOURCE)) \
 			$(BINARIES_DIR)/boot.scr)
 endef
@@ -406,11 +423,8 @@ endef
 
 ifeq ($(BR2_TARGET_UBOOT_ENVIMAGE),y)
 ifeq ($(BR_BUILDING),y)
-ifeq ($(call qstrip,$(BR2_TARGET_UBOOT_ENVIMAGE_SOURCE)),)
-$(error Please define a source file for Uboot environment (BR2_TARGET_UBOOT_ENVIMAGE_SOURCE setting))
-endif
 ifeq ($(call qstrip,$(BR2_TARGET_UBOOT_ENVIMAGE_SIZE)),)
-$(error Please provide Uboot environment size (BR2_TARGET_UBOOT_ENVIMAGE_SIZE setting))
+$(error Please provide U-Boot environment size (BR2_TARGET_UBOOT_ENVIMAGE_SIZE setting))
 endif
 endif
 UBOOT_DEPENDENCIES += host-uboot-tools
@@ -419,7 +433,7 @@ endif
 ifeq ($(BR2_TARGET_UBOOT_BOOT_SCRIPT),y)
 ifeq ($(BR_BUILDING),y)
 ifeq ($(call qstrip,$(BR2_TARGET_UBOOT_BOOT_SCRIPT_SOURCE)),)
-$(error Please define a source file for Uboot boot script (BR2_TARGET_UBOOT_BOOT_SCRIPT_SOURCE setting))
+$(error Please define a source file for U-Boot boot script (BR2_TARGET_UBOOT_BOOT_SCRIPT_SOURCE setting))
 endif
 endif
 UBOOT_DEPENDENCIES += host-uboot-tools

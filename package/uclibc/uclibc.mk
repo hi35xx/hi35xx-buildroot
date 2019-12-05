@@ -4,9 +4,9 @@
 #
 ################################################################################
 
-UCLIBC_VERSION = 1.0.30
+UCLIBC_VERSION = 1.0.32
 UCLIBC_SOURCE = uClibc-ng-$(UCLIBC_VERSION).tar.xz
-UCLIBC_SITE = http://downloads.uclibc-ng.org/releases/$(UCLIBC_VERSION)
+UCLIBC_SITE = https://downloads.uclibc-ng.org/releases/$(UCLIBC_VERSION)
 UCLIBC_LICENSE = LGPL-2.1+
 UCLIBC_LICENSE_FILES = COPYING.LIB
 UCLIBC_INSTALL_STAGING = YES
@@ -388,7 +388,6 @@ define UCLIBC_KCONFIG_FIXUP_CMDS
 	$(UCLIBC_X86_TYPE_CONFIG)
 	$(UCLIBC_DEBUG_CONFIG)
 	$(UCLIBC_ENDIAN_CONFIG)
-	$(UCLIBC_LARGEFILE_CONFIG)
 	$(UCLIBC_IPV6_CONFIG)
 	$(UCLIBC_FLOAT_CONFIG)
 	$(UCLIBC_SSP_CONFIG)
