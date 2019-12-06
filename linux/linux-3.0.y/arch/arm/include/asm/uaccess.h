@@ -145,7 +145,7 @@ extern int __put_user_8(void *, unsigned long long);
 
 #define put_user(x,p)							\
 	({								\
-		register const typeof(*(p)) __r2 asm("r2") = (x);	\
+		register typeof(*(p)) __r2 asm("r2") = (x);	\
 		register const typeof(*(p)) __user *__p asm("r0") = (p);\
 		register int __e asm("r0");				\
 		switch (sizeof(*(__p))) {				\
