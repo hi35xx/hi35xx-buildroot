@@ -1,6 +1,7 @@
+From 03ce9a24d0afc34d6f94da9428d4f85e8652eb1b Mon Sep 17 00:00:00 2001
 From: Benjamin Drung <bdrung@debian.org>
 Date: Sat, 16 Sep 2017 11:22:03 +0200
-Subject: Add a pkg-config file for the shared libraries
+Subject: [PATCH 1/4] Add a pkg-config file for the shared libraries
 
 This patch was downloaded from Debian
 https://sources.debian.org/src/liblivemedia/2018.08.05-1/debian/patches/0002-Add-a-pkg-config-file-for-the-shared-libraries.patch/
@@ -23,7 +24,7 @@ Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
  create mode 100644 live555.pc.in
 
 diff --git a/Makefile.head b/Makefile.head
-index 458c54c..1571037 100644
+index 458c54c..06f23c4 100644
 --- a/Makefile.head
 +++ b/Makefile.head
 @@ -1 +1,4 @@
@@ -64,3 +65,6 @@ index 0000000..3736944
 +Version: @VERSION@
 +Cflags: -I${includedir}/liveMedia -I${includedir}/groupsock -I${includedir}/BasicUsageEnvironment -I${includedir}/UsageEnvironment
 +Libs: -L${libdir} -lliveMedia -lgroupsock -lBasicUsageEnvironment -lUsageEnvironment
+-- 
+2.23.0
+

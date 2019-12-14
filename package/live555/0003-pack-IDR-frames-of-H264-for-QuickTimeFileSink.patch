@@ -1,0 +1,107 @@
+From db694d620838c8073c6dd3c861c016f66d17bcd5 Mon Sep 17 00:00:00 2001
+From: Watson Xu <xuhuashan@gmail.com>
+Date: Sun, 14 Apr 2019 23:35:37 +0800
+Subject: [PATCH 3/4] pack IDR frames of H264 for QuickTimeFileSink
+
+pack the SPS/PPS/SEI packet of H.264 into IDR frame for QuickTimeFileSink.
+---
+ liveMedia/QuickTimeFileSink.cpp | 34 ++++++++++++++++++++++++++-------
+ 1 file changed, 27 insertions(+), 7 deletions(-)
+
+diff --git a/liveMedia/QuickTimeFileSink.cpp b/liveMedia/QuickTimeFileSink.cpp
+index 62c8655..bbd9527 100644
+--- a/liveMedia/QuickTimeFileSink.cpp
++++ b/liveMedia/QuickTimeFileSink.cpp
+@@ -32,7 +32,8 @@ along with this library; if not, write to the Free Software Foundation, Inc.,
+ 
+ #define fourChar(x,y,z,w) ( ((x)<<24)|((y)<<16)|((z)<<8)|(w) )
+ 
+-#define H264_IDR_FRAME 0x65  //bit 8 == 0, bits 7-6 (ref) == 3, bits 5-0 (type) == 5
++// SEI(6), SPS(7), PPS(8) will be packed into IDR(5) frame
++#define H264_KEY_FRAME(t) ((t) == 5 || (t) == 6 || (t) == 7 || (t) == 8)
+ 
+ ////////// SubsessionIOState, ChunkDescriptor ///////////
+ // A structure used to represent the I/O state of each input 'subsession':
+@@ -395,6 +396,11 @@ Boolean QuickTimeFileSink::continuePlaying() {
+     haveActiveSubsessions = True;
+     unsigned char* toPtr = ioState->fBuffer->dataEnd();
+     unsigned toSize = ioState->fBuffer->bytesAvailable();
++    // Preserve 4 bytes 'frame size prefix' for H264 frame
++    if (ioState->fQTMediaDataAtomCreator == &QuickTimeFileSink::addAtom_avc1) {
++      toPtr += 4;
++      toSize -= 4;
++    }
+     subsessionSource->getNextFrame(toPtr, toSize,
+ 				   afterGettingFrame, ioState,
+ 				   onSourceClosure, ioState);
+@@ -730,6 +736,24 @@ void SubsessionIOState::afterGettingFrame(unsigned packetDataSize,
+   if (fBuffer->bytesInUse() == 0) {
+     fBuffer->setPresentationTime(presentationTime);
+   }
++
++  if (fQTMediaDataAtomCreator == &QuickTimeFileSink::addAtom_avc1) {
++    unsigned char *framePtr = fBuffer->dataEnd();
++    // Insert a frame size prefix in front of the frame:
++    framePtr[0] = (unsigned char)(packetDataSize >> 24);
++    framePtr[1] = (unsigned char)(packetDataSize >> 16);
++    framePtr[2] = (unsigned char)(packetDataSize >> 8);
++    framePtr[3] = (unsigned char)packetDataSize;
++    fBuffer->addBytes(4);
++    unsigned char nalu_type = framePtr[4] & 0x1f;
++    // SPS/PPS/SEI packet should be packed into the following IDR frame
++    if ((nalu_type == 6) || (nalu_type == 7) || (nalu_type == 8)) {
++      fBuffer->addBytes(packetDataSize);
++      fOurSink.continuePlaying();
++      return;
++    }
++  }
++
+   fBuffer->addBytes(packetDataSize);
+ 
+   // If our RTP source is a "QuickTimeGenericRTPSource", then
+@@ -809,7 +833,6 @@ void SubsessionIOState::useFrame(SubsessionBuffer& buffer) {
+       || fQTcomponentSubtype != fourChar('v','i','d','e')) {
+     unsigned const frameDuration = fQTTimeUnitsPerSample*fQTSamplesPerFrame;
+     unsigned frameSizeToUse = frameSize;
+-    if (avcHack) frameSizeToUse += 4; // H.264/AVC gets the frame size prefix
+ 
+     fQTTotNumSamples += useFrame1(frameSizeToUse, presentationTime, frameDuration, destFileOffset);
+   } else {
+@@ -825,7 +848,6 @@ void SubsessionIOState::useFrame(SubsessionBuffer& buffer) {
+       unsigned frameDuration
+ 	= (unsigned)((2*duration*fQTTimeScale+1)/2); // round
+       unsigned frameSizeToUse = fPrevFrameState.frameSize;
+-      if (avcHack) frameSizeToUse += 4; // H.264/AVC gets the frame size prefix
+ 
+       unsigned numSamples
+ 	= useFrame1(frameSizeToUse, ppt, frameDuration, fPrevFrameState.destFileOffset);
+@@ -833,7 +855,7 @@ void SubsessionIOState::useFrame(SubsessionBuffer& buffer) {
+       sampleNumberOfFrameStart = fQTTotNumSamples + 1;
+     }
+ 
+-    if (avcHack && (*frameSource == H264_IDR_FRAME)) {
++    if (avcHack && H264_KEY_FRAME(frameSource[4] & 0x1F)) {
+       SyncFrame* newSyncFrame = new SyncFrame(fQTTotNumSamples + 1);
+       if (fTailSyncFrame == NULL) {
+         fHeadSyncFrame = newSyncFrame;
+@@ -849,8 +871,6 @@ void SubsessionIOState::useFrame(SubsessionBuffer& buffer) {
+     fPrevFrameState.destFileOffset = destFileOffset;
+   }
+ 
+-  if (avcHack) fOurSink.addWord(frameSize);
+-
+   // Write the data into the file:
+   fwrite(frameSource, 1, frameSize, fOurSink.fOutFid);
+ 
+@@ -1119,7 +1139,7 @@ Boolean SubsessionIOState::syncOK(struct timeval presentationTime) {
+ 
+ 	  // if audio is in sync, wait for the next IDR frame to start
+ 	  unsigned char* const frameSource = fBuffer->dataStart();
+-	  if (*frameSource != H264_IDR_FRAME) return False;
++	  if (!H264_KEY_FRAME(frameSource[4] & 0x1F)) return False;
+ 	}
+ 	// But now we are
+ 	fHaveBeenSynced = True;
+-- 
+2.23.0
+

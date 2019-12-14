@@ -1,0 +1,230 @@
+From 17969339a79efc41b95eb16232dbf30b6249c261 Mon Sep 17 00:00:00 2001
+From: Watson Xu <xuhuashan@gmail.com>
+Date: Sun, 14 Apr 2019 23:47:37 +0800
+Subject: [PATCH 4/4] Fix the compatibility issue for QuickTimeFileSink
+
+1. place the "ftyp" atom to the beginning of the file
+1. add key-frame as stss entries for non-sync mode.
+2. wait idr frame before video starts for non-sync mode.
+3. remove hdlr atom from minf.
+4. replace alis with url at dref atom.
+5. use stco instead of co64 when chunk offset is not execeeded 32bits limit.
+6. trim trailing zeros when decodding sps and pps
+7. fix the esds atom issue of mp4a
+---
+ liveMedia/QuickTimeFileSink.cpp        | 87 ++++++++++++++++----------
+ liveMedia/include/QuickTimeFileSink.hh |  4 +-
+ 2 files changed, 57 insertions(+), 34 deletions(-)
+
+diff --git a/liveMedia/QuickTimeFileSink.cpp b/liveMedia/QuickTimeFileSink.cpp
+index bbd9527..7936ced 100644
+--- a/liveMedia/QuickTimeFileSink.cpp
++++ b/liveMedia/QuickTimeFileSink.cpp
+@@ -303,13 +303,16 @@ QuickTimeFileSink::QuickTimeFileSink(UsageEnvironment& env,
+   gettimeofday(&fStartTime, NULL);
+   fAppleCreationTime = fStartTime.tv_sec - 0x83da4f80;
+ 
++  if (fGenerateMP4Format) {
++    // Begin with a "ftyp" atom:
++    addAtom_ftyp();
++  }
++
+   // Begin by writing a "mdat" atom at the start of the file.
+   // (Later, when we've finished copying data to the file, we'll come
+   // back and fill in its size.)
+   fMDATposition = TellFile64(fOutFid);
+   addAtomHeader64("mdat");
+-  // add 64Bit offset
+-  fMDATposition += 8;
+ }
+ 
+ QuickTimeFileSink::~QuickTimeFileSink() {
+@@ -488,9 +491,9 @@ void QuickTimeFileSink::completeOutputFile() {
+   if (fHaveCompletedOutputFile || fOutFid == NULL) return;
+ 
+   // Begin by filling in the initial "mdat" atom with the current
+-  // file size:
++  // file size minus the offset of "mdat" atom:
+   int64_t curFileSize = TellFile64(fOutFid);
+-  setWord64(fMDATposition, (u_int64_t)curFileSize);
++  setWord64(fMDATposition + 8, (u_int64_t)curFileSize - fMDATposition);
+ 
+   // Then, note the time of the first received data:
+   MediaSubsessionIterator iter(fInputSession);
+@@ -521,11 +524,6 @@ void QuickTimeFileSink::completeOutputFile() {
+     }
+   }
+ 
+-  if (fGenerateMP4Format) {
+-    // Begin with a "ftyp" atom:
+-    addAtom_ftyp();
+-  }
+-
+   // Then, add a "moov" atom for the file metadata:
+   addAtom_moov();
+ 
+@@ -835,6 +833,16 @@ void SubsessionIOState::useFrame(SubsessionBuffer& buffer) {
+     unsigned frameSizeToUse = frameSize;
+ 
+     fQTTotNumSamples += useFrame1(frameSizeToUse, presentationTime, frameDuration, destFileOffset);
++
++    if (avcHack && H264_KEY_FRAME(frameSource[4] & 0x1F)) {
++      SyncFrame* newSyncFrame = new SyncFrame(fQTTotNumSamples);
++      if (fTailSyncFrame == NULL) {
++        fHeadSyncFrame = newSyncFrame;
++      } else {
++        fTailSyncFrame->nextSyncFrame = newSyncFrame;
++      }
++      fTailSyncFrame = newSyncFrame;
++    }
+   } else {
+     // For synced video streams, we use the difference between successive
+     // frames' presentation times as the 'frame duration'.  So, record
+@@ -1124,7 +1132,14 @@ void SubsessionIOState::onSourceClosure() {
+ 
+ Boolean SubsessionIOState::syncOK(struct timeval presentationTime) {
+   QuickTimeFileSink& s = fOurSink; // abbreviation
+-  if (!s.fSyncStreams || fOurSubsession.rtpSource() == NULL) return True; // we don't care
++  if (!s.fSyncStreams || fOurSubsession.rtpSource() == NULL) {
++    // wait for the next IDR frame to start for H264 subsession
++    if (fQTMediaDataAtomCreator == &QuickTimeFileSink::addAtom_avc1) {
++      unsigned char nalu = fBuffer->dataStart()[4] & 0x1F;
++      if (!fQTTotNumSamples && !(H264_KEY_FRAME(nalu))) return False;
++    }
++    return True; // we don't care
++  }
+ 
+   if (s.fNumSyncedSubsessions < s.fNumSubsessions) {
+     // Not all subsessions have yet been synced.  Check whether ours was
+@@ -1618,7 +1633,6 @@ addAtom(minf);
+   SubsessionIOState::atomCreationFunc mediaInformationAtomCreator
+     = fCurrentIOState->fQTMediaInformationAtomCreator;
+   size += (this->*mediaInformationAtomCreator)();
+-  size += addAtom_hdlr2();
+   size += addAtom_dinf();
+   size += addAtom_stbl();
+ addAtomEnd;
+@@ -1646,17 +1660,6 @@ addAtom(gmin);
+   size += addWord(0x00000000); // Balance + Reserved
+ addAtomEnd;
+ 
+-unsigned QuickTimeFileSink::addAtom_hdlr2() {
+-  int64_t initFilePosn = TellFile64(fOutFid);
+-  unsigned size = addAtomHeader("hdlr");
+-  size += addWord(0x00000000); // Version + Flags
+-  size += add4ByteString("dhlr"); // Component type
+-  size += add4ByteString("alis"); // Component subtype
+-  size += add4ByteString("appl"); // Component manufacturer
+-  size += addZeroWords(2); // Component flags+Component flags mask
+-  size += addArbitraryString("Apple Alias Data Handler"); // Component name
+-addAtomEnd;
+-
+ addAtom(dinf);
+   size += addAtom_dref();
+ addAtomEnd;
+@@ -1664,10 +1667,12 @@ addAtomEnd;
+ addAtom(dref);
+   size += addWord(0x00000000); // Version + Flags
+   size += addWord(0x00000001); // Number of entries
+-  size += addAtom_alis();
++  size += addAtom_url();
+ addAtomEnd;
+ 
+-addAtom(alis);
++unsigned QuickTimeFileSink::addAtom_url() {
++  int64_t initFilePosn = TellFile64(fOutFid);
++  unsigned size = addAtomHeader("url ");
+   size += addWord(0x00000001); // Version + Flags
+ addAtomEnd;
+ 
+@@ -1679,7 +1684,12 @@ addAtom(stbl);
+   }
+   size += addAtom_stsc();
+   size += addAtom_stsz();
+-  size += addAtom_co64();
++  ChunkDescriptor* tailChunk = fCurrentIOState->fTailChunk;
++  if (tailChunk && (tailChunk->fOffsetInFile >> 32) == 0) {
++    size += addAtom_stco();
++  } else {
++    size += addAtom_co64();
++  }
+ addAtomEnd;
+ 
+ addAtom(stsd);
+@@ -1817,12 +1827,12 @@ addAtom(esds);
+     // MPEG-4 audio
+     size += addWord(0x00000000); // ???
+     size += addWord(0x03808080); // ???
+-    size += addWord(0x2a000000); // ???
++    size += addWord(0x22000100); // ???
+     size += addWord(0x04808080); // ???
+-    size += addWord(0x1c401500); // ???
+-    size += addWord(0x18000000); // ???
+-    size += addWord(0x6d600000); // ???
+-    size += addWord(0x6d600580); // ???
++    size += addWord(0x14401500); // ???
++    size += addWord(0x00000000); // ???
++    size += addWord(0x3e1d0000); // ???
++    size += addWord(0x3e1d0580); // ???
+     size += addByte(0x80); size += addByte(0x80); // ???
+   } else if (strcmp(subsession.mediumName(), "video") == 0) {
+     // MPEG-4 video
+@@ -1918,9 +1928,9 @@ addAtom(avcC);
+   char const* sps_b64 = psets;
+   char const* pps_b64 = &psets[comma_pos+1];
+   unsigned sps_count;
+-  unsigned char* sps_data = base64Decode(sps_b64, sps_count, false);
++  unsigned char* sps_data = base64Decode(sps_b64, sps_count, true);
+   unsigned pps_count;
+-  unsigned char* pps_data = base64Decode(pps_b64, pps_count, false);
++  unsigned char* pps_data = base64Decode(pps_b64, pps_count, true);
+ 
+ // Then add the decoded data:
+   size += addByte(0x01); // configuration version
+@@ -2181,6 +2191,19 @@ addAtom(stsz); // Sample Size
+   }
+ addAtomEnd;
+ 
++addAtom(stco); // Chunk Offset
++  size += addWord(0x00000000); // Version+flags
++  size += addWord(fCurrentIOState->fNumChunks); // Number of entries
++
++  // Run through the chunk descriptors, entering the file offsets:
++  ChunkDescriptor* chunk = fCurrentIOState->fHeadChunk;
++  while (chunk != NULL) {
++    size += addWord((unsigned)chunk->fOffsetInFile);
++
++    chunk = chunk->fNextChunk;
++  }
++addAtomEnd;
++
+ addAtom(co64); // Chunk Offset
+   size += addWord(0x00000000); // Version+flags
+   size += addWord(fCurrentIOState->fNumChunks); // Number of entries
+diff --git a/liveMedia/include/QuickTimeFileSink.hh b/liveMedia/include/QuickTimeFileSink.hh
+index f057077..2b4dcb9 100644
+--- a/liveMedia/include/QuickTimeFileSink.hh
++++ b/liveMedia/include/QuickTimeFileSink.hh
+@@ -128,10 +128,9 @@ private:
+                   _atom(vmhd);
+                   _atom(gmhd);
+                       _atom(gmin);
+-                  unsigned addAtom_hdlr2();
+                   _atom(dinf);
+                       _atom(dref);
+-                          _atom(alis);
++                          unsigned addAtom_url();
+                   _atom(stbl);
+                       _atom(stsd);
+                           unsigned addAtom_genericMedia();
+@@ -158,6 +157,7 @@ private:
+                       _atom(stss);
+                       _atom(stsc);
+                       _atom(stsz);
++                      _atom(stco);
+                       _atom(co64);
+           _atom(udta);
+               _atom(name);
+-- 
+2.23.0
+

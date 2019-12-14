@@ -1,7 +1,18 @@
-diff -uNr a/liveMedia/AVIFileSink.cpp b/liveMedia/AVIFileSink.cpp
---- a/liveMedia/AVIFileSink.cpp	2017-10-28 08:26:18.000000000 +0800
-+++ b/liveMedia/AVIFileSink.cpp	2018-06-03 22:03:14.726713891 +0800
-@@ -255,6 +255,11 @@
+From a9726802261a6004a6b2f85d3d401031742ebbe6 Mon Sep 17 00:00:00 2001
+From: Watson Xu <xuhuashan@gmail.com>
+Date: Sun, 14 Apr 2019 23:11:14 +0800
+Subject: [PATCH 2/4] pack IDR frames of H264 for AVIFileSink
+
+pack the SPS/PPS/SEI packet of H.264 into IDR frame for AVIFileSink.
+---
+ liveMedia/AVIFileSink.cpp | 33 +++++++++++++++++++++++++--------
+ 1 file changed, 25 insertions(+), 8 deletions(-)
+
+diff --git a/liveMedia/AVIFileSink.cpp b/liveMedia/AVIFileSink.cpp
+index c9ec147..8339675 100644
+--- a/liveMedia/AVIFileSink.cpp
++++ b/liveMedia/AVIFileSink.cpp
+@@ -255,6 +255,11 @@ Boolean AVIFileSink::continuePlaying() {
      haveActiveSubsessions = True;
      unsigned char* toPtr = ioState->fBuffer->dataEnd();
      unsigned toSize = ioState->fBuffer->bytesAvailable();
@@ -13,7 +24,7 @@ diff -uNr a/liveMedia/AVIFileSink.cpp b/liveMedia/AVIFileSink.cpp
      subsessionSource->getNextFrame(toPtr, toSize,
  				   afterGettingFrame, ioState,
  				   onSourceClosure, ioState);
-@@ -491,6 +496,22 @@
+@@ -491,6 +496,22 @@ void AVISubsessionIOState::afterGettingFrame(unsigned packetDataSize,
    if (fBuffer->bytesInUse() == 0) {
      fBuffer->setPresentationTime(presentationTime);
    }
@@ -36,7 +47,7 @@ diff -uNr a/liveMedia/AVIFileSink.cpp b/liveMedia/AVIFileSink.cpp
    fBuffer->addBytes(packetDataSize);
  
    useFrame(*fBuffer);
-@@ -534,22 +555,18 @@
+@@ -534,22 +555,18 @@ void AVISubsessionIOState::useFrame(SubsessionBuffer& buffer) {
    }
  
    // Add an index record for this frame:
@@ -63,3 +74,6 @@ diff -uNr a/liveMedia/AVIFileSink.cpp b/liveMedia/AVIFileSink.cpp
    fwrite(frameSource, 1, frameSize, fOurSink.fOutFid);
    fOurSink.fNumBytesWritten += frameSize;
    // Pad to an even length:
+-- 
+2.23.0
+
