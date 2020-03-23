@@ -8,7 +8,7 @@ ifeq ($(BR2_csky),y)
 QEMU_VERSION = b517e1dc3125a57555d67a8deed9eac7b42288e2
 QEMU_SITE = $(call github,c-sky,qemu,$(QEMU_VERSION))
 else
-QEMU_VERSION = 3.1.1.1
+QEMU_VERSION = 4.2.0
 QEMU_SOURCE = qemu-$(QEMU_VERSION).tar.xz
 QEMU_SITE = http://download.qemu.org
 endif
@@ -89,11 +89,11 @@ else
 QEMU_OPTS += --disable-seccomp
 endif
 
-ifeq ($(BR2_PACKAGE_LIBSSH2),y)
-QEMU_OPTS += --enable-libssh2
-QEMU_DEPENDENCIES += libssh2
+ifeq ($(BR2_PACKAGE_LIBSSH),y)
+QEMU_OPTS += --enable-libssh
+QEMU_DEPENDENCIES += libssh
 else
-QEMU_OPTS += --disable-libssh2
+QEMU_OPTS += --disable-libssh
 endif
 
 ifeq ($(BR2_PACKAGE_LIBUSB),y)
@@ -246,9 +246,12 @@ endif
 endif
 HOST_QEMU_SYS_ARCH ?= $(HOST_QEMU_ARCH)
 
+HOST_QEMU_CFLAGS = $(HOST_CFLAGS)
+
 ifeq ($(BR2_PACKAGE_HOST_QEMU_SYSTEM_MODE),y)
 HOST_QEMU_TARGETS += $(HOST_QEMU_SYS_ARCH)-softmmu
 HOST_QEMU_OPTS += --enable-system --enable-fdt
+HOST_QEMU_CFLAGS += -I$(HOST_DIR)/include/libfdt
 HOST_QEMU_DEPENDENCIES += host-dtc
 else
 HOST_QEMU_OPTS += --disable-system
@@ -297,7 +300,7 @@ define HOST_QEMU_CONFIGURE_CMDS
 		--interp-prefix=$(STAGING_DIR) \
 		--cc="$(HOSTCC)" \
 		--host-cc="$(HOSTCC)" \
-		--extra-cflags="$(HOST_CFLAGS)" \
+		--extra-cflags="$(HOST_QEMU_CFLAGS)" \
 		--extra-ldflags="$(HOST_LDFLAGS)" \
 		--python=$(HOST_DIR)/bin/python3 \
 		$(HOST_QEMU_OPTS)

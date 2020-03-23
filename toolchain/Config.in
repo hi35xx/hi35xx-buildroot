@@ -159,6 +159,13 @@ config BR2_TOOLCHAIN_HAS_GCC_BUG_90620
 	bool
 	default y if BR2_microblaze
 
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=93847
+# ICE: compiler error: Segmentation fault on Nios II. This bug
+# no longer exists in gcc 9.x.
+config BR2_TOOLCHAIN_HAS_GCC_BUG_93847
+	bool
+	default y if BR2_nios2 && !BR2_TOOLCHAIN_GCC_AT_LEAST_9
+
 config BR2_TOOLCHAIN_HAS_NATIVE_RPC
 	bool
 
@@ -188,6 +195,10 @@ config BR2_TOOLCHAIN_HAS_THREADS_NPTL
 
 config BR2_TOOLCHAIN_HAS_SSP
 	bool
+
+config BR2_TOOLCHAIN_HAS_SSP_STRONG
+	bool
+	default y if BR2_TOOLCHAIN_HAS_SSP && BR2_TOOLCHAIN_GCC_AT_LEAST_4_9
 
 config BR2_TOOLCHAIN_HAS_UCONTEXT
 	bool
@@ -454,10 +465,23 @@ config BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_3
 	bool
 	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_2
 
+config BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_4
+	bool
+	select BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_3
+	select BR2_TOOLCHAIN_HEADERS_LATEST
+
+# This should be selected by the latest version, above, to indicate that
+# Buildroot does not know of more recent headers than the ones selected.
+# This allows using toolchains with headers more recent than Buildroot
+# knows about, while still enforcing strict check for older headers.
+config BR2_TOOLCHAIN_HEADERS_LATEST
+	bool
+
 # This order guarantees that the highest version is set, as kconfig
 # stops affecting a value on the first matching default.
 config BR2_TOOLCHAIN_HEADERS_AT_LEAST
 	string
+	default "5.4"  if BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_4
 	default "5.3"  if BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_3
 	default "5.2"  if BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_2
 	default "5.1"  if BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_1

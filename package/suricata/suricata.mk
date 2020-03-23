@@ -11,6 +11,9 @@ SURICATA_LICENSE_FILES = COPYING LICENSE
 # We're patching configure.ac
 SURICATA_AUTORECONF = YES
 
+# 0004-stream-reject-broken-ACK-packets.patch
+SURICATA_IGNORE_CVES += CVE-2019-18792
+
 SURICATA_DEPENDENCIES = \
 	host-pkgconf \
 	$(if $(BR2_PACKAGE_JANSSON),jansson) \
@@ -21,8 +24,8 @@ SURICATA_DEPENDENCIES = \
 	libpcap \
 	libyaml \
 	$(if $(BR2_PACKAGE_LZ4),lz4) \
-	$(if $(BR2_PACKAGE_LZMA),lzma) \
-	pcre
+	pcre \
+	$(if $(BR2_PACKAGE_XZ),xz)
 
 SURICATA_CONF_ENV = ac_cv_path_HAVE_SPHINXBUILD=no
 
@@ -132,9 +135,6 @@ endef
 define SURICATA_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -D -m 644 package/suricata/suricata.service \
 		$(TARGET_DIR)/usr/lib/systemd/system/suricata.service
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
-	ln -sf ../../../../usr/lib/systemd/system/suricata.service \
-		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/suricata.service
 endef
 
 $(eval $(autotools-package))

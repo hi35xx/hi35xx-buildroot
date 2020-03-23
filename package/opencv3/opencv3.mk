@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-OPENCV3_VERSION = 3.4.6
+OPENCV3_VERSION = 3.4.9
 OPENCV3_SITE = $(call github,opencv,opencv,$(OPENCV3_VERSION))
 OPENCV3_INSTALL_STAGING = YES
 OPENCV3_LICENSE = BSD-3-Clause
@@ -12,11 +12,6 @@ OPENCV3_LICENSE_FILES = LICENSE
 OPENCV3_SUPPORTS_IN_SOURCE_BUILD = NO
 
 OPENCV3_CXXFLAGS = $(TARGET_CXXFLAGS)
-
-# Uses __atomic_fetch_add_4
-ifeq ($(BR2_TOOLCHAIN_HAS_LIBATOMIC),y)
-OPENCV3_CXXFLAGS += -latomic
-endif
 
 # Fix c++11 build with missing std::exception_ptr
 ifeq ($(BR2_TOOLCHAIN_HAS_GCC_BUG_64735),y)
@@ -109,17 +104,15 @@ OPENCV3_CONF_OPTS += \
 
 # Hardware support options.
 #
-# * PowerPC support is turned off since its only effect is altering CFLAGS,
-#   adding '-mcpu=G3 -mtune=G5' to them, which is already handled by Buildroot.
+# * PowerPC and VFPv3 support are turned off since their only effects
+#   are altering CFLAGS, adding '-mcpu=G3 -mtune=G5' or '-mfpu=vfpv3'
+#   to them, which is already handled by Buildroot.
+# * NEON logic is needed as it is not only used to add CFLAGS, but
+#   also to enable additional NEON code.
 OPENCV3_CONF_OPTS += \
 	-DENABLE_POWERPC=OFF \
-	-DENABLE_NEON=$(if $(BR2_ARM_CPU_HAS_NEON),ON,OFF)
-
-ifeq ($(BR2_ARCH_IS_64):$(BR2_ARM_CPU_HAS_VFPV3),:y)
-OPENCV3_CONF_OPTS += -DENABLE_VFPV3=ON
-else
-OPENCV3_CONF_OPTS += -DENABLE_VFPV3=OFF
-endif
+	-DENABLE_NEON=$(if $(BR2_ARM_CPU_HAS_NEON),ON,OFF) \
+	-DENABLE_VFPV3=OFF
 
 # Cuda stuff
 OPENCV3_CONF_OPTS += \
@@ -198,6 +191,7 @@ OPENCV3_CONF_OPTS += \
 	-DBUILD_JPEG=OFF \
 	-DBUILD_OPENEXR=OFF \
 	-DBUILD_PNG=OFF \
+	-DBUILD_PROTOBUF=OFF \
 	-DBUILD_TIFF=OFF \
 	-DBUILD_ZLIB=OFF \
 	-DINSTALL_C_EXAMPLES=OFF \
@@ -212,6 +206,7 @@ OPENCV3_CONF_OPTS += \
 	-DWITH_EIGEN=OFF \
 	-DWITH_GDAL=OFF \
 	-DWITH_GPHOTO2=OFF \
+	-DWITH_GSTREAMER_0_10=OFF \
 	-DWITH_LAPACK=OFF \
 	-DWITH_MATLAB=OFF \
 	-DWITH_OPENCL=OFF \
@@ -233,13 +228,6 @@ OPENCV3_CONF_OPTS += -DWITH_FFMPEG=ON
 OPENCV3_DEPENDENCIES += ffmpeg bzip2
 else
 OPENCV3_CONF_OPTS += -DWITH_FFMPEG=OFF
-endif
-
-ifeq ($(BR2_PACKAGE_OPENCV3_WITH_GSTREAMER),y)
-OPENCV3_CONF_OPTS += -DWITH_GSTREAMER_0_10=ON
-OPENCV3_DEPENDENCIES += gstreamer gst-plugins-base
-else
-OPENCV3_CONF_OPTS += -DWITH_GSTREAMER_0_10=OFF
 endif
 
 ifeq ($(BR2_PACKAGE_OPENCV3_WITH_GSTREAMER1),y)
@@ -291,6 +279,13 @@ OPENCV3_CONF_OPTS += -DWITH_PNG=ON
 OPENCV3_DEPENDENCIES += libpng
 else
 OPENCV3_CONF_OPTS += -DWITH_PNG=OFF
+endif
+
+ifeq ($(BR2_PACKAGE_OPENCV3_WITH_PROTOBUF),y)
+OPENCV3_CONF_OPTS += -DWITH_PROTOBUF=ON
+OPENCV3_DEPENDENCIES += protobuf
+else
+OPENCV3_CONF_OPTS += -DWITH_PROTOBUF=OFF
 endif
 
 ifeq ($(BR2_PACKAGE_OPENCV3_WITH_QT5),y)

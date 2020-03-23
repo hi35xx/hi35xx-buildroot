@@ -35,7 +35,21 @@ endef
 
 define OPENRC_INSTALL_TARGET_CMDS
 	$(MAKE) $(OPENRC_MAKE_OPTS) DESTDIR=$(TARGET_DIR) -C $(@D) install
+	$(INSTALL) -D -m 0755 $(OPENRC_PKGDIR)/sysv-rcs \
+		$(TARGET_DIR)/etc/init.d/sysv-rcs
 endef
+
+ifeq ($(BR2_PACKAGE_KBD),)
+# keymaps and save-keymaps require kbd_mode and dumpkeys, respectively, so
+# remove them if the kbd package is not selected (e.g. devices with serial
+# console, only).
+define OPENRC_NO_KBD
+	$(RM) $(TARGET_DIR)/etc/runlevels/boot/{keymaps,save-keymaps}
+	$(RM) $(TARGET_DIR)/etc/init.d/{keymaps,save-keymaps}
+	$(RM) $(TARGET_DIR)/etc/conf.d/keymaps
+endef
+OPENRC_POST_INSTALL_TARGET_HOOKS += OPENRC_NO_KBD
+endif
 
 ifeq ($(BR2_PACKAGE_NETIFRC),y)
 # netifrc replaces network, staticroute and loopback services which are
@@ -45,7 +59,7 @@ define OPENRC_NO_NET
 	$(RM) $(TARGET_DIR)/etc/init.d/{network,staticroute,loopback}
 	$(RM) $(TARGET_DIR)/etc/conf.d/{network,staticroute,loopback}
 endef
-OPENRC_POST_TARGET_INSTALL_HOOKS += OPENRC_NO_NET
+OPENRC_POST_INSTALL_TARGET_HOOKS += OPENRC_NO_NET
 endif
 
 define OPENRC_REMOVE_UNNEEDED

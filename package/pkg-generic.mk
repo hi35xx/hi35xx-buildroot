@@ -57,36 +57,45 @@ GLOBAL_INSTRUMENTATION_HOOKS += step_time
 
 # Hooks to collect statistics about installed files
 
-# The suffix is typically empty for the target variant, for legacy backward
-# compatibility.
 # $(1): package name
 # $(2): base directory to search in
-# $(3): suffix of file  (optional)
-define step_pkg_size_inner
-	@touch $(BUILD_DIR)/.files-list$(3).stat
-	@touch $(BUILD_DIR)/packages-file-list$(3).txt
-	$(SED) '/^$(1),/d' $(BUILD_DIR)/packages-file-list$(3).txt
+# $(3): suffix of file (optional)
+define step_pkg_size_before
 	cd $(2); \
 	LC_ALL=C find . \( -type f -o -type l \) -printf '%T@:%i:%#m:%y:%s,%p\n' \
-		| LC_ALL=C sort > $(BUILD_DIR)/.files-list$(3).new
+		| LC_ALL=C sort > $($(PKG)_BUILDDIR)/.files-list$(3).before
+endef
+
+# $(1): package name
+# $(2): base directory to search in
+# $(3): suffix of file (optional)
+define step_pkg_size_after
+	cd $(2); \
+	LC_ALL=C find . \( -type f -o -type l \) -printf '%T@:%i:%#m:%y:%s,%p\n' \
+		| LC_ALL=C sort > $($(PKG)_BUILDDIR)/.files-list$(3).after
 	LC_ALL=C comm -13 \
-		$(BUILD_DIR)/.files-list$(3).stat \
-		$(BUILD_DIR)/.files-list$(3).new \
+		$($(PKG)_BUILDDIR)/.files-list$(3).before \
+		$($(PKG)_BUILDDIR)/.files-list$(3).after \
+		| sed -r -e 's/^[^,]+/$(1)/' \
 		> $($(PKG)_BUILDDIR)/.files-list$(3).txt
-	sed -r -e 's/^[^,]+/$(1)/' \
-		$($(PKG)_BUILDDIR)/.files-list$(3).txt \
-		>> $(BUILD_DIR)/packages-file-list$(3).txt
-	mv $(BUILD_DIR)/.files-list$(3).new \
-		$(BUILD_DIR)/.files-list$(3).stat
+	rm -f $($(PKG)_BUILDDIR)/.files-list$(3).before
+	rm -f $($(PKG)_BUILDDIR)/.files-list$(3).after
 endef
 
 define step_pkg_size
-	$(if $(filter install-target,$(2)),\
-		$(if $(filter end,$(1)),$(call step_pkg_size_inner,$(3),$(TARGET_DIR))))
-	$(if $(filter install-staging,$(2)),\
-		$(if $(filter end,$(1)),$(call step_pkg_size_inner,$(3),$(STAGING_DIR),-staging)))
-	$(if $(filter install-host,$(2)),\
-		$(if $(filter end,$(1)),$(call step_pkg_size_inner,$(3),$(HOST_DIR),-host)))
+	$(if $(filter start-install-target,$(1)-$(2)),\
+		$(call step_pkg_size_before,$(3),$(TARGET_DIR)))
+	$(if $(filter start-install-staging,$(1)-$(2)),\
+		$(call step_pkg_size_before,$(3),$(STAGING_DIR),-staging))
+	$(if $(filter start-install-host,$(1)-$(2)),\
+		$(call step_pkg_size_before,$(3),$(HOST_DIR),-host))
+
+	$(if $(filter end-install-target,$(1)-$(2)),\
+		$(call step_pkg_size_after,$(3),$(TARGET_DIR)))
+	$(if $(filter end-install-staging,$(1)-$(2)),\
+		$(call step_pkg_size_after,$(3),$(STAGING_DIR),-staging))
+	$(if $(filter end-install-host,$(1)-$(2)),\
+		$(call step_pkg_size_after,$(3),$(HOST_DIR),-host))
 endef
 GLOBAL_INSTRUMENTATION_HOOKS += step_pkg_size
 
@@ -94,7 +103,7 @@ GLOBAL_INSTRUMENTATION_HOOKS += step_pkg_size
 define check_bin_arch
 	$(if $(filter end-install-target,$(1)-$(2)),\
 		support/scripts/check-bin-arch -p $(3) \
-			-l $(BUILD_DIR)/packages-file-list.txt \
+			-l $($(PKG)_BUILDDIR)/.files-list.txt \
 			$(foreach i,$($(PKG)_BIN_ARCH_EXCLUDE),-i "$(i)") \
 			-r $(TARGET_READELF) \
 			-a $(BR2_READELF_ARCH_NAME))
@@ -106,7 +115,7 @@ GLOBAL_INSTRUMENTATION_HOOKS += check_bin_arch
 # have a proper DT_RPATH or DT_RUNPATH tag
 define check_host_rpath
 	$(if $(filter install-host,$(2)),\
-		$(if $(filter end,$(1)),support/scripts/check-host-rpath $(3) $(HOST_DIR)))
+		$(if $(filter end,$(1)),support/scripts/check-host-rpath $(3) $(HOST_DIR) $(PER_PACKAGE_DIR)))
 endef
 GLOBAL_INSTRUMENTATION_HOOKS += check_host_rpath
 
@@ -134,6 +143,21 @@ endef
 GLOBAL_INSTRUMENTATION_HOOKS += step_user
 endif
 
+#######################################
+# Helper functions
+
+# Make sure .la files only reference the current per-package
+# directory.
+
+# $1: package name (lower case)
+# $2: staging directory of the package
+ifeq ($(BR2_PER_PACKAGE_DIRECTORIES),y)
+define fixup-libtool-files
+	$(Q)find $(2)/usr/lib* -name "*.la" | xargs --no-run-if-empty \
+		$(SED) "s:$(PER_PACKAGE_DIR)/[^/]\+/:$(PER_PACKAGE_DIR)/$(1)/:g"
+endef
+endif
+
 ################################################################################
 # Implicit targets -- produce a stamp file for each step of a package build
 ################################################################################
@@ -141,6 +165,7 @@ endif
 # Retrieve the archive
 $(BUILD_DIR)/%/.stamp_downloaded:
 	@$(call step_start,download)
+	$(call prepare-per-package-directory,$($(PKG)_FINAL_DOWNLOAD_DEPENDENCIES))
 	$(foreach hook,$($(PKG)_PRE_DOWNLOAD_HOOKS),$(call $(hook))$(sep))
 # Only show the download message if it isn't already downloaded
 	$(Q)for p in $($(PKG)_ALL_DOWNLOADS); do \
@@ -167,6 +192,7 @@ $(BUILD_DIR)/%/.stamp_actual_downloaded:
 $(BUILD_DIR)/%/.stamp_extracted:
 	@$(call step_start,extract)
 	@$(call MESSAGE,"Extracting")
+	$(call prepare-per-package-directory,$($(PKG)_FINAL_EXTRACT_DEPENDENCIES))
 	$(foreach hook,$($(PKG)_PRE_EXTRACT_HOOKS),$(call $(hook))$(sep))
 	$(Q)mkdir -p $(@D)
 	$($(PKG)_EXTRACT_CMDS)
@@ -227,6 +253,8 @@ $(foreach dir,$(call qstrip,$(BR2_GLOBAL_PATCH_DIR)),\
 $(BUILD_DIR)/%/.stamp_configured:
 	@$(call step_start,configure)
 	@$(call MESSAGE,"Configuring")
+	$(call prepare-per-package-directory,$($(PKG)_FINAL_DEPENDENCIES))
+	$(call fixup-libtool-files,$(NAME),$(STAGING_DIR))
 	$(foreach hook,$($(PKG)_PRE_CONFIGURE_HOOKS),$(call $(hook))$(sep))
 	$($(PKG)_CONFIGURE_CMDS)
 	$(foreach hook,$($(PKG)_POST_CONFIGURE_HOOKS),$(call $(hook))$(sep))
@@ -319,8 +347,8 @@ $(BUILD_DIR)/%/.stamp_staging_installed:
 $(BUILD_DIR)/%/.stamp_images_installed:
 	@$(call step_start,install-image)
 	@mkdir -p $(BINARIES_DIR)
-	$(foreach hook,$($(PKG)_PRE_INSTALL_IMAGES_HOOKS),$(call $(hook))$(sep))
 	@$(call MESSAGE,"Installing to images directory")
+	$(foreach hook,$($(PKG)_PRE_INSTALL_IMAGES_HOOKS),$(call $(hook))$(sep))
 	+$($(PKG)_INSTALL_IMAGES_CMDS)
 	$(foreach hook,$($(PKG)_POST_INSTALL_IMAGES_HOOKS),$(call $(hook))$(sep))
 	@$(call step_end,install-image)
@@ -349,6 +377,7 @@ $(BUILD_DIR)/%/.stamp_target_installed:
 
 # Remove package sources
 $(BUILD_DIR)/%/.stamp_dircleaned:
+	$(if $(BR2_PER_PACKAGE_DIRECTORIES),rm -Rf $(PER_PACKAGE_DIR)/$(NAME))
 	rm -Rf $(@D)
 
 ################################################################################
@@ -624,15 +653,9 @@ $(2)_EXTRACT_DEPENDENCIES += $$(BR2_TAR_HOST_DEPENDENCY)
 endif
 
 ifeq ($$(filter host-tar host-skeleton host-xz host-lzip host-fakedate,$(1)),)
-ifneq ($$(filter .xz .lzma,$$(suffix $$($(2)_SOURCE))),)
-$(2)_EXTRACT_DEPENDENCIES += $$(BR2_XZCAT_HOST_DEPENDENCY)
-endif
-endif
-
-ifeq ($$(filter host-tar host-skeleton host-xz host-lzip host-fakedate,$(1)),)
-ifneq ($$(filter .lz,$$(suffix $$($(2)_SOURCE))),)
-$(2)_EXTRACT_DEPENDENCIES += $$(BR2_LZIP_HOST_DEPENDENCY)
-endif
+$(2)_EXTRACT_DEPENDENCIES += \
+	$$(foreach dl,$$($(2)_ALL_DOWNLOADS),\
+		$$(call extractor-pkg-dependency,$$(notdir $$(dl))))
 endif
 
 ifeq ($$(BR2_CCACHE),y)
@@ -690,10 +713,10 @@ $(2)_INSTALL_TARGET		?= YES
 $(2)_TARGET_INSTALL_TARGET =	$$($(2)_DIR)/.stamp_target_installed
 $(2)_TARGET_INSTALL_STAGING =	$$($(2)_DIR)/.stamp_staging_installed
 $(2)_TARGET_INSTALL_IMAGES =	$$($(2)_DIR)/.stamp_images_installed
-$(2)_TARGET_INSTALL_HOST =      $$($(2)_DIR)/.stamp_host_installed
+$(2)_TARGET_INSTALL_HOST =	$$($(2)_DIR)/.stamp_host_installed
 $(2)_TARGET_BUILD =		$$($(2)_DIR)/.stamp_built
 $(2)_TARGET_CONFIGURE =		$$($(2)_DIR)/.stamp_configured
-$(2)_TARGET_RSYNC =	        $$($(2)_DIR)/.stamp_rsynced
+$(2)_TARGET_RSYNC =		$$($(2)_DIR)/.stamp_rsynced
 $(2)_TARGET_PATCH =		$$($(2)_DIR)/.stamp_patched
 $(2)_TARGET_EXTRACT =		$$($(2)_DIR)/.stamp_extracted
 $(2)_TARGET_SOURCE =		$$($(2)_DIR)/.stamp_downloaded
@@ -921,6 +944,7 @@ $$($(2)_TARGET_INSTALL_IMAGES):		PKG=$(2)
 $$($(2)_TARGET_INSTALL_HOST):		PKG=$(2)
 $$($(2)_TARGET_BUILD):			PKG=$(2)
 $$($(2)_TARGET_CONFIGURE):		PKG=$(2)
+$$($(2)_TARGET_CONFIGURE):		NAME=$(1)
 $$($(2)_TARGET_RSYNC):			SRCDIR=$$($(2)_OVERRIDE_SRCDIR)
 $$($(2)_TARGET_RSYNC):			PKG=$(2)
 $$($(2)_TARGET_PATCH):			PKG=$(2)
@@ -932,6 +956,7 @@ $$($(2)_TARGET_SOURCE):			PKGDIR=$(pkgdir)
 $$($(2)_TARGET_ACTUAL_SOURCE):		PKG=$(2)
 $$($(2)_TARGET_ACTUAL_SOURCE):		PKGDIR=$(pkgdir)
 $$($(2)_TARGET_DIRCLEAN):		PKG=$(2)
+$$($(2)_TARGET_DIRCLEAN):		NAME=$(1)
 
 # Compute the name of the Kconfig option that correspond to the
 # package being enabled. We handle three cases: the special Linux
@@ -1076,7 +1101,7 @@ else ifeq ($$($(2)_SITE_METHOD),cvs)
 DL_TOOLS_DEPENDENCIES += cvs
 endif # SITE_METHOD
 
-DL_TOOLS_DEPENDENCIES += $$(call extractor-dependency,$$($(2)_SOURCE))
+DL_TOOLS_DEPENDENCIES += $$(call extractor-system-dependency,$$($(2)_SOURCE))
 
 # Ensure all virtual targets are PHONY. Listed alphabetically.
 .PHONY:	$(1) \

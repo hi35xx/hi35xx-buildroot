@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LIBCURL_VERSION = 7.66.0
+LIBCURL_VERSION = 7.68.0
 LIBCURL_SOURCE = curl-$(LIBCURL_VERSION).tar.xz
 LIBCURL_SITE = https://curl.haxx.se/download
 LIBCURL_DEPENDENCIES = host-pkgconf \
@@ -72,6 +72,13 @@ LIBCURL_CONF_OPTS += --with-mbedtls=$(STAGING_DIR)/usr
 LIBCURL_DEPENDENCIES += mbedtls
 else
 LIBCURL_CONF_OPTS += --without-mbedtls
+endif
+
+ifeq ($(BR2_PACKAGE_LIBCURL_WOLFSSL),y)
+LIBCURL_CONF_OPTS += --with-wolfssl=$(STAGING_DIR)/usr
+LIBCURL_DEPENDENCIES += wolfssl
+else
+LIBCURL_CONF_OPTS += --without-wolfssl
 endif
 
 ifeq ($(BR2_PACKAGE_C_ARES),y)
@@ -155,7 +162,7 @@ define LIBCURL_FIX_DOT_PC
 endef
 LIBCURL_POST_PATCH_HOOKS += $(if $(BR2_PACKAGE_LIBCURL_OPENSSL),LIBCURL_FIX_DOT_PC)
 
-ifeq ($(BR2_PACKAGE_CURL),)
+ifeq ($(BR2_PACKAGE_LIBCURL_CURL),)
 define LIBCURL_TARGET_CLEANUP
 	rm -rf $(TARGET_DIR)/usr/bin/curl
 endef

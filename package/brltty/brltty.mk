@@ -15,6 +15,9 @@ BRLTTY_LICENSE_FILES = LICENSE-LGPL README
 BRLTTY_DEPENDENCIES = $(TARGET_NLS_DEPENDENCIES) host-autoconf host-pkgconf \
 	$(if $(BR2_PACKAGE_AT_SPI2_CORE),at-spi2-core)
 
+BRLTTY_CONF_ENV = \
+	PKG_CONFIG_FOR_BUILD=$(HOST_DIR)/bin/pkgconf
+
 BRLTTY_CONF_OPTS = \
 	--disable-java-bindings \
 	--disable-lisp-bindings \
@@ -121,10 +124,6 @@ endef
 define BRLTTY_INSTALL_INIT_SYSTEMD
 	$(INSTALL) -D -m 0644 package/brltty/brltty.service \
 		   $(TARGET_DIR)/usr/lib/systemd/system/brltty.service
-
-	mkdir -p $(TARGET_DIR)/etc/systemd/system/sysinit.target.wants
-	ln -fs  ../../../../usr/lib/systemd/system/brltty.service \
-		$(TARGET_DIR)/etc/systemd/system/sysinit.target.wants/brltty.service
 endef
 
 $(eval $(autotools-package))

@@ -3,6 +3,8 @@ config BR2_TARGET_UBOOT
 	help
 	  Build "Das U-Boot" Boot Monitor
 
+	  https://www.denx.de/wiki/U-Boot
+
 if BR2_TARGET_UBOOT
 choice
 	prompt "Build system"
@@ -39,7 +41,7 @@ choice
 	  Select the specific U-Boot version you want to use
 
 config BR2_TARGET_UBOOT_LATEST_VERSION
-	bool "2019.10"
+	bool "2020.01"
 
 config BR2_TARGET_UBOOT_CUSTOM_VERSION
 	bool "Custom version"
@@ -96,7 +98,7 @@ config BR2_TARGET_UBOOT_CUSTOM_LOCAL_PATH
 
 config BR2_TARGET_UBOOT_VERSION
 	string
-	default "2019.10"	if BR2_TARGET_UBOOT_LATEST_VERSION
+	default "2020.01"	if BR2_TARGET_UBOOT_LATEST_VERSION
 	default BR2_TARGET_UBOOT_CUSTOM_VERSION_VALUE \
 		if BR2_TARGET_UBOOT_CUSTOM_VERSION
 	default "custom"	if BR2_TARGET_UBOOT_CUSTOM_TARBALL
@@ -235,6 +237,9 @@ config BR2_TARGET_UBOOT_FORMAT_DTB_IMX
 
 config BR2_TARGET_UBOOT_FORMAT_IMG
 	bool "u-boot.img"
+
+config BR2_TARGET_UBOOT_FORMAT_ITB
+	bool "u-boot.itb"
 
 config BR2_TARGET_UBOOT_FORMAT_IMX
 	bool "u-boot.imx"

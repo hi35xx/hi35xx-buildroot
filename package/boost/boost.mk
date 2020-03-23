@@ -4,12 +4,16 @@
 #
 ################################################################################
 
-BOOST_VERSION = 1.71.0
+BOOST_VERSION = 1.72.0
 BOOST_SOURCE = boost_$(subst .,_,$(BOOST_VERSION)).tar.bz2
 BOOST_SITE = https://dl.bintray.com/boostorg/release/$(BOOST_VERSION)/source
 BOOST_INSTALL_STAGING = YES
 BOOST_LICENSE = BSL-1.0
 BOOST_LICENSE_FILES = LICENSE_1_0.txt
+
+# CVE-2009-3654 is misclassified (by our CVE tracker) as affecting to boost,
+# while in fact it affects Drupal (a module called boost in there).
+BOOST_IGNORE_CVES += CVE-2009-3654
 
 # keep host variant as minimal as possible
 HOST_BOOST_FLAGS = --without-icu --with-toolset=gcc \

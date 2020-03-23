@@ -1,3 +1,197 @@
+2020.02, released March 8th, 2020
+
+	Various fixes.
+
+	br2-external: Fix compatibility with make 4.3+
+
+	Updated/fixed packages: bash, bcm2835, binutils, cups,
+	erlang-p1-acme, fbgrab, gr-osmosdr, gst1-plugins-base,
+	gst1-validate, gstreamer1, guile, jhead, libdrm, libevdev,
+	libinput, libnss, libsndfile, libvncserver, linux-firmware,
+	mesa3d, nodejs, openjdk-bin, openvmtools, optee-test, patch,
+	php, piglit, pppd, python-django, qemu, qt5base, ruby,
+	ser2net, swupdate, thrift, zziplib
+
+	Removed packages: classpath, jamvm
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#12606: fbgrab location has changed
+
+2020.02-rc3, released March 2nd, 2020
+
+	Fixes all over the tree.
+
+	Infrastructure: Rework file list handling to fix race
+	conditions when building with per-package target and host
+	directories and top-level parallel builds.
+
+	Updated/fixed packages: aufs, binutils, blktrace, brltty,
+	cairo, dnsmasq, docker-compose, elf2flt, exim, exiv2, git,
+	kodi-inputstream-adaptive, libarchive, libcgroup, libgdiplus,
+	libssh2, libvncserver, libvorbis, linknx, linux-firmware, lxc,
+	lz4, mosquitto, openjpeg, openrc, poco, proftpd, pure-ftpd,
+	python3, python-multidict, python-setuptools-scm-git-archive,
+	qpdf, qt5tools, rdesktop, rocksdb, shellinabox, squid,
+	suricata, swig, systemd, taglib, util-linux, wireshark, zsh
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#12571: ltp-testsuite : Build failure
+	#12576: 2020.02-RC1: error while loading shared libraries: ...
+	#12581: 2020.02-rc1 glibc failing to build on fedora 31
+
+2020.02-rc2, released February 26th, 2020
+
+	Fixes all over the tree.
+
+	Toolchain: Ensure strong SSP can only be enabled if the
+	(external) toolchain supports it.
+
+	Fix a race condition related to creating the output/staging
+	symlink on systems with coreutils < 8.27.
+
+	Drop support for the (end of life) Qt 5.6 variant.
+
+	Updated/fixed packages: at, armadillo, audiofile, bash,
+	busybox, erlang, fail2ban, fluidsynth, ipsec-tools, jpeg-turbo,
+	kvm-unit-tests, libftdi1, libinput, libsvgtiny, libtomcrypt,
+	libupnpp, libxml2, linux-tools, luv, mbedtls, mesa3d, minicom,
+	openvmtools, php, qt5, qt5webengine, qwt, radvd, rcw,
+	sdbusplus, systemd, tpm2-tss, vorbis-tools
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#12581: 2020.02-rc1 glibc failing to build on fedora 31
+
+2020.02-rc1, released February 18th, 2020
+
+	Fixes all over the tree and new features.
+
+	Add experimental support for building with a per-package
+	target and host directory. This still has some rough edges,
+	but brings a number of advantages:
+
+	- Packages will only be able to access the explicitly listed
+          dependencies and not any other packages that happen to be
+          built before, ensuring correct dependency information in
+          Buildroot.
+
+	- Possibility for top-level parallel builds, speeding up
+          builds on multicore machines.
+
+	Core: Ensure package-file-lists data is correct after
+	incremental builds as well.
+
+	Architecture: Add support for ARC-HS38 with 64bit multiplier
+	variant, allow building glibc for big endian ARC, handle 16KB
+	MMU page size for ARC in toolchain wrapper.
+
+	Toolchain: Add binutils 2.33.1, GCC 7.5.0, Arm 9.2-2019.12
+	toolchains, ARC 2019.09 toolchain. Allow using custom kernel
+	headers newer than what is known by Buildroot.
+
+	pkg-stats: Support for CVE vulnerability reporting by
+	comparing to NVD database.
+
+	Reproducible builds: The go -trimpath option is now used to
+	get rid of absolute build paths, __FILE__ and __BASE_FILE__
+	defines are now handled in the toolchain wrapper.
+
+	Systemd: Build host variant and use systemctl to automatically
+	enable unit files rather than manually managing symlinks.
+
+	Util-linux: Ensure that hwclock is built without GPLv3
+	code. Notice that builds with hwclock has contained
+	GPLv3-licensed code since util-linux 2.30 (Buildroot 2017.08+)
+
+	New defconfigs: Beelink GS1, Raspberrypi4 64bit
+
+	New packages: alura, avro-c, bubblewrap, cctz, cereal,
+	cpuburn-arm, elixir, erlang-base64url, erlang-idna,
+	erlang-jose, erlang-p1-acme, erlang-p1-mqtree,
+	erlang-p1-yconf, fluid-soundfont, fluidsynth, gcnano-binaries,
+	gensio, glslsandbox-player, libargon2, libmodsecurity,
+	libpam-nfc, libtelnet, lua-codegen, lua-livr, lua-livr-extra,
+	lua-rotas, lua-silva, mfoc, network-manager-openvpn,
+	nginx-modsecurity, perl-crypt-openssl-aes,
+	perl-math-prime-util, pipewire, ptm2human, python-aenum,
+	python-aiohttp-debugtoolbar, python-aiohttp-mako,
+	python-aiologstash, python-aiosignal, python-aiozipkin,
+	python-async-lru, python-avro, python-bunch, python-crontab,
+	python-dnspython, python-entrypoints, python-esptool,
+	python-frozenlist, python-future, python-gitdb, python-janus,
+	python-lockfile, python-logstash, python-nested-dict,
+	python-pbr, python-pyaes, python-pydantic, python-smmap2,
+	python-sockjs, python-zc-lockfile, raspi-gpio, rocksdb,
+	sdbusplus, spidermonkey, thermald, ti-sgx-libgbm, tinyssh,
+	tio, umtprd, weston-imx, wireguard-linux-compat,
+	wireguard-tools, xdg-dbus-proxy
+
+	Removed packages: bluez_utils, celt051, erlang-p1-iconv, fis,
+	gadgetfs-test, libplayer, gstreamer, gst-ffmpeg,
+	gst-fsl-plugins, gst-omapfb, gst-plugins-bad,
+	gst-plugins-base, gst-plugins-good, gst-plugins-ugly,
+	perl-digest-md5, perl-mime-base64, perl-net-ping,
+	python-scapy3k, wireguard
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#11906: the new version of mesa3d cannot support etnaviv when..
+	#11996: opencv3 SIGILL on Cortex-A5 with VFPv4-D16
+	#12121: PyQt5.QtSerialPort and other modules not being built
+	#12256: package tar is outdated (1.29 is 3 years old
+	#12286: Can't import gobject in python 3.8
+	#12376: python-scapy3k is deprecated
+	#12386: carriage return issue when "make menuconfig"
+	#12441: qt5webengine build error: asm/errno.h: No such file or..
+	#12446: Buildroot fails to finish installing packages
+	#12456: qtvirtualkeyboard: No such file or directory
+	#12461: libglib2 build files with deep directory structure
+	#12481: minicom fails when output directory path contains "m4"
+	#12501: libnss-3.49.1: ld error: multiple definition of `gcm_..
+	#12526: host-nodejs 12.14.1: configure fail: AttributeError: ..
+	#12536: Linux-Headers extracting failure
+	#12546: Ninja 1.10 build Error
+
+2019.11.1, released January 12th, 2020
+
+	Important / security related fixes.
+
+	Infrastructure: kconfig: Fix reconfigure logic, python: Ensure
+	correct compiler and linker flags are used for compiled code
+
+	utils/scanpypi: Remind users to update DEVELOPERS
+
+	Defconfigs: imx6-sabresd: Fix the Qt5 display names,
+	imx8: Drop extra copy of U-Boot DTB
+
+	Updated/fixed packages: acsccid, bitcoin, boost, busybox,
+	cc-tool, cmocka, cpio, cups, dante, dialog, dillo, docker-cli,
+	docker-containerd, docker-engine, easy-rsa, ebtables,
+	ecryptfs-utils, efl, ffmpeg, gdb, git, glibc, gnupg2, go,
+	gpsd, grpc, gst1-plugins-bad, iputils, jasper,
+	kf5-kcoreaddons, leveldb, libarchive, libfribi, libgit2,
+	libkrb5, libp11, librsvg, libssh, libtomcrypt, libuio, libv4l,
+	lirc-tools, log4cplus, lrzip, lvm2, mali-t76x,
+	matchbox-desktop, mender-grubenv, mmc-utils, mosquitto,
+	nodejs, ntp, openipmi, opencv3, openpowerlink, openrc, pango,
+	perl-sys-cpu, pimd, postgresql, pulseaudio, python-brotli,
+	python-coherence, python-crc16, python-django, python-dpkt,
+	python-gobject, python-pyasn-modules, python-pypcap,
+	python-pyqt5, python-subprocess32, python3, qpdf,
+	qt-webkit-kiosk, qt5virtualkeyboard, qt5webengine, quota,
+	rabbitmq-c, rauc, rpcbind, rtl8821au, runc, rygel, samba4,
+	sdl2, setserial, snort, spidev_test,
+	sunxi-mali-mainline-driver, syslog-ng, sysrepo, tcllib, tftpd,
+	usbmount, w_scan, wavpack, wsapi, wsapi-fcgi, wsapi-xavante,
+	x265, xserver_xorg-server, ytree, zip
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#12121: PyQt5.QtSerialPort and other modules not being built
+	#12286: Can't import gobject in python 3.8
+
 2019.11, released December 1st, 2019
 
 	Various fixes.
@@ -167,6 +361,47 @@
 	#12261: sudo versions prior to 1.8.28 are affected.
 	#12276: make clean/distclean does not remove BR2_DL_DIR and BR2_HOST_DIR
 	#12281: Custom configuration fails to build (based on raspberrypi3_..
+
+2019.08.3, released December 7th, 2019
+
+	Important / security related fixes.
+
+	Infrastructure: Make HOST_<pkg>_DL_OPTS inherit from
+	<pkg>_DL_OPTS by default, just like it is done for a number of
+	other package variables
+
+	Add <pkg>_KEEP_PY_FILES to exclude specific python .py files
+	from the removal done by BR2_PACKAGE_PYTHON{,3}_PYC_ONLY for
+	the (rare) case where the .py files are needed at runtime
+	rather than .pyc.
+
+	Fix <pkg>-reconfigure handling for packages using the kconfig
+	infrastructure.
+
+	Toolchain: ensure external toolchain kernel headers version
+	check correctly stop the build on mismatch
+
+	Deconfigs: beaglebone: fix boot issue
+
+	Updated/fixed packages: am33x-cm3, asterisk, bind, chrony,
+	clamav, cmocka, collectd, connman, dhcp, dropwatch, faifa,
+	gettext-tiny, gob2, haproxy, intel-microcode, ipsec-tools,
+	jailhouse, jasper, jpeg-turbo, kodi, kvm-unit-tests, libftdi,
+	libftdi1, libnss, libressl, libstrophe, libsvgtiny, lvm2,
+	lzma, mariadb, minicom, mosquitto, neardal, ninja, nodejs,
+	oniguruma, openvmtools, oracle-mysql, perl-gdgraph,
+	perl-gdtextutil, php, postgresql, prosody, python-cchardet,
+	python-django, qt5wayland, rabbitmq, rauc, redis, rpcbind,
+	socat, spice, spice-protocol, tftpd, tiff, webkitgtk
+
+	New packages: libmspack
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#12166: Compiling nodejs for SAMA5D3 always crash with illegal inst..
+	#12171: Python-opencv needs config.py and config-3.7.py to run..
+	#12211: host-nodejs 10.15.3 package fail to build
+	#12316: tzdata fails to install with empty "default local time"
 
 2019.08.2, released November 9th, 2019
 
@@ -615,6 +850,69 @@
 	#11756: package/syslinux: MBR's don't fit because of binutils..
 	#11761: Building custom kernel 5.1-rc3 or later breaks on objtool
 	#11816: Only selected coreutils binaries are installed
+
+2019.02.9, released January 12th, 2020
+
+	Important / security related fixes.
+
+	pkg-python infrastructure: Ensure correct compiler and linker
+	flags are used for compiled code
+
+	utils/scanpypi: Remind users to update DEVELOPERS
+
+	Updated/fixed packages: busybox, cc-tool, cpio, cups, dante,
+	dillo, docker-cli, docker-containerd, docker-engine, easy-rsa,
+	ecryptfs-utils, efl, git, glibc, gnupg2, gst1-plugins-bad,
+	kf5-kcoreaddons, libarchive, libgit2, libkrb5, librsvg,
+	libssh, libtomcrypt, libuio, lirc-tools, lvm2,
+	matchbox-desktop, nodejs, ntp, opencv3, openpowerlink,
+	python-django, python-ecdsa, python-pyasn-modules,
+	python-pyqt5, python-subprocess32, python3, qpdf, runc, rygel,
+	samba4, sdl2, wavpack, xserver_xorg-server, zip
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#12121: PyQt5.QtSerialPort and other modules not being built
+
+2019.02.8, released December 7th, 2019
+
+	Important / security related fixes.
+
+	Infrastructure: Make HOST_<pkg>_DL_OPTS inherit from
+	<pkg>_DL_OPTS by default, just like it is done for a number of
+	other package variables
+
+	Add <pkg>_KEEP_PY_FILES to exclude specific python .py files
+	from the removal done by BR2_PACKAGE_PYTHON{,3}_PYC_ONLY for
+	the (rare) case where the .py files are needed at runtime
+	rather than .pyc.
+
+	Fix <pkg>-reconfigure handling for packages using the kconfig
+	infrastructure.
+
+	Toolchain: ensure external toolchain kernel headers version
+	check correctly stop the build on mismatch
+
+	Deconfigs: beaglebone: fix boot issue
+
+	Updated/fixed packages: am33x-cm3, asterisk, bind, chrony,
+	clamav, collectd, connman, faifa, gob2, haproxy,
+	intel-microcode, ipsec-tools, jasper, jpeg-turbo, kodi,
+	kvm-unit-tests, libftdi, libftdi1, libnss, libstrophe,
+	libsvgtiny, lvm2, lzma, mariadb, minicom, neardal, nodejs,
+	opencv3, openvmtools, oracle-mysql, perl-gdgraph,
+	perl-gdtextutil, php, postgresql, prosody, python-django,
+	rabbitmq-c, rauc, redis, rpcbind, socat, spice,
+	spice-protocol, tftpd, tiff, webkitgtk
+
+	New packages: libmspack
+
+	Issues resolved (http://bugs.uclibc.org):
+
+	#12166: Compiling nodejs for SAMA5D3 always crash with illegal inst..
+	#12171: Python-opencv needs config.py and config-3.7.py to run..
+	#12211: host-nodejs 10.15.3 package fail to build
+	#12316: tzdata fails to install with empty "default local time"
 
 2019.02.7, Released November 10th, 2019
 

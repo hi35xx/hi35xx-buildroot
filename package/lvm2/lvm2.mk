@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LVM2_VERSION = 2.02.183
+LVM2_VERSION = 2.02.185
 LVM2_SOURCE = LVM2.$(LVM2_VERSION).tgz
 LVM2_SITE = ftp://sources.redhat.com/pub/lvm2
 LVM2_INSTALL_STAGING = YES
@@ -30,6 +30,10 @@ LVM2_MAKE_ENV = $(TARGET_CONFIGURE_OPTS)
 
 # package/readline is GPL-3.0+, so not license compatible
 LVM2_CONF_OPTS += --disable-readline
+
+ifeq ($(BR2_PACKAGE_HAS_UDEV),y)
+LVM2_CONF_OPTS += --enable-udev_rules
+endif
 
 ifeq ($(BR2_PACKAGE_LIBSELINUX),y)
 LVM2_CONF_OPTS += --enable-selinux

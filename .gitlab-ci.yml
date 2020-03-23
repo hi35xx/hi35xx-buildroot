@@ -161,6 +161,7 @@ beagleboardx15_defconfig: { extends: .defconfig }
 beaglebone_defconfig: { extends: .defconfig }
 beaglebone_qt5_defconfig: { extends: .defconfig }
 beagleboneai_defconfig: { extends: .defconfig }
+beelink_gs1_defconfig: { extends: .defconfig }
 chromebook_snow_defconfig: { extends: .defconfig }
 ci20_defconfig: { extends: .defconfig }
 csky_gx6605s_defconfig: { extends: .defconfig }
@@ -296,6 +297,7 @@ raspberrypi2_defconfig: { extends: .defconfig }
 raspberrypi3_64_defconfig: { extends: .defconfig }
 raspberrypi3_defconfig: { extends: .defconfig }
 raspberrypi3_qt5we_defconfig: { extends: .defconfig }
+raspberrypi4_64_defconfig: { extends: .defconfig }
 raspberrypi4_defconfig: { extends: .defconfig }
 raspberrypi_defconfig: { extends: .defconfig }
 riotboard_defconfig: { extends: .defconfig }
@@ -373,10 +375,14 @@ tests.init.test_systemd.TestInitSystemSystemdRwFull: { extends: .runtime_test }
 tests.init.test_systemd.TestInitSystemSystemdRwIfupdown: { extends: .runtime_test }
 tests.init.test_systemd.TestInitSystemSystemdRwNetworkd: { extends: .runtime_test }
 tests.package.test_atop.TestAtop: { extends: .runtime_test }
+tests.package.test_crudini.TestCrudiniPy2: { extends: .runtime_test }
+tests.package.test_crudini.TestCrudiniPy3: { extends: .runtime_test }
 tests.package.test_docker_compose.TestDockerCompose: { extends: .runtime_test }
 tests.package.test_dropbear.TestDropbear: { extends: .runtime_test }
 tests.package.test_glxinfo.TestGlxinfo: { extends: .runtime_test }
 tests.package.test_ipython.TestIPythonPy3: { extends: .runtime_test }
+tests.package.test_libftdi1.TestPythonPy2Libftdi1: { extends: .runtime_test }
+tests.package.test_libftdi1.TestPythonPy3Libftdi1: { extends: .runtime_test }
 tests.package.test_lpeg.TestLuaLPeg: { extends: .runtime_test }
 tests.package.test_lpeg.TestLuajitLPeg: { extends: .runtime_test }
 tests.package.test_lsqlite3.TestLuaLsqlite3: { extends: .runtime_test }
@@ -410,8 +416,10 @@ tests.package.test_luasocket.TestLuajitLuaSocket: { extends: .runtime_test }
 tests.package.test_luasyslog.TestLuaLuasyslog: { extends: .runtime_test }
 tests.package.test_luasyslog.TestLuajitLuasyslog: { extends: .runtime_test }
 tests.package.test_luvi.TestLuvi: { extends: .runtime_test }
+tests.package.test_lxc.TestLxc: { extends: .runtime_test }
 tests.package.test_lzlib.TestLuaLzlib: { extends: .runtime_test }
 tests.package.test_openjdk.TestOpenJdk: { extends: .runtime_test }
+tests.package.test_opkg.TestOpkg: { extends: .runtime_test }
 tests.package.test_perl.TestPerl: { extends: .runtime_test }
 tests.package.test_perl_class_load.TestPerlClassLoad: { extends: .runtime_test }
 tests.package.test_perl_dbd_mysql.TestPerlDBDmysql: { extends: .runtime_test }
@@ -435,8 +443,11 @@ tests.package.test_python_autobahn.TestPythonPy2Autobahn: { extends: .runtime_te
 tests.package.test_python_autobahn.TestPythonPy3Autobahn: { extends: .runtime_test }
 tests.package.test_python_automat.TestPythonPy2Automat: { extends: .runtime_test }
 tests.package.test_python_automat.TestPythonPy3Automat: { extends: .runtime_test }
+tests.package.test_python_avro.TestPythonAvro: { extends: .runtime_test }
 tests.package.test_python_bitstring.TestPythonPy2Bitstring: { extends: .runtime_test }
 tests.package.test_python_bitstring.TestPythonPy3Bitstring: { extends: .runtime_test }
+tests.package.test_python_can.TestPythonPy2Can: { extends: .runtime_test }
+tests.package.test_python_can.TestPythonPy3Can: { extends: .runtime_test }
 tests.package.test_python_cbor.TestPythonPy2Cbor: { extends: .runtime_test }
 tests.package.test_python_cbor.TestPythonPy3Cbor: { extends: .runtime_test }
 tests.package.test_python_click.TestPythonPy2Click: { extends: .runtime_test }
@@ -446,6 +457,10 @@ tests.package.test_python_constantly.TestPythonPy3Constantly: { extends: .runtim
 tests.package.test_python_crossbar.TestPythonPy3Crossbar: { extends: .runtime_test }
 tests.package.test_python_cryptography.TestPythonPy2Cryptography: { extends: .runtime_test }
 tests.package.test_python_cryptography.TestPythonPy3Cryptography: { extends: .runtime_test }
+tests.package.test_python_django.TestPythonPy3Django: { extends: .runtime_test }
+tests.package.test_python_gitdb2.TestPythonPy2Gitdb2: { extends: .runtime_test }
+tests.package.test_python_gitdb2.TestPythonPy3Gitdb2: { extends: .runtime_test }
+tests.package.test_python_gobject.TestPythonPy2Gobject: { extends: .runtime_test }
 tests.package.test_python_incremental.TestPythonPy2Incremental: { extends: .runtime_test }
 tests.package.test_python_incremental.TestPythonPy3Incremental: { extends: .runtime_test }
 tests.package.test_python_passlib.TestPythonPy2Passlib: { extends: .runtime_test }
@@ -458,6 +473,8 @@ tests.package.test_python_pyyaml.TestPythonPy2Pyyaml: { extends: .runtime_test }
 tests.package.test_python_pyyaml.TestPythonPy3Pyyaml: { extends: .runtime_test }
 tests.package.test_python_service_identity.TestPythonPy2ServiceIdentity: { extends: .runtime_test }
 tests.package.test_python_service_identity.TestPythonPy3ServiceIdentity: { extends: .runtime_test }
+tests.package.test_python_smmap2.TestPythonPy2Smmap2: { extends: .runtime_test }
+tests.package.test_python_smmap2.TestPythonPy3Smmap2: { extends: .runtime_test }
 tests.package.test_python_subprocess32.TestPythonPy2Subprocess32: { extends: .runtime_test }
 tests.package.test_python_treq.TestPythonPy2Treq: { extends: .runtime_test }
 tests.package.test_python_treq.TestPythonPy3Treq: { extends: .runtime_test }
