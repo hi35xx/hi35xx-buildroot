@@ -1,0 +1,46 @@
+#!/bin/sh
+#
+# Start himpp....
+#
+
+HIMPP_PREFIX=/usr
+SENSOR0_TYPE=$(fw_printenv -n sensor0type 2>/dev/null)
+SENSOR0_TYPE=${SENSOR0_TYPE:-sc4236}
+
+start() {
+    (
+      echo -n "Starting himpp: "
+      cd ${HIMPP_PREFIX}/lib/himpp-ko
+      osmem=$(cat /proc/cmdline 2>/dev/null | \
+              sed -nr 's/mem=([^[:space:]]+).*/\1/p')
+      ./load3516ev200 -i -sensor0 ${SENSOR0_TYPE} -osmem ${osmem}
+      [ $? = 0 ] && echo "OK" || echo "FAIL"
+    )
+}
+
+stop() {
+    (
+      echo -n "Stopping himpp: "
+      cd ${HIMPP_PREFIX}/lib/himpp-ko
+      ./load3516ev200 -r
+      [ $? = 0 ] && echo "OK" || echo "FAIL"
+    )
+}
+
+case "$1" in
+    start)
+	start
+	;;
+    stop)
+	stop
+	;;
+    restart|reload)
+	stop
+	start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

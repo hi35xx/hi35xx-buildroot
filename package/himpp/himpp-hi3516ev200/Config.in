@@ -1,0 +1,36 @@
+comment "Options for hi3516ev200 mpp"
+
+config BR2_PACKAGE_HIMPP_PREFIX
+	string "Install prefix"
+	default "/usr"
+	help
+	  Prefix to install himpp on the target file system.
+
+choice
+	bool "SDK Version"
+	default BR2_PACKAGE_HIMPP_HI3516EV200_SDK_V1_0_1_2
+
+config BR2_PACKAGE_HIMPP_HI3516EV200_SDK_V1_0_1_2
+	bool "1.0.1.2"
+
+endchoice
+
+choice
+	bool "Board"
+	default BR2_PACKAGE_HIMPP_HI3516EV200_BOARD_HI3516EV200
+
+config BR2_PACKAGE_HIMPP_HI3516EV200_BOARD_HI3516EV200
+	bool "hi3516ev200"
+
+config BR2_PACKAGE_HIMPP_HI3516EV200_BOARD_HI3516EV300
+	bool "hi3516ev300"
+
+config BR2_PACKAGE_HIMPP_HI3516EV200_BOARD_HI3518EV300
+	bool "hi3518ev300"
+
+endchoice
+
+config BR2_PACKAGE_HIMPP_HI3516EV200_SDK_VERSION
+	string
+	default "1.0.1.2" if BR2_PACKAGE_HIMPP_HI3516EV200_SDK_V1_0_1_2
+

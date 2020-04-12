@@ -1,0 +1,64 @@
+#!/bin/sh
+#
+# Start live-streamer
+#
+
+SENSOR0_TYPE=$(fw_printenv -n sensor0type 2>/dev/null)
+SENSOR0_TYPE=${SENSOR0_TYPE:-sc4236}
+VICROP=$(fw_printenv -n vicrop 2>/dev/null)
+# high-definition live stream resolution
+HDLVOPT=$(fw_printenv -n hdlvopt 2>/dev/null)
+HDLVOPT=${HDLVOPT:-encoding=H265,br=2048}
+# standard-definition live stream resolution
+SDLVOPT=$(fw_printenv -n sdlvopt 2>/dev/null)
+SDLVOPT=${SDLVOPT:-encoding=H265,br=512,res=640x480}
+
+CONFIGFILE=/etc/config/live-streamer-${SENSOR0_TYPE}.conf
+[ -f "$CONFIGFILE" ] || cp -f /etc/config/live-streamer.conf "$CONFIGFILE"
+
+VPIPE="--pipe videv0:sensor=${SENSOR0_TYPE},online=2,${VICROP}|vichn0-0|isp0|vpgrp0|vpchn0-0"
+VPIPE="$VPIPE --pipe vpchn0-0|vechn0:${HDLVOPT}"
+VPIPE="$VPIPE --pipe vpchn0-0|vechn1:${SDLVOPT}"
+VSRCOPT="-vsrc vpchn0-0"
+VENCOPT="-venc vechn0 -venc vechn1"
+APIPE="--pipe acodec0:invol=56,outvol=0|aidev0|aichn0-0"
+APIPE="$APIPE --pipe aichn0-0|aechn0:encoding=AAC,br=16"
+APIPE="$APIPE --pipe aichn0-0|aechn1:encoding=G711A"
+APIPE="$APIPE --pipe acodec0|aodev0|aochn0-0|adchn0:encoding=G711A"
+AOUTOPT="--aout adchn0:port=6000"
+ASRCOPT="-asrc aichn0-0"
+AENCOPT="-aenc aechn0 -aenc aechn1"
+STREAMOPT="-stream 0:vechn0,aechn0 -stream 1:vechn1,aechn1"
+MEDIA_OPTIONS="$VPIPE $VSRCOPT $VENCOPT $APIPE $ASRCOPT $AENCOPT $STREAMOPT $AOUTOPT"
+
+start() {
+    echo -n "Starting live-streamer: "
+    start-stop-daemon -S -q -m -b -p /var/run/live-streamer.pid \
+                      -x live-streamer -- -S -c${CONFIGFILE} ${MEDIA_OPTIONS}
+    [ $? = 0 ] && echo "OK" || echo "FAIL"
+}
+
+stop() {
+    echo -n "Stopping live-streamer: "
+    start-stop-daemon -K -q -p /var/run/live-streamer.pid
+    [ $? = 0 ] && echo "OK" || echo "FAIL"
+    usleep 1000000
+}
+
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|reload)
+	stop
+	start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?

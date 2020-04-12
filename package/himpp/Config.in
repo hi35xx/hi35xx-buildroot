@@ -12,6 +12,11 @@ choice
 	help
 	  Select chip support for mpp
 
+config BR2_PACKAGE_HIMPP_HI3516EV200
+	bool "hi3516ev200"
+	help
+	  MPP for Hi3516EV200/Hi3516EV300/Hi3518EV300 chips
+
 config BR2_PACKAGE_HIMPP_HI3518V100
 	bool "hi3518/hi3516 v100"
 	help
@@ -36,10 +41,15 @@ endchoice
 
 config BR2_PACKAGE_HIMPP_CHIP
 	string
+	default "hi3516ev200" if BR2_PACKAGE_HIMPP_HI3516EV200
 	default "hi3518v100" if BR2_PACKAGE_HIMPP_HI3518V100
 	default "hi3518v200" if BR2_PACKAGE_HIMPP_HI3518V200
 	default "hi3520v100" if BR2_PACKAGE_HIMPP_HI3520V100
 	default "hi3520dv200" if BR2_PACKAGE_HIMPP_HI3520DV200
+
+if BR2_PACKAGE_HIMPP_HI3516EV200
+source "package/himpp/himpp-hi3516ev200/Config.in"
+endif # BR2_PACKAGE_HIMPP_HI3516EV200
 
 if BR2_PACKAGE_HIMPP_HI3518V100
 source "package/himpp/himpp-hi3518v100/Config.in"

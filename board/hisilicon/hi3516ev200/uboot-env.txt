@@ -1,0 +1,30 @@
+meminfo=mem=48M
+console=ttyAMA0,115200n8
+bootdelay=1
+baudrate=115200
+ethaddr=00:00:23:34:45:66
+ipaddr=192.168.3.200
+netmask=255.255.255.0
+serverip=192.168.3.15
+gatewayip=192.168.3.1
+preboot=
+rootpath=/tftpboot/hi3518/rootfs
+bootfile=hi3518/uImage
+loadaddr=0x40800000
+netdev=eth0
+nfsopts=hard,tcp,vers=3
+mtdparts=hi_sfc:512k(uboot),256k(uboot-env),256k(reserved),3m(kernel),8m(rootfs),-(user)
+flashroot=/dev/mtdblock4
+flashrootfstype=squashfs,jffs2
+flashoverlay=/dev/mtdblock5
+flashoverlayfstype=jffs2
+commonargs=setenv bootargs ${meminfo} console=${console} mtdparts=${mtdparts} ${hieth} init=/init
+flashargs=run commonargs; setenv bootargs ${bootargs} root=${flashroot} rootfstype=${flashrootfstype} overlay=${flashoverlay} overlayfstype=${flashoverlayfstype}
+flashboot=echo Booting from SPI Flash...; run flashargs; sf probe 0 && sf read ${loadaddr} 0x100000 0x300000 && bootm
+nfsargs=run commonargs; setenv bootargs ${bootargs} root=/dev/nfs nfsroot=${serverip}:${rootpath},${nfsopts}
+addip=setenv bootargs ${bootargs} ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:${netdev}:off
+nfsboot=echo Booting from NFS...; run nfsargs; run addip; tftp ${loadaddr} ${bootfile} && bootm ${loadaddr}
+autoboot=if run flashboot; then; else run nfsboot; fi
+loadupdatescript=fatload mmc 0 ${loadaddr} update.scr
+autoupdate=if gpio input 1; then if mmc list; then if run loadupdatescript; then source ${loadaddr}; fi; fi; fi
+bootcmd=run autoupdate; run autoboot

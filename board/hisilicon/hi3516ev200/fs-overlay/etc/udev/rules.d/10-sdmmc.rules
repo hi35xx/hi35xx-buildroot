@@ -1,0 +1,5 @@
+KERNEL!="mmcblk[0-9]p[0-9]", GOTO="sdmmc_hotplug_end"
+ENV{MDEV}="%k"
+ACTION=="add", RUN+="/sbin/sdmmc-hotplug.sh"
+ACTION=="remove", RUN+="/sbin/sdmmc-hotplug.sh"
+LABEL="sdmmc_hotplug_end"

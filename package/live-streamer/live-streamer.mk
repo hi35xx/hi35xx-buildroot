@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-LIVE_STREAMER_VERSION = e68ebd7e21f447eba6d89cc8a78a8f5a724fc620
+LIVE_STREAMER_VERSION = d004cf819dd13636fe911e8071c31b46b1df1ab4
 LIVE_STREAMER_SITE = $(call github,hi35xx,live-streamer,$(LIVE_STREAMER_VERSION))
 LIVE_STREAMER_DEPENDENCIES = host-pkgconf libev dbus-cpp live555
 LIVE_STREAMER_DEPENDENCIES += fontconfig sdl_ttf sdl_image
@@ -20,27 +20,32 @@ endif
 
 ifeq ($(BR2_PACKAGE_HIMPP_HI3518V100),y)
 LIVE_STREAMER_DEPENDENCIES += himpp-hi3518v100
-LIVE_STREAMER_CONF_OPTS += --with-hi3518v100mpp
+LIVE_STREAMER_CONF_OPTS += --with-hi3518v100
 endif
 
 ifeq ($(BR2_PACKAGE_HIMPP_HI3518V200),y)
 LIVE_STREAMER_DEPENDENCIES += himpp-hi3518v200
-LIVE_STREAMER_CONF_OPTS += --with-hi3518v200mpp
+LIVE_STREAMER_CONF_OPTS += --with-hi3518v200
 endif
 
 ifeq ($(BR2_PACKAGE_HIMPP_HI3520V100),y)
 LIVE_STREAMER_DEPENDENCIES += himpp-hi3520v100
-LIVE_STREAMER_CONF_OPTS += --with-hi3520v100mpp
+LIVE_STREAMER_CONF_OPTS += --with-hi3520v100
 endif
 
 ifeq ($(BR2_PACKAGE_HIMPP_HI3520DV200),y)
 LIVE_STREAMER_DEPENDENCIES += himpp-hi3520dv200
-LIVE_STREAMER_CONF_OPTS += --with-hi3520dv200mpp
+LIVE_STREAMER_CONF_OPTS += --with-hi3520dv200
 endif
 
-define LIVE_STREAMER_INSTALL_INIT_SYSV
-	$(INSTALL) -m 0755 -D package/live-streamer/S80streamer \
-		$(TARGET_DIR)/etc/init.d/S80streamer
-endef
+ifeq ($(BR2_PACKAGE_HIMPP_HI3516CV300),y)
+LIVE_STREAMER_DEPENDENCIES += himpp-hi3516cv200
+LIVE_STREAMER_CONF_OPTS += --with-hi3516cv200
+endif
+
+ifeq ($(BR2_PACKAGE_HIMPP_HI3516EV200),y)
+LIVE_STREAMER_DEPENDENCIES += himpp-hi3516ev200
+LIVE_STREAMER_CONF_OPTS += --with-hi3516ev200
+endif
 
 $(eval $(autotools-package))

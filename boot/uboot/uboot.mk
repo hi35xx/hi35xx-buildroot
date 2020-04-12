@@ -134,7 +134,12 @@ endif
 
 ifeq ($(BR2_TARGET_UBOOT_HI35XX_IMAGE),y)
 UBOOT_BINS += u-boot.bin
-UBOOT_BIN_HI35XX = u-boot-$(call qstrip,$(BR2_TARGET_UBOOT_BOARDNAME)).bin
+ifeq ($(BR2_TARGET_UBOOT_BUILD_SYSTEM_KCONFIG),y)
+UBOOT_BOARDNAME = $(BR2_TARGET_UBOOT_BOARD_DEFCONFIG)
+else
+UBOOT_BOARDNAME = $(BR2_TARGET_UBOOT_BOARDNAME)
+endif
+UBOOT_BIN_HI35XX = u-boot-$(call qstrip,$(UBOOT_BOARDNAME)).bin
 endif
 
 # The kernel calls AArch64 'arm64', but U-Boot calls it just 'arm', so
