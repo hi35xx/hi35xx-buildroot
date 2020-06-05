@@ -12,11 +12,17 @@ ROCKSDB_INSTALL_STAGING = YES
 
 ROCKSDB_MAKE_OPTS = PORTABLE=1
 
+# Internal error, aborting at dwarf2cfi.c:2802 in connect_traces
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58864
+ifeq ($(BR2_m68k_cf),y)
+ROCKSDB_EXTRA_CXXFLAGS += -fno-defer-pop
+endif
+
 ifeq ($(BR2_PACKAGE_BZIP2),y)
 ROCKSDB_DEPENDENCIES += bzip2
-ROCKSDB_CONF_OPTS += ROCKSDB_DISABLE_BZ2=0
+ROCKSDB_MAKE_OPTS += ROCKSDB_DISABLE_BZ2=0
 else
-ROCKSDB_CONF_OPTS += ROCKSDB_DISABLE_BZ2=1
+ROCKSDB_MAKE_OPTS += ROCKSDB_DISABLE_BZ2=1
 endif
 
 ifeq ($(BR2_PACKAGE_GFLAGS),y)
@@ -64,6 +70,7 @@ endif
 ifeq ($(BR2_STATIC_LIBS),y)
 ROCKSDB_BUILD_TARGETS += static_lib
 ROCKSDB_INSTALL_TARGETS += install-static
+ROCKSDB_EXTRA_CXXFLAGS += -DROCKSDB_NO_DYNAMIC_EXTENSION
 else ifeq ($(BR2_SHARED_LIBS),y)
 ROCKSDB_BUILD_TARGETS += shared_lib
 ROCKSDB_INSTALL_TARGETS += install-shared
@@ -71,6 +78,8 @@ else ifeq ($(BR2_SHARED_STATIC_LIBS),y)
 ROCKSDB_BUILD_TARGETS += shared_lib static_lib
 ROCKSDB_INSTALL_TARGETS += install-shared install-static
 endif
+
+ROCKSDB_MAKE_OPTS += EXTRA_CXXFLAGS="$(ROCKSDB_EXTRA_CXXFLAGS)"
 
 define ROCKSDB_BUILD_CMDS
 	$(TARGET_CONFIGURE_OPTS) $(MAKE) $(ROCKSDB_MAKE_OPTS) -C $(@D) \

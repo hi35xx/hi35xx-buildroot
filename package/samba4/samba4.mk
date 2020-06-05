@@ -4,14 +4,14 @@
 #
 ################################################################################
 
-SAMBA4_VERSION = 4.11.6
+SAMBA4_VERSION = 4.11.8
 SAMBA4_SITE = https://download.samba.org/pub/samba/stable
 SAMBA4_SOURCE = samba-$(SAMBA4_VERSION).tar.gz
 SAMBA4_INSTALL_STAGING = YES
 SAMBA4_LICENSE = GPL-3.0+
 SAMBA4_LICENSE_FILES = COPYING
 SAMBA4_DEPENDENCIES = \
-	host-e2fsprogs host-heimdal host-nfs-utils \
+	host-e2fsprogs host-heimdal host-nfs-utils host-python3 \
 	cmocka e2fsprogs gnutls popt zlib \
 	$(if $(BR2_PACKAGE_LIBAIO),libaio) \
 	$(if $(BR2_PACKAGE_LIBCAP),libcap) \
@@ -25,14 +25,11 @@ SAMBA4_CONF_ENV = \
 	XSLTPROC=false \
 	WAF_NO_PREFORK=1
 
+SAMBA4_PYTHON = PYTHON="$(HOST_DIR)/bin/python3"
 ifeq ($(BR2_PACKAGE_PYTHON3),y)
-SAMBA4_PYTHON = \
-	PYTHON="$(HOST_DIR)/bin/python3" \
-	PYTHON_CONFIG="$(STAGING_DIR)/usr/bin/python3-config"
-SAMBA4_DEPENDENCIES += host-python3 python3
+SAMBA4_PYTHON += PYTHON_CONFIG="$(STAGING_DIR)/usr/bin/python3-config"
+SAMBA4_DEPENDENCIES += python3
 else
-SAMBA4_PYTHON = PYTHON="$(HOST_DIR)/bin/python2"
-SAMBA4_DEPENDENCIES += host-python
 SAMBA4_CONF_OPTS += --disable-python
 endif
 

@@ -5,7 +5,7 @@
 ################################################################################
 
 # Keep the version and patches in sync with bluez5_utils-headers
-BLUEZ5_UTILS_VERSION = 5.52
+BLUEZ5_UTILS_VERSION = 5.54
 BLUEZ5_UTILS_SOURCE = bluez-$(BLUEZ5_UTILS_VERSION).tar.xz
 BLUEZ5_UTILS_SITE = $(BR2_KERNEL_MIRROR)/linux/bluetooth
 BLUEZ5_UTILS_INSTALL_STAGING = YES
@@ -49,6 +49,14 @@ ifeq ($(BR2_PACKAGE_BLUEZ5_UTILS_PLUGINS_HEALTH),y)
 BLUEZ5_UTILS_CONF_OPTS += --enable-health
 else
 BLUEZ5_UTILS_CONF_OPTS += --disable-health
+endif
+
+# enable mesh profile
+ifeq ($(BR2_PACKAGE_BLUEZ5_UTILS_PLUGINS_MESH),y)
+BLUEZ5_UTILS_CONF_OPTS += --enable-external-ell --enable-mesh
+BLUEZ5_UTILS_DEPENDENCIES += ell json-c readline
+else
+BLUEZ5_UTILS_CONF_OPTS += --disable-external-ell --disable-mesh
 endif
 
 # enable midi profile
